@@ -1687,7 +1687,57 @@ function vStyle(){
       <div class="clipsum"><span class="th" style="background-image:url('${esc(c0.thumb||'')}')"></span><div style="min-width:0"><div class="t1" style="font-weight:600">${n>1?`${n} clips, ${nv.join?'joined':'separate'}`:esc(c0.name)}</div><div class="t2">${n} clip${n>1?'s':''}${total()?' · '+fmtT(Math.round(total())):''} · ${aspectOf()==='9:16'?'Tall':'Wide'} ${aspectOf()}</div></div><button class="ul" onclick="rgo('new')">Change</button></div></div>
     <div class="sec2"><div class="sh"><b>Styles</b><button class="b2 s" onclick="openCreate()">${ic('plus',14,2.2)}New style</button></div>${gridRows([...cards].sort((a,b)=>(isDefault(b)-isDefault(a))||(!!b.studying-!!a.studying)||(!!b.own-!!a.own)||((b.made||0)-(a.made||0))).map(c=>pickCard(c,idx(c))),per)}</div>
     <div class="pfoot"><div style="min-width:0"><div class="t1" style="font-weight:600">${esc(cur?cur.name:styleName(nv.style))}</div>${cur&&cur.runs?`<div class="t2 calls" style="margin:4px 0 6px">Runs ${cur.runs.map(r=>`<span>${esc(r)}</span>`).join(' → ')} · <a href="#" onclick="openStyle(${J(cur.id)});return false">Change</a></div>`:''}<div class="t2" style="white-space:normal">First the cut. Captions, zooms and sound start after you approve it.${S.new_claude?` ${n>1&&!nv.join?'Each video gets':'It gets'} its own Claude in a new Terminal window.`:''}</div>${S.listening||S.new_claude?'':`<div class="t2" style="white-space:normal;margin-top:10px">${connectHTML('Claude is not listening.')}</div>`}</div>
-      <button class="b1" id="make" onclick="makeVideo()">Make my video</button></div></div>`;
+      <span class="row" style="gap:12px"><button class="b2" onclick="openMotion()">New motion video</button><button class="b1" id="make" onclick="makeVideo()">Make my video</button></span></div></div>`;
+}
+// ---- New motion video: a film name, a one-line idea, a format and references (files or links, each with what to take).
+// The server makes <library>/films/<name>/ (refs/, refs.json) and queues JOB motion for Claude.
+const FILM_FMT=[['9:16',9,14],['1:1',12,12],['16:9',14,9]];
+const filmSlug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+/,'').slice(0,40).replace(/-+$/,'');
+const FILM_RE=/\.(mp4|mov|m4v|webm|mkv|avi|mts|3gp|png|jpe?g|webp|gif|heic)$/i;
+function openMotion(){ui.mfilm={name:'',idea:'',format:'9:16',refs:[]};render();setTimeout(()=>{const e=$('#mf-name');if(e)e.focus()},0)}
+function closeMotion(){ui.mfilm=null;render()}
+function motionModal(){
+  const m=ui.mfilm;
+  return `<div class="modalbg" onclick="if(event.target===this)closeMotion()"><div class="modal nsm" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <div class="row" style="justify-content:space-between"><b class="mt2" id="mtitle">New motion video</b><button class="mx2" aria-label="Close" title="Close" onclick="closeMotion()">${ic('x',18,2)}</button></div>
+    <label class="lkb"><b>Film name</b><input id="mf-name" class="input" placeholder="launch-teaser" value="${esc(m.name)}" oninput="ui.mfilm.name=this.value" onchange="this.value=ui.mfilm.name=filmSlug(this.value)" autocomplete="off" spellcheck="false"></label>
+    <label class="lkb"><b>The idea</b><input id="mf-idea" class="input" maxlength="300" placeholder="A 15 second teaser for the app, fast and clean" value="${esc(m.idea)}" oninput="ui.mfilm.idea=this.value" autocomplete="off"></label>
+    <div class="row" style="gap:12px"><b>Format</b><span class="seg4">${FILM_FMT.map(([f,w,h])=>`<button class="${m.format===f?'on':''}" onclick="ui.mfilm.format='${f}';render()"><i style="width:${w}px;height:${h}px"></i>${f}</button>`).join('')}</span></div>
+    <div class="nbox" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('over');addFilmRefs(event.dataTransfer.files)"><b>Add reference</b>
+      <span class="t2">Optional. Videos or pictures, or a link. Say what to take from each.</span>
+      ${m.refs.map((r,i)=>`<div class="lkb"><div class="lr rf">${ic(r.kind==='link'?'link':'file',16,2)}<span class="t1" title="${esc(r.name)}">${esc(r.name)}</span><span class="t2">${r.bad?esc(r.bad):r.kind==='link'||r.path?'':`Adding... ${r.pct||0}%`}</span><button class="lx" aria-label="Remove this reference" title="Remove" onclick="ui.mfilm.refs.splice(${i},1);render()">${ic('x',16,2)}</button></div>
+        <input class="input" placeholder="the whole look" value="${esc(r.take||'')}" aria-label="What to take from ${esc(r.name)}" oninput="ui.mfilm.refs[${i}].take=this.value" autocomplete="off"></div>`).join('')}
+      <label class="lin">${ic('plus',16,2)}<input id="mf-link" placeholder="Paste a link" onkeydown="if(event.key==='Enter')addFilmLink(this)" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;color:var(--ink)"></label>
+      <label class="ul" style="align-self:flex-start;cursor:pointer">Add files<input type="file" multiple hidden accept="video/*,image/*" onchange="addFilmRefs(this.files);this.value=''"></label></div>
+    ${m.msg?`<div class="msg bad">${CROSS}<span>${esc(m.msg)}</span></div>`:''}
+    <button class="b1" style="align-self:flex-end" ${m.busy?'disabled':''} onclick="makeFilm()">${m.busy?'Starting...':'Start the film'}</button></div></div>`;
+}
+function addFilmLink(el){
+  const u=el.value.trim();if(!u)return;
+  if(!/^https?:\/\/\S+$/i.test(u)){ui.mfilm.msg='Paste a full link, starting with https://.';return render()}
+  ui.mfilm.msg=null;ui.mfilm.refs.push({kind:'link',name:u,url:u,take:''});render();setTimeout(()=>{const e=$('#mf-link');if(e)e.focus()},0);
+}
+async function addFilmRefs(list){
+  const m=ui.mfilm,items=[...list].map(f=>({kind:'file',name:f.name,f,pct:0,take:'',bad:FILM_RE.test(f.name)?null:'Not a video or picture.'}));
+  m.refs.push(...items);render();
+  for(const u of items){
+    if(u.bad)continue;
+    const j=await new Promise(res=>{const x=new XMLHttpRequest();x.open('POST','/upload?ref=1&name='+encodeURIComponent(u.f.name));
+      x.upload.onprogress=e=>{if(e.lengthComputable){u.pct=Math.round(e.loaded/e.total*100);if(ui.mfilm===m)render()}};
+      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}res(j)};x.onerror=()=>res({msg:'The copy stopped. Try again.'});x.send(u.f)});
+    if(j.ok){u.path=j.path;u.name=j.name}else u.bad=j.msg||'That did not add.';
+    delete u.f;if(ui.mfilm===m)render();
+  }
+}
+async function makeFilm(){
+  const m=ui.mfilm,name=filmSlug(m.name);
+  if(!name){m.msg='Give the film a name, like launch-teaser.';return render()}
+  if(!m.idea.trim()){m.msg='Say the idea in one line.';return render()}
+  if(m.refs.some(r=>!r.bad&&r.kind==='file'&&!r.path)){m.msg='Wait for your files to finish adding.';return render()}
+  m.busy=1;m.msg=null;render();
+  const r=await post('/job',{type:'motion',name,idea:m.idea,format:m.format,refs:m.refs.filter(r=>!r.bad).map(r=>({source:r.kind==='link'?r.url:r.path,take:r.take||''}))});
+  if(!r._ok){m.busy=0;m.msg=r.error||'That did not start.';return render()}
+  ui.mfilm=null;toast('Motion video started.');await load();render();
 }
 async function makeVideo(){
   const assets=nv.assets.map(a=>a.kind==='link'?{url:a.url,say:a.say}:{image:a.data,name:a.name,say:a.say});
@@ -2168,6 +2218,7 @@ function sideHTML(){
   const nf=ui.newfold&&ui.newfold.at!=='head'?`<div class="sb-row">${ic(ui.newfold.kind==='videos'?'folder':'styles')}${inp(ui.newfold,'Folder name')}</div>${ui.newfold.msg?`<div class="msg bad" style="padding:0 12px;font-size:12px">${esc(ui.newfold.msg)}</div>`:''}`:'';
   return `<div class="sb-brand"><button class="brand" data-home onclick="goHome()" title="Home"><span class="mark" aria-hidden="true">${PAN(18)}</span><b>cooked.</b></button>${tog}</div>
     <button class="sb-new" ${GS().setup?'':'disabled title="New video opens once setup is done"'} onclick="rgo('new')">${ic('plus',16,2.2)}New video</button>
+    <button class="sb-row" style="margin-top:6px" onclick="openMotion()">${ic('plus',16,2.2)}<span class="lb">New motion video</span></button>
     <nav class="sb-nav"><button class="sb-row ${cur==='home'?'on':''}" onclick="goHome()">${ic('home')}<span class="lb">Home</span></button>
       <button class="sb-row ${cur==='videos'&&!ui.fold.videos?'on':''}" onclick="${vgo}" ${dropAttrs('videos',null)}>${ic('videos')}<span class="lb">Your videos</span><span class="n">${vids.length}</span></button>
       <button class="sb-row ${onS?'on':''}" onclick="rgo('mystyle')">${ic('styles')}<span class="lb">Styles</span><span class="n">${st.length}</span></button>
@@ -2421,7 +2472,7 @@ function rrender(){
   if(rv==='home'&&askRow())h=h.replace(/^\s*(<div class="pgc[^"]*">)/,'$1'+askRow());   // Home's first row
   $('#main').classList.toggle('pg',['home','videos','settings','mystyle','style','stylepage','skills'].includes(rv));
   paint($('#main'),h,rv+'|'+ui.sp);$('#main').classList.toggle('spwrap',rv==='stylepage');
-  const md=ui.skdel?skDelModal():ui.del?delModal():ui.create?createModal():'';paint($('#modal'),md,'m');document.documentElement.style.overflow=md?'hidden':'';$('#main').classList.toggle('hmain',rv==='home');
+  const md=ui.mfilm?motionModal():ui.skdel?skDelModal():ui.del?delModal():ui.create?createModal():'';paint($('#modal'),md,'m');document.documentElement.style.overflow=md?'hidden':'';$('#main').classList.toggle('hmain',rv==='home');
   if(rv==='mystyle'||rv==='style')flashBuilt();
   const o=$('#order');if(o)o.querySelectorAll('[draggable]').forEach(el=>{
     el.ondragstart=e=>{e.dataTransfer.setData('text/plain',el.dataset.i)};el.ondragover=e=>e.preventDefault();

@@ -1,0 +1,19 @@
+{
+  "name": "cooked-motion-engine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic seek(t) video engine for cooked. motion films.",
+  "scripts": {
+    "new": "node tools/new.mjs",
+    "preview": "node preview.mjs",
+    "probe": "node probe.mjs",
+    "render": "node render.mjs",
+    "sheets": "node tools/sheets.mjs",
+    "mux": "node tools/mux.mjs",
+    "check": "node lib/motion.js"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.1"
+  }
+}

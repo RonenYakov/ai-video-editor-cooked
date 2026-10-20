@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>film</title>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<canvas id="c"></canvas>
+
+<script type="module">
+import { spring, track, clamp, noise, snap } from '/engine/lib/motion.js';
+
+// The renderer passes the format in, so one timeline serves 9:16, 1:1 and 16:9.
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') ?? 1080);
+const H = +(q.get('h') ?? 1920);
+
+const c = document.getElementById('c');
+c.width = W;
+c.height = H;
+const ctx = c.getContext('2d');
+
+// Grids. Empty until beats.py and the VO transcription have run.
+let beats = [];
+let words = [];
+
+// The renderer waits on this before frame 0. Without it, early frames can draw
+// before the grids arrive and the render stops being reproducible.
+window.ready = (async () => {
+  const load = async (p) => { try { const r = await fetch(p); return r.ok ? await r.json() : null; } catch { return null; } };
+  const b = await load('./audio/beats.json');
+  if (b) beats = b.beats ?? [];
+  const v = await load('./audio/vo.json');
+  if (v) words = v.words ?? [];
+  await document.fonts.ready;
+})();
+
+// Everything the film draws is a function of t and nothing else.
+// No timers, no requestAnimationFrame, no state kept between calls, no Math.random.
+window.seek = (t) => {
+  ctx.fillStyle = '#0b0b0c';
+  ctx.fillRect(0, 0, W, H);
+
+  const inAt = 0.35;
+  const a = clamp(track(t, [[0, 0], [inAt, 1]]));
+  const y = H * 0.5 - (1 - a) * H * 0.04;
+
+  ctx.globalAlpha = a;
+  ctx.fillStyle = '#e8e8ea';
+  ctx.font = '700 ' + Math.round(W * 0.085) + 'px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('replace me', W / 2, y);
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#ff6b2c';
+  const bar = track(t, [[0, 0], [inAt, 1]]) * W * 0.12;
+  ctx.fillRect((W - bar) / 2, y + W * 0.09, bar, Math.max(2, W * 0.004));
+};
+
+window.seek(0);
+</script>

@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>preview</title>
+<style>
+  :root { color-scheme: dark; --bg: #0b0b0c; --fg: #e8e8ea; --dim: #6b6b74; --accent: #ff6b2c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 13px ui-monospace, "IBM Plex Mono", Menlo, monospace;
+         display: grid; grid-template-rows: 1fr auto; height: 100vh; }
+  #stage { display: grid; place-items: center; overflow: hidden; padding: 16px; min-height: 0; }
+  iframe { border: 0; background: #000; box-shadow: 0 0 0 1px #26262c; transform-origin: center; }
+  #bar { display: grid; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid #1d1d22; }
+  #row { display: flex; align-items: center; gap: 12px; }
+  button { background: #16161a; color: var(--fg); border: 1px solid #2a2a31;
+           padding: 6px 12px; border-radius: 4px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+  #t { font-variant-numeric: tabular-nums; color: var(--accent); min-width: 11ch; }
+  #meta { color: var(--dim); }
+  #ticks { position: relative; height: 10px; }
+  #ticks i { position: absolute; top: 0; width: 1px; height: 10px; background: #3a3a44; }
+  #ticks i.down { background: var(--accent); height: 10px; }
+</style>
+
+<div id="stage"><iframe id="f" title="film"></iframe></div>
+<div id="bar">
+  <div id="ticks"></div>
+  <div id="row">
+    <button id="play">play</button>
+    <input id="s" type="range" min="0" max="1" step="0.001" value="0">
+    <span id="t">0.000s</span>
+  </div>
+  <div id="meta">loading</div>
+</div>
+
+<script type="module">
+const q = new URLSearchParams(location.search);
+const film = q.get('film') ?? '';
+const meta = document.getElementById('meta');
+if (!film) {
+  meta.textContent = 'start it with: node preview.mjs <film-folder>';
+} else {
+  const cfg = await (await fetch('/film/film.config.json')).json();
+  const fmt = cfg.formats[0];
+  const fps = cfg.fps, dur = cfg.duration;
+  const frame = 1 / fps;
+
+  const f = document.getElementById('f');
+  f.width = fmt.w; f.height = fmt.h;
+  f.style.width = fmt.w + 'px'; f.style.height = fmt.h + 'px';
+  f.src = '/film/film.html?w=' + fmt.w + '&h=' + fmt.h;
+
+  // Fit the film inside the stage without touching its layout.
+  const fit = () => {
+    const st = document.getElementById('stage').getBoundingClientRect();
+    f.style.transform = 'scale(' + Math.min((st.width - 32) / fmt.w, (st.height - 32) / fmt.h, 1) + ')';
+  };
+  addEventListener('resize', fit); fit();
+
+  const s = document.getElementById('s');
+  const tOut = document.getElementById('t');
+  s.max = dur;
+  s.step = frame;
+
+  let t = 0, playing = false, raf = 0, last = 0;
+  const draw = () => {
+    s.value = t;
+    tOut.textContent = t.toFixed(3) + 's  f' + Math.round(t * fps);
+    f.contentWindow?.seek?.(t);
+  };
+  const tick = (now) => {
+    if (!playing) return;
+    t += Math.min((now - last) / 1000, 0.1); last = now;
+    if (t >= dur) t = cfg.loop ? t - dur : dur, playing = !!cfg.loop;
+    document.getElementById('play').textContent = playing ? 'pause' : 'play';
+    draw();
+    if (playing) raf = requestAnimationFrame(tick);
+  };
+  document.getElementById('play').onclick = (e) => {
+    playing = !playing;
+    e.target.textContent = playing ? 'pause' : 'play';
+    last = performance.now();
+    if (playing) raf = requestAnimationFrame(tick); else cancelAnimationFrame(raf);
+  };
+  s.oninput = () => { playing = false; document.getElementById('play').textContent = 'play'; t = +s.value; draw(); };
+
+  // Arrow keys step one frame. This is how you judge a transition.
+  addEventListener('keydown', (e) => {
+    const n = e.shiftKey ? 10 : 1;
+    if (e.key === 'ArrowRight') t = Math.min(dur, t + frame * n);
+    else if (e.key === 'ArrowLeft') t = Math.max(0, t - frame * n);
+    else if (e.key === ' ') { document.getElementById('play').click(); e.preventDefault(); return; }
+    else return;
+    playing = false; document.getElementById('play').textContent = 'play';
+    e.preventDefault(); draw();
+  });
+
+  // Beat ticks under the scrubber, when the grid exists.
+  const ticks = document.getElementById('ticks');
+  let beats = [];
+  try {
+    const r = await fetch('/film/audio/beats.json');
+    if (r.ok) {
+      const j = await r.json();
+      beats = j.beats ?? [];
+      const bar = cfg.barOne ?? 0;
+      for (const b of beats) {
+        if (b > dur) continue;
+        const i = document.createElement('i');
+        i.style.left = (b / dur * 100) + '%';
+        if (Math.abs(((b - bar) % (4 * 60 / (j.bpm || 120))) ) < 0.02) i.className = 'down';
+        ticks.appendChild(i);
+      }
+    }
+  } catch {}
+
+  meta.textContent = film + '   ' + fmt.w + 'x' + fmt.h + '   ' + fps + 'fps   ' + dur + 's   '
+    + (beats.length ? beats.length + ' beats' : 'no beats.json')
+    + '   [space] play  [left/right] step frame  [shift] x10';
+  f.addEventListener('load', () => draw());
+}
+</script>

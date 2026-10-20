@@ -24,6 +24,8 @@ for it, and reports back with `status`:
         JOB style-change @handle style=DIR/creator-teardowns/handle/style.json text=<the user's words>
         JOB skill-change <skill> path=<its SKILL.md> text=<the user's words>   Skills: Improve with feedback (skill-improver)
         JOB skill-new [text=<what it should do>]  Skills: Make a new skill (skill-maker)
+        JOB motion <name> format=9:16 film=DIR/films/<name> refs=DIR/films/<name>/refs.json root=DIR idea=<one line>
+                                                 New motion video: refs.json is [{id, source, take}] (a link, or a copy in refs/)
         JOB cancel <type>                         the user pressed Cancel or Stop on that job: stop it
         ALREADY ...                               another wait is running: nothing to do
         GONE ...                                  (--job) that job is done, cancelled or another Claude's
@@ -100,7 +102,7 @@ UPDATE = Path(__file__).resolve().parents[2] / "skills" / "update" / "scripts" /
 TRANSCRIBE = Path(__file__).resolve().parents[2] / "skills" / "cut" / "scripts" / "transcribe.py"
 EDIT_PY = Path(__file__).resolve().parents[2] / "skills" / "style-edit" / "scripts" / "edit.py"
 BEAT_S = 6
-JOBS = ("teardown", "skill", "video", "modal", "modal-test", "setup", "style-change", "update", "skill-change", "skill-new")
+JOBS = ("teardown", "skill", "video", "modal", "modal-test", "setup", "style-change", "update", "skill-change", "skill-new", "motion")
 TAKE = ("captions", "pace", "graphics", "sound")          # the page's parts; editplan.py --take names
 # The page's "graphics" box is her visuals as a whole: what she shows, how it moves in and where it sits.
 EDITPLAN_PARTS = {"graphics": ("graphics", "entrances", "layout")}
@@ -117,6 +119,7 @@ REVIEW = Path(__file__).with_name("review.py")
 HANDLE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 PLUGIN_JSON = Path(__file__).resolve().parents[2] / ".claude-plugin" / "plugin.json"
 RAW = "https://raw.githubusercontent.com/nextwork-projects/ai-video-editor-cooked/main/"
+MOTION_REF_EXT = links.VIDEO_EXT + (".png", ".jpg", ".jpeg", ".webp", ".gif", ".heic")   # New motion video: a reference is a video or a picture
 COVER_MAX = 50 << 20   # a style's chosen image, or a short clip to take a frame from
 SCRIPT_MAX = 200_000   # a script's text, in bytes; the file it came from may be up to 1 MB (a .docx with a logo)
 SCRIPT_EXT = (".txt", ".md", ".docx", ".pdf")
@@ -1647,6 +1650,8 @@ def job_line(j, root):
         return f"JOB skill-change {a['skill']} path={a['path']} text={a['text']}"
     if j["type"] == "skill-new":
         return "JOB skill-new" + (f" text={a['text']}" if a.get("text") else "")
+    if j["type"] == "motion":
+        return f"JOB motion {a['name']} format={a['format']} film={a['film']} refs={a['refs']} root={root} idea={a['idea']}"
     if j["type"] == "style-change":
         return f"JOB style-change {'my-style' if a['style'] == 'mine' else a['style']}" + \
             (f" style={a['path']}" if a.get("path") else "") + f" text={a['text']}"
@@ -2574,10 +2579,37 @@ def make_handler(token):
                 args = {"skill": n, "path": str(md), "text": text}
             elif kind == "skill-new":   # Skills, "Make a new skill": skill-maker, step by step with the user
                 args = {"text": re.sub(r"\s+", " ", str(b.get("text") or "")).strip()[:2000]}
+            elif kind == "motion":   # New motion video: <library>/films/<name>/ with refs/ and refs.json, then a Claude makes it
+                name = re.sub(r"[^a-z0-9]+", "-", str(b.get("name") or "").lower()).strip("-")[:40].rstrip("-")
+                idea = re.sub(r"\s+", " ", str(b.get("idea") or "")).strip()[:300]
+                if not name:
+                    return self.send(400, {"error": "Give the film a name."})
+                if not idea:
+                    return self.send(400, {"error": "Say the idea in one line."})
+                root = Path(d["root"]).resolve()
+                film = root / "films" / name
+                if film.exists():
+                    return self.send(409, {"error": f"A film called {name} already exists. Pick another name."})
+                uploads, refs = root / "references", []
+                (film / "refs").mkdir(parents=True)
+                for x in [x for x in b.get("refs") or [] if isinstance(x, dict)][:20]:
+                    src, take = str(x.get("source") or "").strip(), re.sub(r"\s+", " ", str(x.get("take") or "")).strip()[:300]
+                    if src.lower().startswith(("http://", "https://")):
+                        keep = src
+                    else:   # a file the page uploaded to references/ (never any other file on the disk): copied into this film
+                        f = Path(src).resolve()
+                        if f.parent != uploads or not f.is_file() or not f.name.lower().endswith(MOTION_REF_EXT):
+                            continue
+                        keep = str(film / "refs" / f"ref{len(refs) + 1}-{f.name}")
+                        shutil.copyfile(f, keep)
+                    refs.append({"id": f"ref{len(refs) + 1}", "source": keep, "take": take or "the whole look"})
+                (film / "refs.json").write_text(json.dumps(refs, indent=1), encoding="utf-8")
+                args = {"name": name, "idea": idea, "format": b.get("format") if b.get("format") in ("9:16", "1:1", "16:9") else "9:16",
+                        "film": str(film), "refs": str(film / "refs.json")}
             else:
                 return self.send(400, {"error": "unknown job"})
             j = update(lambda d: queue(d, kind, args))
-            if kind in ("style-change", "skill-change", "skill-new"):   # typed in a chat box: a Claude opens for it
+            if kind in ("style-change", "skill-change", "skill-new", "motion"):   # typed in a chat box: a Claude opens for it
                 claude_unless_idle(j["id"])
             return self.send(200, {"id": j["id"], "handle": j["args"].get("handle")})
 
@@ -3296,6 +3328,27 @@ def demo():
     assert "word by word" in lt and pic["path"] in lt and str(vid) not in lt
     assert out(cmd_wait, 0.01).endswith(f"notes={lk} root={read()['root']}")
     post("/cancel", {"type": "teardown", "handle": "liked"}); out(cmd_wait, 0.01)
+    # New motion video: <library>/films/<name>/ with refs/ and refs.json, one JOB motion line; only uploaded files or links are references
+    mref = up("look-ref.mp4", b"mp4")
+    mr = post("/job", {"type": "motion", "name": "Launch Teaser!", "idea": "A  15 second teaser\nfor the app", "format": "1:1",
+                       "refs": [{"source": mref["path"], "take": ""}, {"source": "https://example.com/look", "take": "the counter and the logo wipe"},
+                                {"source": str(vid), "take": "not uploaded"}]})
+    fd = root.resolve() / "films" / "launch-teaser"
+    assert mr["id"] == "motion-1" and fd.is_dir() and (fd / "refs").is_dir(), mr
+    mrefs = json.loads((fd / "refs.json").read_text(encoding="utf-8"))
+    assert mrefs == [{"id": "ref1", "source": str(fd / "refs" / "ref1-look-ref.mp4"), "take": "the whole look"},
+                     {"id": "ref2", "source": "https://example.com/look", "take": "the counter and the logo wipe"}], mrefs
+    assert (fd / "refs" / "ref1-look-ref.mp4").read_bytes() == b"mp4" and len(list((fd / "refs").iterdir())) == 1
+    assert out(cmd_wait, 0.01) == (f"JOB motion launch-teaser format=1:1 film={fd} refs={fd / 'refs.json'} root={root.resolve()} "
+                                   "idea=A 15 second teaser for the app")
+    for bad in ({"name": "!!", "idea": "x"}, {"name": "ok-name", "idea": " "}, {"name": "Launch Teaser", "idea": "x"}):   # no name, no idea, taken
+        try:
+            post("/job", {"type": "motion", **bad})
+            raise AssertionError(f"a motion video without a good {bad} was queued")
+        except urllib.error.HTTPError as e:
+            assert e.code in (400, 409)
+    assert not (root.resolve() / "films" / "ok-name").exists()
+    own.clear()
     # Stop on one analysing card stops that creator only
     post("/job", {"type": "teardown", "handle": "one", "platform": "youtube"}); out(cmd_wait, 0.01)
     post("/job", {"type": "teardown", "handle": "two", "platform": "youtube"}); out(cmd_wait, 0.01)

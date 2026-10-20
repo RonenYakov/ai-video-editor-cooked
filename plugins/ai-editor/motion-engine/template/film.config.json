@@ -1,0 +1,19 @@
+{
+  "duration": 15,
+  "fps": 60,
+  "subframes": 4,
+  "shutter": 180,
+  "scale": 2,
+  "loop": true,
+  "grid": "beats",
+  "music": "primary",
+  "barOne": 0,
+  "deadMax": 1.0,
+  "cuts": [],
+  "grade": null,
+  "formats": [
+    { "name": "9:16", "w": 1080, "h": 1920 },
+    { "name": "1:1", "w": 1080, "h": 1080 },
+    { "name": "16:9", "w": 1920, "h": 1080 }
+  ]
+}

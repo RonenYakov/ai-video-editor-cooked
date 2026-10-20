@@ -15,6 +15,9 @@ product video). Notes save with the edit, never in the plugin:
     python3 review.py <folder> round --stage edit --stills --video stills.mp4 --plan plan.json
                                      the stills before the render (edit.py storyboard): one frame per beat over the
                                      cut's sound, notes and Approve on the same page; that approve means render it
+    python3 review.py beats <film-folder>   the beat sheet before a motion film is built (<film>/beats.sheet.json): the
+                                     references, then a row per beat with its still; approve it, or note any beat
+                                     (the note carries "beat": id, none for the whole sheet). Same send/approve/wait.
     python3 review.py <folder> serve [--no-open]   serve the page and open it (run in the background)
     python3 review.py <folder> wait                block until the user presses send or approve (run in the background)
     python3 review.py <folder> status "rendering" [--log render.log] [--done]   what Claude is doing, live on the page
@@ -1249,6 +1252,10 @@ def make_handler(folder, token):
                 p = folder / "assets" / Path(unquote(path)).name
                 ct = {".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"}.get(p.suffix, "image/jpeg")
                 return self.file(p, ct) if p.is_file() else self.send(404, {})
+            if path == "/beatfile" and load(rj).get("beats"):   # a still of the beat sheet: any image under the film folder
+                p = (folder / unquote(q.get("p", ""))).resolve()
+                ct = {".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"}.get(p.suffix, "image/jpeg")
+                return self.file(p, ct) if folder.resolve() in p.parents and p.is_file() else self.send(404, {})
             if path.startswith("/frames/"):
                 p = folder / "review" / Path(unquote(path)).name
                 ct = {".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"}.get(p.suffix, "image/jpeg")
@@ -1423,27 +1430,36 @@ def make_handler(folder, token):
             imgs = body.get("images") or []
             if not text and not imgs:
                 return self.send(400, {"error": "empty"})
+            d = load(rj)
+            sheet = d.get("beats")   # the beat sheet: a note belongs to a beat ("beat": id) or to the whole sheet (t None)
             try:
-                t = float(body["t"])
+                t = None if sheet and body.get("t") is None else float(body["t"])
                 te = float(body["t_end"]) if body.get("t_end") is not None else None
             except (KeyError, TypeError, ValueError):
                 return self.send(400, {"error": "no time"})
-            d = load(rj)
+            beat = next((b for b in (sheet or {}).get("beats", []) if b.get("id") == body.get("beat")), None)
+            if sheet and beat and t is None:
+                t = float(beat.get("t") or 0)
             last = d["events"][-1]["type"] if d["events"] else None
             if d.get("sent") and last not in ("send", "edits"):   # approved: nothing comes after it on this stage
                 return self.send(409, {"error": "This draft is approved."})
             queued = bool(d.get("sent"))   # with Claude: the note waits for the next round
             alt = body.get("alt") or None
-            src = alt_of(d, alt if alt != "*" else None)
             cid = max([c["id"] for c in d["comments"]] + [0]) + 1
             frame = f"r{d['stage']}{d['round']}-c{cid}.jpg"
-            grab(src["video"], t, folder / "review" / frame)
             images = askhook.save_images(folder / "review", imgs, f"r{d['stage']}{d['round']}-c{cid}")
             on = body.get("on") if isinstance(body.get("on"), dict) else None
-            words, card = note_tags(d.get("plan"), src.get("transcript"), d["stage"], t, te, on)
-            c = {"id": cid, "round": d["round"] + queued, "stage": d["stage"], "t": round(t, 2), "alt": alt,
+            if sheet:   # no video to grab a frame from, no words or card at that time
+                frame, words, card = "", "", None
+            else:
+                src = alt_of(d, alt if alt != "*" else None)
+                grab(src["video"], t, folder / "review" / frame)
+                words, card = note_tags(d.get("plan"), src.get("transcript"), d["stage"], t, te, on)
+            c = {"id": cid, "round": d["round"] + queued, "stage": d["stage"], "t": None if t is None else round(t, 2), "alt": alt,
                  "t_end": round(te, 2) if te is not None else None, "text": text, "words": words, "card": card,
                  "frame": frame, "images": images, "status": "open", "reply": None, "new_t": None, "at": now()}
+            if beat:
+                c["beat"] = beat["id"]
             if looks_like_rule(text):   # offered as a rule, ticked: the user unticks it on the page
                 c["keep"] = True
             if queued:
@@ -1692,6 +1708,27 @@ def cmd_start(a, folder):
     except (OSError, ValueError, ImportError):
         pass
     print(f"{rj}: {stage_name(d['stage'], d.get('stills'))}, round {d['round']}")
+
+
+def cmd_beats(folder):
+    """The beat sheet before the film is built: the stills mode with a sheet (<folder>/beats.sheet.json) in place of a
+    video. Same review.json, same send and approve events; a note carries "beat": id, or none for the whole sheet."""
+    try:
+        sheet = load(folder / "beats.sheet.json")
+        assert isinstance(sheet.get("beats"), list) and sheet["beats"]
+    except (OSError, ValueError, AttributeError, AssertionError):
+        sys.exit(f"no beats in {folder / 'beats.sheet.json'}: {{\"beats\": [{{id, t, dur, on_screen, moves, heard, refs, still}}], "
+                 f"\"refs\": [{{id, source, take, still}}]}}")
+    rj = folder / "review.json"
+    d = load(rj) if rj.exists() and load(rj).get("beats") else {"comments": [], "events": []}
+    d.update(folder=str(folder), name=folder.name, stage="edit", round=d.get("round", 0) + 1, video=None, note="", sent=False,
+             alts=[], transcript=None, plan=None, vertical=False, label=folder.name, stills=True, beats=sheet, src=None, snap=None,
+             changed=[], back_to=None, data=None)
+    d.pop("stopped", None)
+    log_round(d)
+    (folder / "review").mkdir(parents=True, exist_ok=True)
+    save(rj, d)
+    print(f"{rj}: the beat sheet, {len(sheet['beats'])} beats, round {d['round']}")
 
 
 def open_round(folder, video, stage=None, transcript=None, plan=None, note="", stills=False, name=None, changed=(),
@@ -2189,27 +2226,31 @@ def cmd_wait(folder, poll=1.0):
         return learn_chosen(folder, d)
     e = ev[-1]
     r = next((r for r in d.get("rounds", []) if (r["stage"], r["round"]) == (e["stage"], e["round"])), d)
-    cs = sorted((c for c in d["comments"] if c["stage"] == e["stage"] and c["round"] == e["round"]), key=lambda c: c["t"])
+    cs = sorted((c for c in d["comments"] if c["stage"] == e["stage"] and c["round"] == e["round"]),
+                key=lambda c: (c["t"] is None, c["t"] or 0))
     for x in ev:   # an Apply then a send: the edits still have to be built
         if x["type"] == "edits":
             print(edits_text(folder, x))
     print(f"{'SEND' if e['type'] == 'edits' else e['type'].upper()}: {d['name']} {stage_name(e['stage'], e.get('stills'))}, round {e['round']}, "
-          f"{len(cs)} note{'' if len(cs) == 1 else 's'}. video {r['video']}")
+          f"{len(cs)} note{'' if len(cs) == 1 else 's'}. "
+          + (f"beat sheet {folder / 'beats.sheet.json'}" if d.get("beats") else f"video {r['video']}"))
     for x in r.get("alts") or []:
         print(f"  also {x['name']}: {x['video']}")
     if r.get("back_to"):
         print(f"  this round is round {r['back_to']} again: the user pressed Go back, which put that round's files "
               f"(plan.json, spans.json, visuals.json, ...) and its render back. Fix from these files.")
     for c in cs:
-        span = fmt(c["t"]) + (f"-{fmt(c['t_end'])}" if c["t_end"] is not None else "")
+        span = "" if c["t"] is None else fmt(c["t"]) + (f"-{fmt(c['t_end'])}" if c["t_end"] is not None else "")
         ver = " [all videos]" if c.get("alt") == "*" else f" [{c['alt']}]" if c.get("alt") else (
             f" [{r.get('label') or 'main'}]" if r.get("alts") else "")
         k = c.get("card")
         card = f" [card {k['i']} {k['kind']} '{k['trigger_word'] or ''}']" if k else ""
-        card += on_screen(r.get("plan") or d.get("plan"), c["t"]) if e["stage"] == "edit" else ""
+        card += on_screen(r.get("plan") or d.get("plan"), c["t"]) if e["stage"] == "edit" and c["t"] is not None else ""
+        if d.get("beats"):
+            card += f" [beat {c['beat']}]" if c.get("beat") else " [whole sheet]"
         keep = f" [keep as a rule for {style_label(folder)}]" if c.get("keep") else ""
-        print(f"#{c['id']} {span} ({c['t']}s){ver}{card}: {c['text']}{keep}\n    said: \"{c['words']}\""
-              f"\n    frame: {folder / 'review' / c['frame']}"
+        print(f"#{c['id']} {span} ({c['t']}s){ver}{card}: {c['text']}{keep}"
+              + (f"\n    said: \"{c['words']}\"\n    frame: {folder / 'review' / c['frame']}" if c["frame"] else "")
               + "".join(f"\n    image: {folder / 'review' / x}" for x in c.get("images") or []))
     added = assets.load(folder)
     if added:   # New video's "Add images or links" and the editor's "Anything to add?": they go in first
@@ -2317,7 +2358,7 @@ def learn_prompt(folder, d):
                      )
         if tg["path"]:
             lines += ["  " + ln for ln in skillrules.learned(Path(tg["path"]).read_text(encoding="utf-8"))] or ["  (none yet)"]
-    for c in sorted(session_notes(d), key=lambda c: (c["stage"] != "cut", c["round"], c["t"])):
+    for c in sorted(session_notes(d), key=lambda c: (c["stage"] != "cut", c["round"], c["t"] or 0)):
         saved = f" [saved as rule {c['taste']}]" if isinstance(c.get("taste"), int) else ""
         keep = " [the user asked to keep this as a rule: propose it]" if c.get("keep") and not saved else ""
         lines.append(f"#{c['id']} {stage_name(c['stage'])} r{c['round']}: {c['text']}"
@@ -3506,6 +3547,52 @@ def demo():
         cmd_resolve(ns(id=1, status="fixed", reply="did it", new_t=None), gb)
         cmd_round(rnd, gb)
     assert load(gb / "review.json")["round"] == 4
+    # the beat sheet (review.py beats): refs and beats on the page, a beat note and a general note round-trip, approve
+    import struct
+    import zlib
+    bf = tmp / "films" / "beatfilm"
+    (bf / "stills").mkdir(parents=True)
+    png = lambda: (b"\x89PNG\r\n\x1a\n" + b"".join(
+        struct.pack(">I", len(x)) + k + x + struct.pack(">I", zlib.crc32(k + x)) for k, x in (
+            (b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)), (b"IDAT", zlib.compress(b"\x00\xff\x00\x00")), (b"IEND", b""))))
+    (bf / "stills" / "beat-01.png").write_bytes(png())
+    (bf / "stills" / "ref1.png").write_bytes(png())
+    save(bf / "beats.sheet.json", {"beats": [
+        {"id": 1, "t": 0.0, "dur": 2.4, "on_screen": "Big counter", "moves": "Counter ticks up", "heard": "Beat drop", "refs": ["ref1@0:12"],
+         "still": "stills/beat-01.png"},
+        {"id": 2, "t": 2.4, "dur": 3.0, "on_screen": "Logo wipe", "moves": "Wipe left", "heard": "Whoosh", "refs": [], "still": "stills/beat-01.png"}],
+        "refs": [{"id": "ref1", "source": "ref.mp4", "take": "the whole look", "still": "stills/ref1.png"}]})
+    sys.argv = ["review.py", "beats", str(bf)]
+    with contextlib.redirect_stdout(io.StringIO()):
+        main()
+    sys.argv = ["review.py"]
+    assert load(bf / "review.json")["stills"] and load(bf / "review.json")["beats"]["beats"][1]["id"] == 2
+    srv4, url4 = serve(bf, 0, open_browser=False)
+    threading.Thread(target=srv4.serve_forever, daemon=True).start()
+    base4, tok4 = url4.split("/?t=")
+    g4 = lambda p: urllib.request.urlopen(base4 + p + ("&" if "?" in p else "?") + "t=" + tok4)
+    p4 = lambda p, b: json.loads(urllib.request.urlopen(urllib.request.Request(base4 + p + "?t=" + tok4, json.dumps(b).encode(), method="POST")).read())
+    st4 = json.loads(g4("/state").read())
+    assert [b["on_screen"] for b in st4["beats"]["beats"]] == ["Big counter", "Logo wipe"] and st4["beats"]["refs"][0]["take"] == "the whole look"
+    page = g4("/").read().decode()
+    assert 'id="beatsview"' in page and "function renderBeats" in page
+    assert g4("/beatfile?p=stills/beat-01.png").read()[:4] == b"\x89PNG" and g4("/beatfile?p=stills/ref1.png").read()[:4] == b"\x89PNG"
+    try:
+        g4("/beatfile?p=../../review_demo_escape")
+        raise AssertionError("a file outside the film folder was served")
+    except urllib.error.HTTPError as e:
+        assert e.code == 404, e.code
+    n1 = p4("/comment", {"text": "slower counter", "beat": 2})
+    n2 = p4("/comment", {"text": "more energy overall", "beat": None})
+    assert n1["beat"] == 2 and n1["t"] == 2.4 and "beat" not in n2 and n2["t"] is None
+    assert [(c["id"], c.get("beat")) for c in load(bf / "review.json")["comments"]] == [(1, 2), (2, None)]
+    p4("/event", {"type": "approve"})
+    o = io.StringIO()
+    with contextlib.redirect_stdout(o):
+        cmd_wait(bf, poll=0.01)
+    assert "APPROVE" in o.getvalue() and "[beat 2]" in o.getvalue() and "[whole sheet]" in o.getvalue(), o.getvalue()
+    srv4.shutdown()
+    srv4.server_close()
     srv3.shutdown()
     srv3.server_close()
     srv2.shutdown()
@@ -3519,9 +3606,12 @@ def demo():
 def main():
     if sys.argv[1:2] == ["demo"]:
         return demo()
+    if sys.argv[1:2] == ["beats"] and len(sys.argv) == 3:   # `review.py beats <film-folder>`
+        sys.argv[1:3] = [sys.argv[2], "beats"]
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("folder", help="the edit folder: edits/<name> (or product/<name>, clips/<name>)")
     sp = ap.add_subparsers(dest="cmd", required=True)
+    sp.add_parser("beats", help="the beat sheet (beats.sheet.json in the folder) to approve or note, before the film is built")
     s = sp.add_parser("start")
     s.add_argument("--video", required=True)
     s.add_argument("--stage", choices=["cut", "edit"], default="edit")
@@ -3579,14 +3669,16 @@ def main():
         for k, f in (("transcript", "words.json"), ("plan", "plan.json")):
             if getattr(a, k, 0) is None and (folder / f).exists():
                 setattr(a, k, str(folder / f))
-    if a.cmd != "start" and not (folder / "review.json").exists():
+    if a.cmd not in ("start", "beats") and not (folder / "review.json").exists():
         sys.exit(f"no review in {folder}: run `start` first")
     if a.cmd != "serve":   # every Claude-side command marks Claude as working on this edit
         (folder / "review").mkdir(parents=True, exist_ok=True)
         (folder / "review" / ".claude").touch()
         if askhook.session():   # this session's questions now go to this edit's page
             (folder / "review" / ".session").write_text(askhook.session(), encoding="utf-8")
-    if a.cmd == "start":
+    if a.cmd == "beats":
+        cmd_beats(folder)
+    elif a.cmd == "start":
         if not Path(a.video).exists():
             sys.exit(f"no such file: {a.video}")
         cmd_start(a, folder)

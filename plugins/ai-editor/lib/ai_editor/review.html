@@ -25,6 +25,32 @@ body{height:100vh;height:100dvh;display:flex;overflow:hidden}
 button,select,textarea{font:inherit;color:inherit}
 button{background:none;border:0;padding:0;cursor:pointer}
 button:disabled{cursor:default}
+body.beatmode header,body.beatmode #how,body.beatmode main{display:none}
+#beatsview{flex:1;min-height:0;overflow:auto;padding:24px 32px 64px}
+#beatsview .bw{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+#beatsview h1{margin:0;font-size:22px;line-height:28px;color:var(--strong)}
+#beatsview h2{margin:0;font-size:12px;line-height:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#beatsview .bhead{display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
+#beatsview .bbtns{display:flex;gap:8px}
+#beatsview .bbtns button,#beatsview .bn button{height:36px;border-radius:10px;padding:0 14px;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--strong)}
+#beatsview .bbtns button.primary{background:var(--ink);border-color:var(--ink);color:var(--onink)}
+#beatsview button:disabled{opacity:.5}
+#beatsview .refs{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+#beatsview .ref{flex:0 0 220px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+#beatsview .ref img,#beatsview .bstill img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--tile)}
+#beatsview .ref div{padding:10px 12px;color:var(--body)}
+#beatsview .ref b{color:var(--strong)}
+#beatsview .brow{display:grid;grid-template-columns:240px 1fr;gap:16px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel)}
+#beatsview .bcols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+#beatsview .bcols h2{margin-bottom:4px}
+#beatsview .bcols p,#beatsview .bn p{margin:0;color:var(--body);line-height:18px}
+#beatsview .btime{color:var(--muted);margin:0 0 8px}
+#beatsview .chip{display:inline-block;background:var(--chip);border-radius:6px;padding:2px 6px;margin:6px 6px 0 0;color:var(--ink2)}
+#beatsview .bn{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
+#beatsview textarea{width:100%;min-height:64px;border:1px solid var(--line2);border-radius:10px;background:var(--panel);padding:8px 10px;resize:vertical}
+#beatsview .note{background:var(--chip);border-radius:8px;padding:8px 10px}
+#beatsview .note i{color:var(--muted);font-style:normal}
+@media (max-width:760px){#beatsview{padding:16px}#beatsview .brow,#beatsview .bcols{grid-template-columns:1fr}}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:8px}
 .num{font-variant-numeric:tabular-nums}
@@ -606,6 +632,7 @@ body.making #making{display:flex}
  </div>
 </aside>
 </main>
+<section id="beatsview" hidden></section>
 </div>
 <div id="toast" role="status"></div>
 <script>
@@ -687,6 +714,7 @@ async function load(force){
   // live reload: the page or the server changed; never while a note is being typed
   if(d.page){const t=document.activeElement;if(PV&&d.page!==PV&&!(t&&/^(INPUT|TEXTAREA)$/.test(t.tagName)&&t.value)){location.reload();return}PV=PV||d.page}
   S=d;plainState(S);
+  if(S.beats){renderBeats();return}   // the beat sheet (review.py beats): its own view, notes and Approve on the same events
   if((d.theme==='light'||d.theme==='dark')&&document.documentElement.dataset.theme!==d.theme&&Date.now()-themeAt>3000){document.documentElement.dataset.theme=d.theme;themeIcon()}   // one theme with the window
   if(!view||followNew&&was!==key(cur())||(was&&was!==key(cur())&&key(view)===was)){if(view&&was&&was!==key(cur())&&v.currentTime>0)seekTo=mapT(v.currentTime,key(view),key(cur()));   // the new draft opens where you were, not at 0
     view=cur();followNew=false;if(was&&was!==key(cur()))tab='notes'}   // follow a new round when it lands
@@ -1150,6 +1178,35 @@ $('list').addEventListener('click',e=>{
 });
 document.addEventListener('pointerdown',e=>{if(trMenu!=null&&!e.target.closest('.trmenu,.trsel')){trMenu=null;renderList()}});
 async function post(u,b){const r=await fetch(u,{method:'POST',body:JSON.stringify(b)});return r.ok?r.json():{}}
+// the beat sheet: the references first, then a row per beat. A note carries its beat id; "beat":null is a general note
+let beatOpen;
+function renderBeats(){
+  document.body.classList.add('beatmode');const el=$('beatsview');el.hidden=false;
+  const a=document.activeElement;if(a&&a.tagName==='TEXTAREA'&&a.value&&el.contains(a))return;   // never while a note is being typed
+  const B=S.beats,ev=S.events[S.events.length-1],okd=S.sent&&ev&&ev.type==='approve',sent=S.sent&&!okd;
+  const mine=(S.comments||[]).filter(c=>c.stage===S.stage&&c.round===S.round),img=p=>p?`<img src="/beatfile?p=${encodeURIComponent(p)}" alt="">`:'<img alt="">';
+  const mmss=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+  const noteHtml=c=>`<div class="note"><i>${c.status==='fixed'?'Done':c.status==='wontfix'?'Left as is':'Your note'}</i> ${esc(c.text)}${c.reply?`<br><i>Claude: ${esc(c.reply)}</i>`:''}</div>`;
+  const box=id=>beatOpen===id?`<textarea id="bta" placeholder="${id===null?'A note on the whole sheet...':'A note on this beat...'}"></textarea><div class="bbtns"><button data-save="${id}">Save note</button><button data-cancel>Cancel</button></div>`
+    :(okd||sent)?'':`<div class="bbtns"><button data-add="${id}">${id===null?'Add a general note':'Add a note'}</button></div>`;
+  el.innerHTML=`<div class="bw"><div class="bhead"><h1>${esc(S.label||S.name||'Beat sheet')}</h1><div class="bbtns">
+    <button id="bsend" ${mine.length&&!S.sent?'':'disabled'}>Send notes</button><button id="bok" class="primary" ${S.sent?'disabled':''}>${okd?'Sheet approved':'Approve the sheet'}</button></div></div>
+    <p class="btime">${okd?'The sheet is approved. Claude is building the film.':sent?'Notes sent. Claude is changing the sheet.':'Check the references and each beat. Approve it, or leave a note on any beat.'}</p>
+    ${(B.refs||[]).length?`<h2>References</h2><div class="refs">${B.refs.map(r=>`<div class="ref">${img(r.still)}<div><b>${esc(r.id)}</b><br>${esc(r.take||'')}${r.source?`<br><i style="color:var(--muted);font-style:normal">${esc(r.source)}</i>`:''}</div></div>`).join('')}</div>`:''}
+    <h2>Beats</h2>${(B.beats||[]).map(b=>`<div class="brow" data-beat="${b.id}"><div class="bstill">${img(b.still)}</div><div>
+      <p class="btime"><b>Beat ${b.id}</b> at ${mmss(b.t||0)} for ${(b.dur||0).toFixed(1)} s</p>
+      <div class="bcols"><div><h2>On screen</h2><p>${esc(b.on_screen||'')}</p></div><div><h2>Moves</h2><p>${esc(b.moves||'')}</p></div><div><h2>Heard</h2><p>${esc(b.heard||'')}</p></div></div>
+      ${(b.refs||[]).map(r=>`<span class="chip">${esc(r)}</span>`).join('')}</div>
+      <div class="bn">${mine.filter(c=>c.beat===b.id).map(noteHtml).join('')}${box(b.id)}</div></div>`).join('')}
+    <h2>General</h2><div class="bn">${mine.filter(c=>c.beat==null).map(noteHtml).join('')}${box(null)}</div></div>`;
+  const ta2=$('bta');if(ta2)ta2.focus();
+  el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{beatOpen=b.dataset.add==='null'?null:+b.dataset.add;lastRaw='';renderBeats()});
+  el.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>{beatOpen=undefined;renderBeats()});
+  el.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const text=$('bta').value.trim();if(!text)return;
+    await post('/comment',{text,beat:b.dataset.save==='null'?null:+b.dataset.save});beatOpen=undefined;await load(true)});
+  $('bsend').onclick=async()=>{await post('/event',{type:'send'});load(true)};
+  $('bok').onclick=async()=>{await post('/event',{type:'approve'});load(true)};
+}
 
 $('stages').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;

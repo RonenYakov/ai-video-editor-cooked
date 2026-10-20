@@ -315,6 +315,12 @@ each step with `status skill-new --step "..."`, and at the end
 `status skill-new --result '{"summary": "Made /<name>. It is on the Skills page."}' --done`. The new skill
 shows on the Skills page, where "Use as a style" makes it a style.
 
+### `JOB motion <name> format=<f> film=<FILM> refs=<FILM>/refs.json root=<library> idea=<one line>`
+
+The user pressed "New motion video". The film folder, its `refs/` and `refs.json` already exist. Run the
+motion-film skill from its step 1 with that `FILM`. Report each step with `status motion --step "..."`, and at
+the end `status motion --result '{"film": "<FILM>", "video": "<final path>"}' --done`.
+
 ### Connect Modal and Test render (no job for Claude)
 
 The window runs these itself (`setup.py modal-connect` and `modal-test`), as jobs `modal` and `modal-test`

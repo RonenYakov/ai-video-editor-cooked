@@ -11,6 +11,8 @@
   python3 setup.py remotion   copy the renderer to ~/.ai-video-editor/remotion and npm ci it
   python3 setup.py motion     install the motion clip tools in ~/.ai-video-editor/motion: the HyperFrames CLI and GSAP
                               at the versions pinned in skills/motion/scripts/motion.py, and their headless Chrome
+  python3 setup.py motion-engine   copy the motion film engine to ~/.ai-video-editor/motion-engine and npm ci it
+                              (playwright-core only; it uses the renderer's or HyperFrames' Chrome)
   python3 setup.py warm       pay the first edit's one-time costs now: first load of the Python libraries,
                               one test frame through the renderer (webpack's cache, the render browser's first start)
   python3 setup.py install-all [--report]   venv, model, remotion, warm, then the cutout model, never asking; a
@@ -65,6 +67,8 @@ PLUGIN = Path(__file__).resolve().parents[3]          # plugins/ai-editor
 REMOTION_SRC = PLUGIN / "remotion"
 REMOTION_HOME = HOME / "remotion"
 MOTION_HOME = HOME / "motion"     # the motion skill's HyperFrames CLI and GSAP (npm), not the user's global npm
+ENGINE_SRC = PLUGIN / "motion-engine"
+ENGINE_HOME = HOME / "motion-engine"   # run from here: its node_modules lives beside it and survives plugin updates
 MOTION_PY = PLUGIN / "skills" / "motion" / "scripts" / "motion.py"
 LOCK = PLUGIN / "requirements" / "requirements.lock"   # uv pip compile --universal --generate-hashes
 NPM_LOCK = REMOTION_SRC / "package-lock.json"
@@ -273,7 +277,7 @@ def motion_row():
 def step_motion(force=False, tick=None):
     """The motion skill's tools: `npm install` of the pinned HyperFrames CLI and GSAP into MOTION_HOME, then the
     CLI's own headless Chrome (`hyperframes browser ensure`). About a minute and 500 MB on a first install."""
-    npm = shutil.which("npm")
+    npm = shutil.which("npm.cmd" if OS == "Windows" else "npm")   # 3.12's which() can return the extensionless sh script
     if not npm:
         sys.exit(f"npm missing. Install Node first: {fix('node')}")
     MOTION_HOME.mkdir(parents=True, exist_ok=True)
@@ -296,6 +300,65 @@ def step_motion(force=False, tick=None):
         done = "installed"
     env_save(motion=pins)
     print(f"Motion clip tools {done} in {MOTION_HOME}")
+    return done
+
+
+def engine_sha():
+    """One hash of the shipped engine's package.json and lock: what its npm install was made from."""
+    return hashlib.sha256(((file_sha(ENGINE_SRC / "package.json") or "") + (file_sha(ENGINE_SRC / "package-lock.json") or "")).encode()).hexdigest()
+
+
+def engine_stale(env, sha, has_dep):
+    """Pure: the engine needs an npm install when playwright-core is absent or package.json/lock moved since."""
+    return not has_dep or env.get("motion_engine") != sha
+
+
+def engine_chrome():
+    """A headless Chrome the engine will find, same order as lib/chrome.mjs: MOTION_CHROME, the Remotion
+    chrome-headless-shell, the HyperFrames Chrome. None when there is none."""
+    own = os.environ.get("MOTION_CHROME")
+    if own:
+        return own if Path(own).exists() else None
+    exe = "chrome-headless-shell" + (".exe" if OS == "Windows" else "")
+    for p in (REMOTION_HOME / "node_modules" / ".remotion" / "chrome-headless-shell").glob(f"*/*/{exe}"):
+        return str(p)
+    if motion_bin().exists():
+        b = run([str(motion_bin()), "browser", "path"], timeout=60)
+        lines = b.stdout.strip().splitlines()
+        if b.returncode == 0 and lines and Path(lines[-1]).exists():
+            return lines[-1]
+    return None
+
+
+def engine_row():
+    """(ok, detail, fix): the engine's playwright-core is installed at the current pins and a Chrome is found."""
+    here = f'{"py" if OS == "Windows" else "python3"} "{Path(__file__).resolve()}"'
+    if engine_stale(env_load(), engine_sha(), (ENGINE_HOME / "node_modules" / "playwright-core").is_dir()):
+        return False, "playwright-core not installed", f"{here} motion-engine"
+    if not engine_chrome():
+        return False, "no headless Chrome found (set MOTION_CHROME or install the renderer)", f"{here} remotion"
+    return True, str(ENGINE_HOME), f"{here} motion-engine"
+
+
+def step_motion_engine(force=False, tick=None):
+    """The motion film engine, copied to ENGINE_HOME (a plugin update replaces the plugin folder, not this one)
+    and `npm ci`'d there, so its node_modules sits beside the copy the tools run from. Only playwright-core, no
+    browser download: it uses the Remotion or HyperFrames Chrome."""
+    npm = shutil.which("npm.cmd" if OS == "Windows" else "npm")   # 3.12's which() can return the extensionless sh script
+    if not npm:
+        sys.exit(f"npm missing. Install Node first: {fix('node')}")
+    ENGINE_HOME.mkdir(parents=True, exist_ok=True)
+    sync_tree(ENGINE_SRC, ENGINE_HOME)
+    done = "up to date"
+    if force or engine_stale(env_load(), engine_sha(), (ENGINE_HOME / "node_modules" / "playwright-core").is_dir()):
+        if tick:
+            tick(0.2, "the motion film engine")
+        has_lock = (ENGINE_HOME / "package-lock.json").exists()
+        quiet([npm, "ci" if has_lock else "install", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error"],
+              ENGINE_HOME, "installing the motion film engine (npm ci)")
+        done = "installed"
+    env_save(motion_engine=engine_sha())
+    print(f"Motion film engine {done} in {ENGINE_HOME}")
     return done
 
 
@@ -340,6 +403,8 @@ def checks():
                  f'{py_self} "{here}" ' + ("repair" if remo else "remotion")))
     mo_ok, mo_detail = motion_row()
     rows.append(("motion clips", mo_ok, mo_detail, f'{py_self} "{here}" motion'))
+    en_ok, en_detail, en_fix = engine_row()
+    rows.append(("motion engine", en_ok, en_detail, en_fix))
     return rows
 
 
@@ -759,7 +824,7 @@ def quiet(cmd, cwd, what, on_line=None, timeout=None, env=None):
 
 
 def step_remotion(force=False, tick=None):
-    npm = shutil.which("npm")
+    npm = shutil.which("npm.cmd" if OS == "Windows" else "npm")   # 3.12's which() can return the extensionless sh script
     if not npm:
         sys.exit(f"npm missing. Install Node first: {fix('node')}")
     REMOTION_HOME.mkdir(parents=True, exist_ok=True)
@@ -887,7 +952,7 @@ def bootstrap(force=False, matte=False):
               "then run this again.")
         return 1
     steps = [("python packages", step_venv), ("transcription model", step_model), ("renderer", step_remotion),
-             ("motion clips", step_motion), ("warm-up", step_warm)]
+             ("motion clips", step_motion), ("motion engine", step_motion_engine), ("warm-up", step_warm)]
     if matte:
         steps.append(("matting model", step_matte))
     for i, (name, fn) in enumerate(steps, 1):
@@ -903,7 +968,8 @@ INSTALL_STEPS = [  # (doctor row, what the page says, step, share of the bar, th
     ("python packages", "Installing the Python packages", step_venv, 0.15, None),
     ("transcription model", "Downloading the transcription model", step_model, 0.35, "python packages"),
     ("renderer", "Installing the renderer", step_remotion, 0.12, None),
-    ("motion clips", "Installing the motion clip tools", step_motion, 0.03, None),
+    ("motion clips", "Installing the motion clip tools", step_motion, 0.02, None),
+    ("motion engine", "Installing the motion film engine", step_motion_engine, 0.01, None),
     ("warm-up", "Warming up the editor, so your first video is as fast as the rest", step_warm, 0.30, "renderer"),
     ("cutout model", "Downloading the cutout model, for cards behind you", step_cutout, 0.05, None),
 ]
@@ -1458,9 +1524,15 @@ def demo_install_all():
         assert job["steps"][0]["progress"] == 1.0 and "rows" in st.get("doctor", {}), job
     # The real steps: one bar (shares add to 1), warming waits for the renderer, the optional two never fail the install
     assert abs(sum(x[3] for x in INSTALL_STEPS) - 1) < 1e-9 and [x[0] for x in INSTALL_STEPS] == [
-        "python packages", "transcription model", "renderer", "motion clips", "warm-up", "cutout model"], INSTALL_STEPS
+        "python packages", "transcription model", "renderer", "motion clips", "motion engine", "warm-up", "cutout model"], INSTALL_STEPS
     assert set(motion_pins()) == {"hyperframes", "gsap"} and all(re.match(r"^\d+\.\d+\.\d+$", v) for v in motion_pins().values())
     assert dict((x[0], x[4]) for x in INSTALL_STEPS)["warm-up"] == "renderer"
+    # motion engine: stale without playwright-core or when package.json/lock moved; fresh otherwise, no npm run
+    sha = engine_sha()
+    assert len(sha) == 64 and (ENGINE_SRC / "package.json").exists()
+    assert engine_stale({}, sha, True) and engine_stale({"motion_engine": sha}, sha, False)
+    assert engine_stale({"motion_engine": "old"}, sha, True) and not engine_stale({"motion_engine": sha}, sha, True)
+    assert engine_chrome() is None or Path(engine_chrome()).exists()
     global quiet
     real_quiet, real_fetch = quiet, models.fetch
     try:
@@ -1488,7 +1560,7 @@ def demo_install_all():
 
 if __name__ == "__main__":
     cmds = {"doctor": doctor, "venv": step_venv, "model": step_model, "remotion": step_remotion,
-            "motion": step_motion, "bootstrap": bootstrap, "repair": repair, "awskey": save_aws_key,
+            "motion": step_motion, "motion-engine": step_motion_engine, "bootstrap": bootstrap, "repair": repair, "awskey": save_aws_key,
             "lambda": check_lambda, "modal": connect_modal, "modal-connect": connect_modal, "modal-check": connect_modal, "modal-test": test_modal, "matte": step_matte, "warm": step_warm,
             "demo": demo, "keys": test_keys, "certs": step_certs, "todo": todo, "crisper": install_crisper,
             "install-launcher": install_launcher, "uninstall-launcher": uninstall_launcher}
