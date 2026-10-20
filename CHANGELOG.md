@@ -7,6 +7,10 @@ What changed for every user, newest first.
 - A video's versions are one Version dropdown beside Watch and Compare, so long names no longer squeeze the player bar.
 - A finished reel gets a Trial reels tab: Claude's spare hooks and versions, a type menu per version (pick several, or let Claude decide), Add a version, Ask Claude, and Make. Trial reels list under their own heading in the Version dropdown.
 
+## ai-editor 2.7.20, creator-teardown 2.7.20 (2026-10-20)
+- New motion video on the home page: a film built from scratch on the Motion Studio engine, with references per film, a beat sheet with a still per beat to approve, and an Opus first build.
+- Brand kits from a website or a folder of photos, and a reference's color grade applied to the render.
+
 ## ai-editor 2.7.19, creator-teardown 2.7.19 (2026-10-15)
 - The video page's left rail has Skills, and the Skills page loads when opened from a link.
 
