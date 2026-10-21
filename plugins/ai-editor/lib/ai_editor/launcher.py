@@ -18,9 +18,11 @@ with one first prompt, PROMPT, and opens the page there, so Claude is listening 
 permission settings apply as always: nothing is bypassed. The session gets one extra settings layer
 (--settings, allow_rules): the editor's own commands run without an Allow prompt, nothing else.
 """
+import glob
 import json
 import os
 import platform
+import re
 import shlex
 import shutil
 import subprocess
@@ -63,6 +65,20 @@ def launcher_text(os_name=None, launcher=PLUGIN / "lib" / "ai_editor" / "launche
             f"L={shlex.quote(str(launcher))}\nPY={shlex.quote(str(py))}\n[ -x \"$PY\" ] || PY=python3\n" + newest +
             'if [ ! -f "$L" ]; then echo "cooked. moved, maybe an update. In Claude Code, say: set up the editor."; exit 1; fi\n'
             'exec "$PY" "$L" "$@"\n')
+
+
+def newest_launcher(me=None):
+    """The newest version's launcher.py beside this one, or None when this one is already it (or this is not a
+    /plugin install). `/plugin update` adds a version folder and keeps the old ones, so any entry point pinned to
+    one path (a desktop icon, a shortcut, an old nextwork-editor.cmd) would keep running old code for good. The
+    generated sh script resolves this too; doing it here covers every other way launcher.py is started."""
+    me = Path(me or __file__).resolve()
+    if "/.claude/plugins/" not in me.as_posix():
+        return None
+    root = me.parents[3]
+    found = [Path(f) for f in glob.glob(glob.escape(str(root)) + "/*/lib/ai_editor/launcher.py")]
+    best = max(found, key=lambda f: [int(x) for x in re.findall(r"\d+", f.relative_to(root).parts[0])[:3]], default=None)
+    return best if best and best.resolve() != me else None
 
 
 def refresh():
@@ -117,6 +133,37 @@ def not_everywhere(plugins, every=False):
 LANG_SKILLS = {"he": ("hebrew-content-writer", "israeli-social-content")}   # the user's own skills, added only to a video in that language
 
 
+# MCP servers a job window keeps. Everything else is dropped (--strict-mcp-config): the user's ~25 servers
+# are the largest token sink by tool-name count. A name here is looked up in the user's own config and passed
+# through, so a job gets that server and nothing else. AI_EDITOR_FULL_CLAUDE=1 brings them all back.
+MCP_KEEP = ("higgsfiled", "higgsfield")
+
+
+def user_mcp_servers():
+    """{name: definition} from the user's own Claude Code config. A claude.ai connector the CLI does not list
+    here cannot be passed through: that one needs AI_EDITOR_FULL_CLAUDE=1."""
+    out = {}
+    for f in (Path.home() / ".claude.json", Path.home() / ".claude" / "settings.json"):
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(d.get("mcpServers"), dict):
+            out.update(d["mcpServers"])
+    return out
+
+
+def mcp_config(keep=MCP_KEEP, servers=None, home=None):
+    """The --mcp-config file holding only the kept servers the user actually has, or None when they have none."""
+    have = {n: d for n, d in (user_mcp_servers() if servers is None else servers).items() if n in keep}
+    if not have:
+        return None
+    f = Path(home or profile.HOME) / "mcp-allow.json"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps({"mcpServers": have}, indent=1), encoding="utf-8")
+    return f
+
+
 def scoped():
     """A job's Claude sees the editor's plugins and nothing else: no MCP servers and none of the user's own skills,
     plugins or settings (measured: 74k -> 43k prompt tokens on an empty prompt). AI_EDITOR_FULL_CLAUDE=1 turns it off,
@@ -144,12 +191,15 @@ def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, 
     """The Claude Code command. A plugin installed through /plugin for the user lives under ~/.claude/plugins and
     loads by itself; one installed for a project only, and a checkout of this repo, load for this session with
     --plugin-dir (a checkout's plugins/ folder, so creator-teardown comes too). scoped(): the user's settings are not
-    read, so the plugins are always named, and --strict-mcp-config drops every MCP server. lang: that language's skills."""
+    read, so the plugins are always named, and --strict-mcp-config drops every MCP server but MCP_KEEP. lang: that language's skills."""
     os_name = os_name or platform.system()
     claude = claude or shutil.which("claude") or ("claude.exe" if os_name == "Windows" else "claude")
     cmd = [claude]
     if scoped():
         cmd += ["--strict-mcp-config", "--setting-sources", "project,local"]
+        mc = mcp_config()
+        if mc:
+            cmd += ["--mcp-config", str(mc)]
         d = lang_dir(lang)
         if d:
             cmd += ["--add-dir", str(d)]
@@ -239,6 +289,10 @@ def main(argv=None):
     a = list(sys.argv[1:] if argv is None else argv)
     dry, window_only = "--dry-run" in a, "--window-only" in a
     os_name = a[a.index("--os") + 1] if "--os" in a else platform.system()
+    newer = None if os.environ.get("AI_EDITOR_NO_HANDOFF") else newest_launcher()
+    if newer:   # started from an old version folder: hand the whole run to the newest one
+        os.environ["AI_EDITOR_NO_HANDOFF"] = "1"
+        return subprocess.call([sys.executable, str(newer), *a])
     lib = library.path(make=not dry)
     url = home.running()
     if url:
@@ -274,7 +328,7 @@ def main(argv=None):
 
 
 def demo():
-    global open_claude
+    global open_claude, user_mcp_servers
     import contextlib
     import io
     import tempfile
@@ -319,6 +373,22 @@ def demo():
         assert lines[0] == f"cd {q}{library.path(make=False)}{q}" and lines[1].endswith(f"{q}{PROMPT}{q}"), lines
         print(f"{os_name:<8} {lines[0]}  &&  {lines[1]}")
     assert not (tmp / "My Videos").exists(), "a dry run makes nothing"
+    # Higgsfield reaches every job window; the user's other servers do not. Both the config read and the
+    # home written to are faked, so the check does not depend on what this computer has installed.
+    real_servers, real_home = user_mcp_servers, profile.HOME
+    try:
+        profile.HOME = tmp / "home"
+        user_mcp_servers = lambda: {"higgsfiled": {"type": "http", "url": "https://h"}, "notion": {}, "Vercel": {}}  # noqa: E731
+        f = mcp_config()
+        assert list(json.loads(f.read_text(encoding="utf-8"))["mcpServers"]) == ["higgsfiled"], f.read_text(encoding="utf-8")
+        cmd = plan("Linux", plugin=Path("/repo/plugins/ai-editor"), claude="claude")
+        assert cmd[cmd.index("--mcp-config") + 1] == str(f), cmd
+        user_mcp_servers = lambda: {"notion": {}}  # noqa: E731
+        assert mcp_config() is None, "nothing kept: no file"
+        assert "--mcp-config" not in plan("Linux", plugin=Path("/repo/plugins/ai-editor"), claude="claude")
+    finally:
+        user_mcp_servers, profile.HOME = real_servers, real_home
+    print("mcp      ok: job windows keep Higgsfield and drop the rest")
     # a Claude of its own for a new video: the window it would open, per OS (recorded, never run)
     for os_name in ("Windows", "Linux"):
         ran = []
@@ -394,6 +464,13 @@ def demo():
             out = subprocess.run(["sh", str(f)], capture_output=True, text=True).stdout.strip()
             assert out == "ran 2.10.0", out
             print("newest   ok: nextwork-editor runs the newest installed version")
+            # every other entry point: a desktop icon or shortcut pinned to one version folder, an old
+            # nextwork-editor.cmd. launcher.py itself hands the run to the newest version it finds.
+            old_l, new_l = b / "2.4.0/lib/ai_editor/launcher.py", b / "2.10.0/lib/ai_editor/launcher.py"
+            assert newest_launcher(old_l) == new_l, newest_launcher(old_l)
+            assert newest_launcher(new_l) is None, "the newest hands off to nobody"
+            assert newest_launcher(__file__) is None, "a repo checkout is not a /plugin install"
+            print("handoff  ok: a launcher.py in an old version folder hands off to the newest")
     finally:
         open_claude, (home.running, webbrowser.open), shutil.which = real_open, real, real_which
     shutil.rmtree(tmp, ignore_errors=True)

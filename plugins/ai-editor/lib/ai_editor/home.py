@@ -1979,8 +1979,11 @@ def chat_watch(tid, slug):
     try:
         chat_append(slug, {"role": "assistant", "text": "".join(texts).strip(), "tools": tools, "at": now()})
         sid = chat.session_of(tid)
-        if sid and project_or_none(slug):
-            projects.set_session(slug, sid)
+        if project_or_none(slug):
+            if sid:
+                projects.set_session(slug, sid)
+            elif chat.session_reset(tid):
+                projects.set_session(slug, None)   # the stored id was stale: the next message starts fresh
     except Exception as e:  # noqa: BLE001
         print(f"chat save failed: {e}", file=sys.stderr)
 

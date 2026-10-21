@@ -8,6 +8,7 @@
     python3 projects.py rename SLUG NAME
     python3 projects.py archive SLUG [--off]
     python3 projects.py migrate            one project per existing edit folder or motion film not yet linked
+    python3 projects.py demo               self-check (a temp library, no network)
 
 Stored as <library>/projects/<slug>/project.json. Nothing is moved: a project only points at the library folders.
 """
@@ -144,6 +145,69 @@ def migrate():
     return made
 
 
+def demo():
+    """Self-check: the three kinds, their folders and the chat session that must survive a restart.
+    Nothing outside a temp library (no network, no claude)."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["AI_EDITOR_LIBRARY"] = td
+        assert KINDS == ("edit", "talking-head", "motion"), KINDS
+
+        a = new("My Talk", "talking-head", [Path(td) / "take.mov"])
+        assert a["slug"] == "my-talk" and a["kind"] == "talking-head" and a["chat_session"] is None
+        assert a["sources"] and Path(a["sources"][0]).is_absolute(), a["sources"]
+        assert new("My Talk", "edit")["slug"] == "my-talk-2", "a repeated name gets its own folder"
+        try:
+            new("Nope", "launch")
+            raise AssertionError("an unknown kind must not be accepted")
+        except ValueError:
+            pass
+
+        # the chat session is what "it forgot everything" depends on: it has to come back off disk
+        set_session("my-talk", "sid-1")
+        assert show("my-talk")["chat_session"] == "sid-1"
+        assert json.loads(_file("my-talk").read_text(encoding="utf-8"))["chat_session"] == "sid-1"
+        set_session("my-talk", None)
+        assert show("my-talk")["chat_session"] is None, "a stale id is cleared, not kept"
+
+        link("my-talk", "refs", "https://example.com")
+        link("my-talk", "refs", "https://example.com")
+        assert show("my-talk")["refs"] == ["https://example.com"], "a reference is not added twice"
+        link("my-talk", "edits", Path(td) / "edits" / "my-talk")
+        assert for_edit(Path(td) / "edits" / "my-talk") == "my-talk"
+        link("my-talk", "style", "@someone")
+        assert show("my-talk")["style"] == "@someone"
+        try:
+            link("my-talk", "nope", "x")
+            raise AssertionError("an unknown field must not be accepted")
+        except ValueError:
+            pass
+
+        assert [q["slug"] for q in list_all()] == ["my-talk", "my-talk-2"], "newest first by updated"
+        archive("my-talk-2")
+        assert [q["slug"] for q in list_all()] == ["my-talk"]
+        assert len(list_all(True)) == 2
+        archive("my-talk-2", False)
+        assert len(list_all()) == 2
+        try:
+            show("ghost")
+            raise AssertionError("an unknown slug must raise")
+        except KeyError:
+            pass
+
+        # _guess reads the folder, so migrate() files old work under the right kind
+        d = Path(td) / "films" / "f1"
+        d.mkdir(parents=True)
+        assert _guess(d) == "motion"
+        d2 = Path(td) / "edits" / "e1"
+        d2.mkdir(parents=True)
+        assert _guess(d2) == "edit"
+        (d2 / "cut.mp4").write_text("x", encoding="utf-8")
+        assert _guess(d2) == "talking-head"
+    print("projects ok")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -164,7 +228,10 @@ def main(argv=None):
     s.add_argument("slug")
     s.add_argument("--off", action="store_true")
     sub.add_parser("migrate")
+    sub.add_parser("demo")
     a = ap.parse_args(argv)
+    if a.cmd == "demo":
+        return demo()
     try:
         out = {"new": lambda: new(a.name, a.kind, a.source), "list": lambda: list_all(a.all),
                "show": lambda: show(a.slug), "link": lambda: link(a.slug, a.field, a.value),
