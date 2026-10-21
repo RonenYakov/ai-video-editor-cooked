@@ -25,7 +25,7 @@ for it, and reports back with `status`:
         JOB skill-change <skill> path=<its SKILL.md> text=<the user's words>   Skills: Improve with feedback (skill-improver)
         JOB skill-new [text=<what it should do>]  Skills: Make a new skill (skill-maker)
         JOB motion <name> format=9:16 film=DIR/films/<name> refs=DIR/films/<name>/refs.json root=DIR idea=<one line>
-                                                 New motion video: refs.json is [{id, source, take}] (a link, or a copy in refs/)
+                                                 New motion video: refs.json is [{id, source, take, role?}] (a link, or a copy in refs/; take = what the user wants from it, role = brand|style|both)
         JOB cancel <type>                         the user pressed Cancel or Stop on that job: stop it
         ALREADY ...                               another wait is running: nothing to do
         GONE ...                                  (--job) that job is done, cancelled or another Claude's
@@ -1632,7 +1632,25 @@ def phase(e):
     return "cut" if r.get("stage") == "cut" else "approve" if r.get("stills") else "edit"
 
 
+def lang_of(j):
+    """The language of a video or motion job: its own lang=, else the profile's "language" ("he" adds the Hebrew skills
+    to its Claude, launcher.lang_dir). "" for any other job."""
+    if j["type"] not in ("video", "motion"):
+        return ""
+    from ai_editor import profile
+    return str(j["args"].get("lang") or profile.load().get("language") or "").lower()
+
+
 def job_line(j, root):
+    a = j["args"]
+    line, lang = job_line_base(j, root), lang_of(j)
+    if not lang:
+        return line
+    cut = line.rindex(" idea=" if j["type"] == "motion" else " root=")   # free text (idea=) stays last on the line
+    return f"{line[:cut]} lang={lang}{line[cut:]}"
+
+
+def job_line_base(j, root):
     a = j["args"]
     if j["type"] == "teardown":
         src = f"urls={a['urls']}" if a.get("urls") else f"platform={a['platform']}"
@@ -1704,12 +1722,14 @@ def claude_for(jid):
         j = next((j for j in d["jobs"] if j["id"] == jid and j["state"] == "queued"), None)
         if j:
             j["reserved"] = time.time()
-        return d["root"] if j else None
-    root = update(reserve)
-    if not root:
+            return d["root"], lang_of(j), "/ai-editor:motion-film" if j["type"] == "motion" else "/ai-editor:start"
         return None
+    got = update(reserve)
+    if not got:
+        return None
+    root, lang, skill = got   # a motion film goes straight to its own skill, not through start's talking-head intake
     import launcher
-    opened, cmd = launcher.open_claude(root, f"/ai-editor:start take job {jid}")
+    opened, cmd = launcher.open_claude(root, f"{skill} take job {jid}", lang=lang)
     r = {"opened": opened, "command": cmd}
     update(lambda d: [j.__setitem__("claude", r) for j in d["jobs"] if j["id"] == jid])
     return r
@@ -2602,10 +2622,14 @@ def make_handler(token):
                             continue
                         keep = str(film / "refs" / f"ref{len(refs) + 1}-{f.name}")
                         shutil.copyfile(f, keep)
-                    refs.append({"id": f"ref{len(refs) + 1}", "source": keep, "take": take or "the whole look"})
+                    role = str(x.get("role") or "").lower()
+                    refs.append({"id": f"ref{len(refs) + 1}", "source": keep, "take": take or "the whole look",
+                                 **({"role": role} if role in ("brand", "style", "both") else {})})
                 (film / "refs.json").write_text(json.dumps(refs, indent=1), encoding="utf-8")
                 args = {"name": name, "idea": idea, "format": b.get("format") if b.get("format") in ("9:16", "1:1", "16:9") else "9:16",
                         "film": str(film), "refs": str(film / "refs.json")}
+                if str(b.get("lang") or "").lower() in ("he", "en"):
+                    args["lang"] = str(b["lang"]).lower()
             else:
                 return self.send(400, {"error": "unknown job"})
             j = update(lambda d: queue(d, kind, args))
@@ -3383,7 +3407,7 @@ def demo():
     held = update(lambda d: [j.update(state="done") or j["id"] for j in d["jobs"] if j["state"] in ("queued", "taken")])
     import launcher
     opened = []
-    launcher.open_claude = lambda folder, prompt: (opened.append((folder, prompt)) or True, "claude '" + prompt + "'")
+    launcher.open_claude = lambda folder, prompt, **kw: (opened.append((folder, prompt)) or True, "claude '" + prompt + "'")
     globals()["claude_for"] = real_claude_for
     vs = lambda **k: out(cmd_status, ns(**{"job": "video", "step": None, "detail": None, "progress": None, "result": None,
                                          "done": False, "failed": None, "if_active": False, **k}))
@@ -3453,6 +3477,9 @@ def demo():
     os.environ["CLAUDE_CODE_SESSION_ID"] = "sess-B"
     assert out(cmd_wait, 0.01, jb).startswith("GONE"), "another Claude has it"
     assert claude_for(jb) is None, "never a second Claude for a taken job"
+    he = {"type": "motion", "args": {"name": "x", "format": "9:16", "film": "f", "refs": "r", "idea": "i", "lang": "He"}}
+    assert lang_of(he) == "he" and job_line(he, "R").endswith(" root=R lang=he idea=i"), job_line(he, "R")
+    assert lang_of({"type": "teardown", "args": {"lang": "he"}}) == "", "only video and motion jobs carry a language"
     # "Connect Claude" (nobody listening): one terminal with the listen prompt, none while it is pending or once one listens
     opened.clear()
     assert post("/connect", {})["status"] == "opened" and opened == [(str(root.resolve()), launcher.LISTEN)], opened
@@ -3510,7 +3537,7 @@ def demo():
     assert not (Path(r3["edits"][0]) / "assets.json").exists() and " assets=" not in job_line(latest(read(), "video"), root)
     # no terminal can open (Linux without x-terminal-emulator): the job keeps the command, the editor shows it to run
     rec = launcher.open_claude
-    launcher.open_claude = lambda folder, prompt: (False, "claude '" + prompt + "'")
+    launcher.open_claude = lambda folder, prompt, **kw: (False, "claude '" + prompt + "'")
     update(lambda d: [j.update(state="done") for j in d["jobs"] if j["id"] in r3["ids"]])
     r4 = post("/job", {"type": "video", "path": str(vid), "aspect": "9:16", "as": "mine"})["id"]
     assert next(j for j in read()["jobs"] if j["id"] == r4)["claude"] == {"opened": False, "command": f"claude '/ai-editor:start take job {r4}'"}

@@ -30,8 +30,9 @@ Nothing skips ahead. Never claim a render worked without checking the file exist
 
 From the home page the job line is
 `JOB motion <name> format=<9:16|1:1|16:9> film=<FILM> refs=<FILM>/refs.json root=<library> idea=<one line>`.
-Take it with home.py `wait` like the other jobs and report with `home.py status motion --step "..."` (start skill,
-`references/home.md`). From chat ("new motion film", "make a motion video"): ask the idea, format and length in one
+The page opens this skill straight on `take job <id>`: read `${CLAUDE_PLUGIN_ROOT}/skills/start/references/home.md` and
+`home-other.md` there (waiting, status, questions, the motion job) and nothing else from start. Run `home.py wait --job <id>`
+and report with `home.py status motion --step "..."`. From chat ("new motion film", "make a motion video"): ask the idea, format and length in one
 question box, then:
 
 ```bash
@@ -59,10 +60,18 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/refs.py" add "$FILM" <file|folder|url> --ta
 A field the script could not measure stays missing; never fill it by eye. `_measured` in each file says what ran.
 Whole look only for now; a time range is measured as the whole video.
 
+Each reference is a card: `take` is the user's own note on what they want from it, `role` says what it is for
+(`brand` the business, `style` an ad or look to copy, `both`; unset: a website is brand, the rest style). A `brand`
+site also gets `site_ref` (its title, description, headings, quoted lines, fonts, from a small crawl): that is what the
+business does, in its own words. Before the brief run `refs.py echo "$FILM"` and say its lines back, one per card; a
+wrong line is fixed in `refs.json` and re-measured. A card whose note is only the default gets one question.
+Type and spacing of a style reference are not measured yet: say so, and do not name a font by eye.
+
 Precedence, always:
 
 1. **Brand wins** on colors, fonts, logo and text: the profile brand kit. None, or one from a site or photos:
-   `python3 "${CLAUDE_PLUGIN_ROOT}/lib/ai_editor/brand.py" from-url <url> --save` or `from-images <folder> --save`.
+   `python3 "${CLAUDE_PLUGIN_ROOT}/lib/ai_editor/brand.py" from-url <url> --save` or `from-images <folder> --save`
+   (ask before `--save`; without it the film uses the reference's `brand_ref` and `site_ref` only).
    Photos give colors and a logo, never fonts: ask for the font.
 2. **A reference decides** motion, timing and layout for the beats that cite it.
 3. **The engine's own defaults** (springs) for the rest.
@@ -74,7 +83,7 @@ two compete). `render.mjs` applies it; `--nograde` skips it.
 ## 2. Brief gate
 
 Fill `FILM/BRIEF.md`: idea, script, brand (named from the profile), format, length, audio source, and for each
-reference what to take and what to avoid. Show it back. **Gate: the user approves the brief before any code.**
+reference its `take` word for word, what to avoid, and for a brand site what the business does (`site_ref`). Show it back. **Gate: the user approves the brief before any code.**
 Ask what is missing in the question box; do not invent a script or a claim.
 
 ## 3. Assets and grids

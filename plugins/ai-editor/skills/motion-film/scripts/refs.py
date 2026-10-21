@@ -18,15 +18,22 @@ Source kinds
                              refs/<id>/still-1..4.png (evenly spaced) and refs/<id>.png (the middle frame).
   image folder or one image  grade.py on the images: grade and graphics.palette. The images (up to 4) are
                              copied as the stills. No pace, zoom or other motion field.
-  website link               brand.from_url (colours, font, logo), kept as "brand_ref" in refs/<id>.json.
-                             Nothing is saved to the profile. No screenshot: the repo has no page
-                             screenshot helper to reuse.
+  website link               brand.from_url (colours, font, logo), kept as "brand_ref" in refs/<id>.json, and a
+                             small crawl of the site (product-video's crawl.mjs, home page + 6 inner pages) read into
+                             "site_ref": what the business says it is and does, in its own words. Nothing is saved to
+                             the profile. No screenshot: the repo has no page screenshot helper to reuse.
+
+Each reference is a card: "take" is the user's note on what they want from it (their words, steers what the brief
+quotes), "role" is brand (the business: logo, colours, words), style (an ad or look: motion, timing, layout, grade)
+or both. No role given: a website is brand, anything else is style.
+  echo <film>
+        One line per reference to say back to the user before the beat sheet: role, source, their note, what was found.
 
 "_measured" in refs/<id>.json says which scripts ran ("ok") and which did not ("failed: why").
 A field a script could not measure stays missing. Every number comes from those scripts.
 
 Usage (the tool venv python: numpy, pillow, opencv, ffmpeg on PATH):
-  ~/.ai-video-editor/venv/bin/python refs.py add <film> <video|folder|image|url> [--take "the whole look"] [--id ref3]
+  ~/.ai-video-editor/venv/bin/python refs.py add <film> <video|folder|image|url> [--take "the whole look"] [--role brand|style|both] [--id ref3]
   ~/.ai-video-editor/venv/bin/python refs.py measure <film>
   ~/.ai-video-editor/venv/bin/python refs.py demo
 
@@ -44,7 +51,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve()
 PLUGINS = HERE.parents[4]
 LIB = HERE.parents[3] / "lib" / "ai_editor"
-TEAR = PLUGINS / "creator-teardown" / "skills" / "creator-teardown" / "scripts"
+# repo: plugins/creator-teardown/skills/...; plugin cache: <marketplace>/creator-teardown/<version>/skills/...
+TEAR = next((p for p in [PLUGINS / "creator-teardown" / "skills" / "creator-teardown" / "scripts",
+                         *sorted(PLUGINS.parent.glob("creator-teardown/*/skills/creator-teardown/scripts"), reverse=True)]
+             if p.is_dir()), PLUGINS / "creator-teardown" / "skills" / "creator-teardown" / "scripts")
 IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".webm", ".mkv", ".avi", ".mts", ".3gp"}
 # style.json blocks a whole-look reference keeps (the contract's names)
@@ -306,6 +316,42 @@ def measure_images(film, rid, src):
     return out
 
 
+ROLES = ("brand", "style", "both")
+
+
+def role_of(entry, kind):
+    r = str(entry.get("role") or "").lower()
+    return r if r in ROLES else "brand" if kind == "website" else "style"
+
+
+def site_summary(site):
+    """What a crawled site says about the business, from site.json alone: its title and description, the headline and the
+    section headings (the offers), and a few of its own lines to quote. Nothing is paraphrased here."""
+    pages = site.get("pages") or []
+    lines = [(x.get("text") or "").strip() for x in site.get("copy") or []] +             [(l.get("text") or "").strip() for p in pages for l in p.get("lines") or [] if l.get("tag") in ("h1", "h2", "h3")]
+    heads = list(dict.fromkeys(t for t in lines if 4 <= len(t) <= 80))
+    quotes = list(dict.fromkeys(t for p in pages for l in p.get("lines") or [] if l.get("tag") == "p"
+                                for t in [(l.get("text") or "").strip()] if 40 <= len(t) <= 200))
+    return {"domain": site.get("domain"), "title": site.get("title"), "description": site.get("description"),
+            "headings": heads[:12], "quotes": quotes[:8], "pages": [p.get("title") for p in pages if p.get("title")][:10],
+            "fonts": [(site.get("brand") or {}).get(k, {}).get("family") for k in ("display", "body")]}
+
+
+def crawl_site(film, rid, url):
+    """product-video's crawl.mjs, home page and a few inner pages, into refs/<rid>/site/. (site.json dict, "ok" or why not)."""
+    crawl = HERE.parents[2] / "product-video" / "scripts" / "crawl.mjs"
+    out = film / "refs" / rid / "site"
+    node = shutil.which("node")
+    if not node or not crawl.exists():
+        return None, "skipped: node or crawl.mjs missing"
+    try:
+        r = subprocess.run([node, str(crawl), url, str(out), "--pages", "6"], capture_output=True, text=True, timeout=240)
+        return json.loads((out / "site.json").read_text(encoding="utf-8")), "ok"
+    except (OSError, ValueError, subprocess.TimeoutExpired) as e:
+        tail = (getattr(e, "stderr", None) or "").strip().splitlines()[-1:] or [str(e)]
+        return None, f"failed: {tail[0][:200]} (setup.py renderer installs the browser the crawl needs)"
+
+
 def measure_website(film, rid, url):
     _lib()
     import brand
@@ -318,7 +364,11 @@ def measure_website(film, rid, url):
         return {"_measured": {"brand": f"failed: {str(e)[:200]}"}}
     finally:
         profile.HOME = keep_home
-    return {"brand_ref": kit, "_measured": {"brand": "ok", "screenshot": "skipped: no page screenshot helper in the repo"}}
+    site, why = crawl_site(film, rid, url)
+    out = {"brand_ref": kit, "_measured": {"brand": "ok", "site": why, "screenshot": "skipped: no page screenshot helper in the repo"}}
+    if site:
+        out["site_ref"] = site_summary(site)
+    return out
 
 
 # ---------- commands ----------
@@ -338,7 +388,8 @@ def measure_entry(film, entry):
         res, stills = measure_website(film, rid, source), []
     else:
         raise RuntimeError(f"{source}: not a video, an image folder, an image or a website link")
-    doc = {"id": rid, "source": entry["source"], "take": entry.get("take") or "the whole look", "kind": kind, **res}
+    doc = {"id": rid, "source": entry["source"], "take": entry.get("take") or "the whole look", "role": role_of(entry, kind),
+           "kind": kind, **res}
     if stills:
         doc["stills"] = [str(p.relative_to(film)).replace("\\", "/") for p in stills]
     write_json(film / "refs" / f"{rid}.json", doc)
@@ -346,7 +397,7 @@ def measure_entry(film, entry):
 
 
 def summary(doc):
-    bits = [k for k in ("pace", "zoom", "graphics", "grade", "brand_ref") if k in doc]
+    bits = [k for k in ("pace", "zoom", "graphics", "grade", "brand_ref", "site_ref") if k in doc]
     bad = [f"{k} {v}" for k, v in doc["_measured"].items() if v != "ok" and not v.startswith("skipped")]
     return f"{doc['id']} ({doc['kind']}): {', '.join(bits) or 'nothing measured'}" + (f"; not measured: {'; '.join(bad)}" if bad else "")
 
@@ -369,13 +420,25 @@ def cmd_measure(a):
     return rc
 
 
+def cmd_echo(a):
+    """The card read back, one line each: say it to the user before the beat sheet. A wrong line is fixed in refs.json."""
+    film = film_dir(a.film)
+    for r in load_refs(film):
+        f = film / "refs" / f"{r.get('id')}.json"
+        doc = read_json(f, {}) if f.exists() else {}
+        found = [k for k in ("pace", "zoom", "graphics", "grade", "brand_ref", "site_ref") if k in doc] or ["not measured yet"]
+        print(f"{r.get('id')} [{role_of(r, doc.get('kind'))}] {Path(str(r.get('source'))).name or r.get('source')}: "
+              f"you want \"{r.get('take') or 'the whole look'}\"; found {', '.join(found)}")
+    return 0
+
+
 def cmd_add(a):
     film = film_dir(a.film)
     refs = load_refs(film)
     rid = a.id or next_id(refs)
     if any(r.get("id") == rid for r in refs):
         sys.exit(f"{rid} is already in refs.json. Pick another --id.")
-    entry = {"id": rid, "source": a.source, "take": a.take or "the whole look"}
+    entry = {"id": rid, "source": a.source, "take": a.take or "the whole look", **({"role": a.role} if getattr(a, "role", None) else {})}
     refs.append(entry)
     save_refs(film, refs)
     try:
@@ -436,6 +499,15 @@ def demo():
         assert cmd_measure(ns(film=str(film))) == 0
         assert kind_of("https://example.com") == "website" and kind_of("https://www.youtube.com/watch?v=abc") == "video-link"
         assert kind_of(str(imgs)) == "images" and kind_of(str(vid)) == "video" and kind_of(str(tmp / "x.txt")) == "unsupported"
+        assert r1["role"] == "style" and r2["role"] == "style" and role_of({"role": "BRAND"}, "video") == "brand" and role_of({}, "website") == "brand"
+        site = {"domain": "shop.co.il", "title": "Shop", "description": "Handmade candles", "copy": [{"text": "Candles that last", "rect": [0, 0, 1, 1]}],
+                "brand": {"display": {"family": "Heebo"}, "body": {"family": "Assistant"}},
+                "pages": [{"title": "Pricing", "lines": [{"tag": "h2", "text": "Three simple plans"},
+                                                          {"tag": "p", "text": "Every candle is poured by hand in Tel Aviv and ships within two days."},
+                                                          {"tag": "p", "text": "short"}]}]}
+        ss = site_summary(site)
+        assert ss["headings"] == ["Candles that last", "Three simple plans"] and len(ss["quotes"]) == 1 and ss["fonts"] == ["Heebo", "Assistant"], ss
+        assert cmd_echo(ns(film=str(film))) == 0
         print(f"measured ok: ref1 {r1['_measured']}, ref2 {r2['_measured']}")
     print("refs demo ok")
     return 0
@@ -448,8 +520,12 @@ def main():
     p.add_argument("film")
     p.add_argument("source", help="a video file or link, an image or folder of images, or a website link")
     p.add_argument("--take", help="what to take from it (default: the whole look)")
+    p.add_argument("--role", choices=ROLES, help="brand (the business), style (an ad or look) or both; default by source")
     p.add_argument("--id", help="reference id (default: the next refN)")
     p.set_defaults(fn=cmd_add)
+    p = sub.add_parser("echo")
+    p.add_argument("film")
+    p.set_defaults(fn=cmd_echo)
     p = sub.add_parser("measure")
     p.add_argument("film")
     p.set_defaults(fn=cmd_measure)

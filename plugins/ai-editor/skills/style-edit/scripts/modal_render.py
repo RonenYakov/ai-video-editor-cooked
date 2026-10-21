@@ -29,6 +29,9 @@ from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+# Windows pipes default to cp1252 and Modal's rich output crashes on its box characters
+for _s in (sys.stdout, sys.stderr):
+    _s.reconfigure(encoding="utf-8", errors="replace")
 import modal
 
 BOOT = time.time()      # in a container: when it imported this file, so its start-up is measurable

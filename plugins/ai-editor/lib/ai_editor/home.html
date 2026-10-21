@@ -1694,7 +1694,7 @@ function vStyle(){
 const FILM_FMT=[['9:16',9,14],['1:1',12,12],['16:9',14,9]];
 const filmSlug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+/,'').slice(0,40).replace(/-+$/,'');
 const FILM_RE=/\.(mp4|mov|m4v|webm|mkv|avi|mts|3gp|png|jpe?g|webp|gif|heic)$/i;
-function openMotion(){ui.mfilm={name:'',idea:'',format:'9:16',refs:[]};render();setTimeout(()=>{const e=$('#mf-name');if(e)e.focus()},0)}
+function openMotion(){ui.mfilm={name:'',idea:'',format:'9:16',lang:'',refs:[]};render();setTimeout(()=>{const e=$('#mf-name');if(e)e.focus()},0)}
 function closeMotion(){ui.mfilm=null;render()}
 function motionModal(){
   const m=ui.mfilm;
@@ -1703,10 +1703,12 @@ function motionModal(){
     <label class="lkb"><b>Film name</b><input id="mf-name" class="input" placeholder="launch-teaser" value="${esc(m.name)}" oninput="ui.mfilm.name=this.value" onchange="this.value=ui.mfilm.name=filmSlug(this.value)" autocomplete="off" spellcheck="false"></label>
     <label class="lkb"><b>The idea</b><input id="mf-idea" class="input" maxlength="300" placeholder="A 15 second teaser for the app, fast and clean" value="${esc(m.idea)}" oninput="ui.mfilm.idea=this.value" autocomplete="off"></label>
     <div class="row" style="gap:12px"><b>Format</b><span class="seg4">${FILM_FMT.map(([f,w,h])=>`<button class="${m.format===f?'on':''}" onclick="ui.mfilm.format='${f}';render()"><i style="width:${w}px;height:${h}px"></i>${f}</button>`).join('')}</span></div>
+    <div class="row" style="gap:12px"><b>Language</b><select class="input" style="width:auto" aria-label="Video language" onchange="ui.mfilm.lang=this.value"><option value="" ${m.lang?'':'selected'}>English</option><option value="he" ${m.lang==='he'?'selected':''}>Hebrew</option></select></div>
     <div class="nbox" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('over');addFilmRefs(event.dataTransfer.files)"><b>Add reference</b>
-      <span class="t2">Optional. Videos or pictures, or a link. Say what to take from each.</span>
+      <span class="t2">Optional. Your website, an ad you like, videos or pictures. Say what you want from each one.</span>
       ${m.refs.map((r,i)=>`<div class="lkb"><div class="lr rf">${ic(r.kind==='link'?'link':'file',16,2)}<span class="t1" title="${esc(r.name)}">${esc(r.name)}</span><span class="t2">${r.bad?esc(r.bad):r.kind==='link'||r.path?'':`Adding... ${r.pct||0}%`}</span><button class="lx" aria-label="Remove this reference" title="Remove" onclick="ui.mfilm.refs.splice(${i},1);render()">${ic('x',16,2)}</button></div>
-        <input class="input" placeholder="the whole look" value="${esc(r.take||'')}" aria-label="What to take from ${esc(r.name)}" oninput="ui.mfilm.refs[${i}].take=this.value" autocomplete="off"></div>`).join('')}
+        <div class="row" style="gap:8px"><select class="input" style="flex:0 0 auto;width:auto" aria-label="What ${esc(r.name)} is for" onchange="ui.mfilm.refs[${i}].role=this.value"><option value="" ${r.role?'':'selected'}>Auto</option><option value="brand" ${r.role==='brand'?'selected':''}>My business</option><option value="style" ${r.role==='style'?'selected':''}>A style to copy</option><option value="both" ${r.role==='both'?'selected':''}>Both</option></select>
+        <input class="input" style="flex:1;min-width:0" placeholder="What do you want from this one?" value="${esc(r.take||'')}" aria-label="What to take from ${esc(r.name)}" oninput="ui.mfilm.refs[${i}].take=this.value" autocomplete="off"></div></div>`).join('')}
       <label class="lin">${ic('plus',16,2)}<input id="mf-link" placeholder="Paste a link" onkeydown="if(event.key==='Enter')addFilmLink(this)" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;color:var(--ink)"></label>
       <label class="ul" style="align-self:flex-start;cursor:pointer">Add files<input type="file" multiple hidden accept="video/*,image/*" onchange="addFilmRefs(this.files);this.value=''"></label></div>
     ${m.msg?`<div class="msg bad">${CROSS}<span>${esc(m.msg)}</span></div>`:''}
@@ -1735,7 +1737,7 @@ async function makeFilm(){
   if(!m.idea.trim()){m.msg='Say the idea in one line.';return render()}
   if(m.refs.some(r=>!r.bad&&r.kind==='file'&&!r.path)){m.msg='Wait for your files to finish adding.';return render()}
   m.busy=1;m.msg=null;render();
-  const r=await post('/job',{type:'motion',name,idea:m.idea,format:m.format,refs:m.refs.filter(r=>!r.bad).map(r=>({source:r.kind==='link'?r.url:r.path,take:r.take||''}))});
+  const r=await post('/job',{type:'motion',name,idea:m.idea,format:m.format,lang:m.lang,refs:m.refs.filter(r=>!r.bad).map(r=>({source:r.kind==='link'?r.url:r.path,take:r.take||'',role:r.role||''}))});
   if(!r._ok){m.busy=0;m.msg=r.error||'That did not start.';return render()}
   ui.mfilm=null;toast('Motion video started.');await load();render();
 }

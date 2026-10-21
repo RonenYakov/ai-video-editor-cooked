@@ -32,6 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import home  # noqa: E402
 import library  # noqa: E402
+import profile  # noqa: E402
 
 PLUGIN = Path(__file__).resolve().parents[2]          # plugins/ai-editor
 PROMPT = "/ai-editor:start open the home page"
@@ -100,29 +101,62 @@ def installed():
         return {}
 
 
-def not_everywhere(plugins):
+def not_everywhere(plugins, every=False):
     """Install folders of the editor's plugins Claude Code does not load in every folder: installed for a project
     or locally only (the repo's .claude/settings.json does that), so a Claude started in the library would not
-    have /ai-editor:start. The newest row of each; [] when they are installed for the user."""
+    have /ai-editor:start. The newest row of each; [] when they are installed for the user. every=True: the folders
+    whatever the scope, for a Claude that skips the user's settings (scoped(), which is where user installs are listed)."""
     out = []
     for name in ("ai-editor", "creator-teardown"):
         rows = [r for k, v in plugins.items() if k.split("@")[0] == name and isinstance(v, list) for r in v if isinstance(r, dict)]
-        if rows and not any(r.get("scope") == "user" for r in rows) and rows[-1].get("installPath"):
+        if rows and (every or not any(r.get("scope") == "user" for r in rows)) and rows[-1].get("installPath"):
             out.append(rows[-1]["installPath"])
     return out
 
 
-def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None):
+LANG_SKILLS = {"he": ("hebrew-content-writer", "israeli-social-content")}   # the user's own skills, added only to a video in that language
+
+
+def scoped():
+    """A job's Claude sees the editor's plugins and nothing else: no MCP servers and none of the user's own skills,
+    plugins or settings (measured: 74k -> 43k prompt tokens on an empty prompt). AI_EDITOR_FULL_CLAUDE=1 turns it off,
+    for a user whose login or proxy lives in their settings.json."""
+    return not os.environ.get("AI_EDITOR_FULL_CLAUDE")
+
+
+def lang_dir(lang):
+    """A folder with the user's skills for that language, to pass as --add-dir, or None. Copied once from
+    ~/.claude/skills (any depth: synced skills sit in a folder of their own) into the editor's home."""
+    names = LANG_SKILLS.get(lang)
+    if not names:
+        return None
+    out = profile.HOME / "lang" / lang
+    for n in names:
+        dest = out / ".claude" / "skills" / n
+        if not dest.exists():
+            src = next((f.parent for f in (Path.home() / ".claude" / "skills").rglob("SKILL.md") if f.parent.name == n), None)
+            if src:
+                shutil.copytree(src, dest)
+    return out if any((out / ".claude" / "skills" / n).exists() for n in names) else None
+
+
+def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, lang=None):
     """The Claude Code command. A plugin installed through /plugin for the user lives under ~/.claude/plugins and
     loads by itself; one installed for a project only, and a checkout of this repo, load for this session with
-    --plugin-dir (a checkout's plugins/ folder, so creator-teardown comes too)."""
+    --plugin-dir (a checkout's plugins/ folder, so creator-teardown comes too). scoped(): the user's settings are not
+    read, so the plugins are always named, and --strict-mcp-config drops every MCP server. lang: that language's skills."""
     os_name = os_name or platform.system()
     claude = claude or shutil.which("claude") or ("claude.exe" if os_name == "Windows" else "claude")
     cmd = [claude]
+    if scoped():
+        cmd += ["--strict-mcp-config", "--setting-sources", "project,local"]
+        d = lang_dir(lang)
+        if d:
+            cmd += ["--add-dir", str(d)]
     if "/.claude/plugins/" not in Path(plugin).as_posix() + "/":
         cmd += ["--plugin-dir", str(Path(plugin).parent)]
     else:
-        for d in not_everywhere(installed() if plugins is None else plugins):
+        for d in not_everywhere(installed() if plugins is None else plugins, every=scoped()):
             cmd += ["--plugin-dir", d]
     return cmd + ["--settings", json.dumps({"permissions": {"allow": allow_rules(plugin)}}), prompt]
 
@@ -167,11 +201,11 @@ def start(argv, folder, os_name):
         return False
 
 
-def open_claude(folder, prompt, os_name=None, run=start):
+def open_claude(folder, prompt, os_name=None, run=start, lang=None):
     """(opened, the command as the user would type it, for the page to show when nothing opened).
     run(argv, folder, os_name) -> bool; the demos pass a recorder so no real window opens."""
     os_name = os_name or platform.system()
-    cmd = plan(os_name, prompt=prompt)
+    cmd = plan(os_name, prompt=prompt, lang=lang)
     # the window's own folders: a Terminal opened by osascript does not inherit them, so the new Claude would
     # listen on another home. Windows and x-terminal-emulator start as children and inherit them.
     pairs = [f"{k}={os.environ[k]}" for k in ("AI_EDITOR_HOME", "AI_EDITOR_LIBRARY") if os.environ.get(k)]
@@ -256,7 +290,8 @@ def demo():
     os.environ["AI_EDITOR_LIBRARY"] = str(tmp / "My Videos")
     for os_name in ("Darwin", "Linux", "Windows"):
         cmd = plan(os_name, plugin=Path("/repo/plugins/ai-editor"), claude="claude")
-        assert cmd[:3] == ["claude", "--plugin-dir", str(Path("/repo/plugins"))] and cmd[-1] == PROMPT, cmd
+        assert cmd[:4] == ["claude", "--strict-mcp-config", "--setting-sources", "project,local"] and cmd[-1] == PROMPT, cmd
+        assert cmd[cmd.index("--plugin-dir") + 1] == str(Path("/repo/plugins")), cmd
         assert not any("dangerously" in c or "bypass" in c.lower() for c in cmd), "never bypass permissions"
         rules = json.loads(cmd[cmd.index("--settings") + 1])["permissions"]["allow"]
         assert "Bash(python3 /repo/plugins/ai-editor/*)" in rules and "Bash(ffmpeg *)" in rules, rules
@@ -266,10 +301,23 @@ def demo():
         rows = lambda scope: {"ai-editor@nextwork": [{"scope": scope, "installPath": str(c / "ai-editor/2.3.0")}],
                               "creator-teardown@nextwork": [{"scope": scope, "installPath": str(c / "creator-teardown/2.3.0")}]}
         cached = plan(os_name, plugin=c / "ai-editor/2.3.0", claude="claude", plugins=rows("user"))
-        assert "--plugin-dir" not in cached, cached
+        # scoped: the user's settings are not read, so even a user install is named
+        assert cached.count("--plugin-dir") == 2 and str(c / "ai-editor/2.3.0") in cached, cached
+        os.environ["AI_EDITOR_FULL_CLAUDE"] = "1"
+        try:
+            full = plan(os_name, plugin=c / "ai-editor/2.3.0", claude="claude", plugins=rows("user"))
+            assert full[:2] == ["claude", "--settings"] and "--plugin-dir" not in full, full
+        finally:
+            del os.environ["AI_EDITOR_FULL_CLAUDE"]
         # installed for the cloned repo only: the library is another folder, so the session loads both itself
         proj = plan(os_name, plugin=c / "ai-editor/2.3.0", claude="claude", plugins=rows("project"))
-        assert proj[1:5] == ["--plugin-dir", str(c / "ai-editor/2.3.0"), "--plugin-dir", str(c / "creator-teardown/2.3.0")], proj
+        assert proj[proj.index("--plugin-dir"):][:4] == ["--plugin-dir", str(c / "ai-editor/2.3.0"), "--plugin-dir", str(c / "creator-teardown/2.3.0")], proj
+        # a Hebrew video adds the user's Hebrew skills as a folder of their own; any other language adds nothing
+        sk = Path.home() / ".claude" / "skills"
+        assert "--add-dir" not in plan(os_name, plugin=Path("/repo/plugins/ai-editor"), claude="claude", lang="en")
+        if any(f.parent.name == LANG_SKILLS["he"][0] for f in sk.rglob("SKILL.md")):
+            he = plan(os_name, plugin=Path("/repo/plugins/ai-editor"), claude="claude", lang="he")
+            assert (Path(he[he.index("--add-dir") + 1]) / ".claude/skills" / LANG_SKILLS["he"][0] / "SKILL.md").exists(), he
         o = io.StringIO()
         with contextlib.redirect_stdout(o):
             assert main(["--dry-run", "--os", os_name]) == 0

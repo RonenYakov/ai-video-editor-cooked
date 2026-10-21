@@ -1137,7 +1137,7 @@ def connect_modal():
         say("STEP Log in to Modal in your browser")
         try:
             quiet([modal_exe(), "setup"], None, "the Modal login", timeout=MODAL_LOGIN_S,
-                  env=dict(os.environ, PYTHONUNBUFFERED="1", COLUMNS="400"),
+                  env=dict(os.environ, PYTHONUNBUFFERED="1", COLUMNS="400", PYTHONIOENCODING="utf-8"),  # cp1252 pipes crash its rich output on Windows
                   on_line=lambda ln: (m := MODAL_LOGIN.search(ln)) and say(f"LOGIN {m[0]}"))
         except SystemExit:   # closed, timed out, or Modal said no: the old token file may still be there
             return False
