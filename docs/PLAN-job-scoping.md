@@ -119,6 +119,11 @@ The profile is data (a JSON file in `lib/ai_editor/`), tested by the existing la
 
 **Phase 4, Quick edit.** Add its profile row when the button is built; its router skill gets only the scope in the table.
 
+## Status
+
+Done: Phase 0 (measured: prompt 74k to 43k tokens), Phase 1 (launch scope, Hebrew add-on), Phase 2 (home.md split, motion goes straight to motion-film), Phase 1c except the type and spacing measure. Per-skill deny rules do not hide skills, so they were dropped.
+Open: type and spacing of an ad may be extracted another way (any method that returns font class, title size, margins is fine); Quick edit scope waits for its button.
+
 ## Key Decisions
 
 1. **Scope at launch, not in the skills.** Chosen: profile table in `launcher.py`. Why: one place, testable, no content rewrites, works for every install. Alternatives: edit each skill's description (still listed everywhere), or split plugins now (large refactor for a gain not yet measured).
