@@ -62,7 +62,6 @@ on this computer. Say which sites and how long ago each was used, and ask in the
 delete, `node "${CLAUDE_PLUGIN_ROOT}/skills/product-video/scripts/login.mjs" logout <domain>`.
 
 If `python3` itself is missing:
-- Mac: `brew install python`. No Homebrew? See step 2.
 - Windows: `winget install -e --id Python.Python.3.12`, then open a new terminal.
 - Linux: `sudo apt install -y python3 python3-venv` (Fedora: `sudo dnf install -y python3`; Arch:
   `sudo pacman -S --needed python`).

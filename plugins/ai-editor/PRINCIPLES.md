@@ -9,7 +9,7 @@ The rules every skill follows. Each names where it is enforced; tests: `docs/fee
 ## Asking
 
 - Every question goes in the question box (AskUserQuestion), recommended option first, free text
-  always allowed. Pages show evidence and take notes, never answers; the home page
+  always allowed. Pages show evidence and take notes; the project chat answers in conversation; the home page
   alone takes a creator, its parts, keys. (every SKILL.md; where to render has none)
 - Ask what the video must cover before building it: a short brief first. (start, product-video)
 - Taste is asked once and saved; each video asks only what belongs to it. (setup, `profile.py`)

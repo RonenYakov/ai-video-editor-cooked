@@ -100,7 +100,8 @@ repeated phrases), all off the word timestamps.
 Run Step 3b first, so the passes skip the videos `format.json` left out. Then load
 `${CLAUDE_SKILL_DIR}/references/analysis-framework.md` and run its passes. For pass 1, launch
 one `video-analyst` agent per video, all in one message (they run at once): give each the absolute
-`creator-teardowns/<handle>/` path and one id. Each returns a JSON beat map; merge them into the
+`creator-teardowns/<handle>/` path and one id. Each returns a JSON beat map; save each as
+`creator-teardowns/<handle>/beats/<id>.json` (the Home reference view reads them), then merge them into the
 tables. Without an Agent tool, read `transcripts/<id>.timed.txt` yourself, one video at a time. Never
 read `transcripts/<id>.json` or `metrics.json` whole:
 

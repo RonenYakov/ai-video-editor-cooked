@@ -63,7 +63,7 @@ OUT_ROOT = Path.cwd() / "creator-teardowns"
 SELF = Path(__file__).resolve()
 TRANSCRIBE = SELF.with_name("transcribe.py")
 LOCK = SELF.parents[1] / "requirements.lock"   # ai-editor's pins for what this skill uses (check_plugins.py keeps it in sync)
-OS = platform.system()  # Darwin, Windows, Linux
+OS = platform.system()  # Windows, Linux
 PY = "py" if OS == "Windows" else "python3"
 
 PROFILE_URL = {
@@ -138,9 +138,9 @@ def linux_pm(which=shutil.which):
     return next((pm for pm, exe in (("apt", "apt-get"), ("dnf", "dnf"), ("pacman", "pacman")) if which(exe)), "apt")
 
 
-def fix(mac, win, linux, os_name=None, which=shutil.which):
+def fix(win, linux, os_name=None, which=shutil.which):
     """linux: {"apt": ..., "dnf": ..., "pacman": ...}, picked by the package manager this computer has."""
-    return {"Darwin": mac, "Windows": win}.get(os_name or OS) or linux[linux_pm(which)]
+    return win if (os_name or OS) == "Windows" else linux[linux_pm(which)]
 
 
 def reach(v):
@@ -194,7 +194,7 @@ def pick(videos, median, top, control, spare=0):
 
 def cmd_doctor(args):
     required_missing = 0
-    print(f"creator-teardown doctor ({ {'Darwin': 'macOS'}.get(OS, OS) })\n")
+    print(f"creator-teardown doctor ({OS})\n")
 
     def row(state, what, how=None):
         print(f"  {state:<9} {what}")
@@ -207,7 +207,7 @@ def cmd_doctor(args):
     else:
         required_missing += 1
         row("FIX", f"Python {v.major}.{v.minor} is too old (need 3.9+)",
-            fix("brew install python", "winget install -e --id Python.Python.3.13",
+            fix("winget install -e --id Python.Python.3.13",
                 {"apt": "sudo apt install -y python3", "dnf": "sudo dnf install -y python3",
                  "pacman": "sudo pacman -S --needed --noconfirm python"}))
 
@@ -246,7 +246,7 @@ def cmd_doctor(args):
     else:
         required_missing += 1
         row("FIX", "ffmpeg is not installed (it reads the audio and the frames)",
-            fix("brew install ffmpeg", "winget install -e --id Gyan.FFmpeg",
+            fix("winget install -e --id Gyan.FFmpeg",
                 {"apt": "sudo apt install -y ffmpeg", "dnf": "sudo dnf install -y ffmpeg-free",
                  "pacman": "sudo pacman -S --needed --noconfirm ffmpeg"}))
 
@@ -260,10 +260,9 @@ def cmd_doctor(args):
 
     # The look pass: OCR reads the captions, Gemini names the font and graphics style.
     if VENV_PY.exists():
-        ocr = "ocrmac" if OS == "Darwin" else "rapidocr_onnxruntime"
-        alt = "" if OS == "Darwin" else " or rapidocr"
+        ocr, alt = "rapidocr_onnxruntime", " or rapidocr"
         has = run([str(VENV_PY), "-c", f"import {ocr}"]).returncode == 0 or (
-            OS != "Darwin" and run([str(VENV_PY), "-c", "import rapidocr"]).returncode == 0)
+            run([str(VENV_PY), "-c", "import rapidocr"]).returncode == 0)
         if has:
             row("ok", f"{ocr}{alt}: captions are measured, not read off images")
         else:
@@ -840,8 +839,7 @@ def demo():
 
     # A Linux fix line uses the package manager this computer has
     lin = {"apt": "A", "dnf": "D", "pacman": "P"}
-    assert fix("m", "w", lin, "Linux", lambda e: e == "dnf") == "D" and fix("m", "w", lin, "Linux", lambda e: False) == "A"
-    assert fix("m", "w", lin, "Darwin", lambda e: True) == "m"
+    assert fix("w", lin, "Linux", lambda e: e == "dnf") == "D" and fix("w", lin, "Linux", lambda e: False) == "A"
 
     # Control group: the videos closest to the median, never a top pick again.
     vids = [{"id": str(i), "view_count": n}
@@ -890,7 +888,7 @@ def demo():
     # Every install line is pinned: ai-editor's bootstrap / repair when it is there, else this
     # skill's hash-checked lock, which holds ai-editor's exact pins for everything it lists.
     for setup in (None, Path("/x/ai-editor/skills/setup/scripts/setup.py")):
-        for o in ("Darwin", "Windows", "Linux"):
+        for o in ("Windows", "Linux"):
             for k, line in install_fixes(setup, o).items():
                 assert "brew" not in line and "pipx" not in line and "winget" not in line, line
                 assert "pip install" not in line or "--require-hashes" in line, line

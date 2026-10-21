@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render the cut with plain ffmpeg: every kept span trimmed and joined.
 
-    python3 render.py <source> <edit_dir> [--crf 18] [--no-hw] [--flip] [--segments-only] [--max 1080]
+    python3 render.py <source> <edit_dir> [--crf 18] [--flip] [--segments-only] [--max 1080]
 
 Reads <edit_dir>/decisions.json and report.json, writes <edit_dir>/cut.mp4 at the
 source resolution (rotation applied), H.264 + AAC. --flip flips it left to right (a mirrored front-camera
@@ -102,7 +102,6 @@ def main():
     ap.add_argument("source")
     ap.add_argument("edit_dir")
     ap.add_argument("--crf", type=int, default=18)
-    ap.add_argument("--no-hw", action="store_true", help="skip hardware decode on a Mac")
     ap.add_argument("--flip", action="store_true", help="flip left to right (a mirrored take, on the user's yes)")
     ap.add_argument("--segments-only", action="store_true", help="fill the segment cache, write no cut.mp4")
     ap.add_argument("--max", type=int, default=1080, help="short side in pixels, never upscaled (0 keeps the source size)")
@@ -116,15 +115,11 @@ def main():
     src, out = a.source, d / "cut.mp4"
     if a.flip:
         print("flipping left to right (--flip)", flush=True)
-    hw = sys.platform == "darwin" and not a.no_hw
     vstart, fstart = starts(src)
     total = packets(src)
     off = vstart - fstart     # where frame 0 plays on the audio's timeline
     x264 = ["-c:v", "libx264", "-crf", str(a.crf), "-preset", "veryfast"]
-    # A Mac already decoding in hardware encodes there too: a 107 s iPhone cut went 60 s -> 20 s and
-    # 192 MB -> 119 MB at 40.6 dB PSNR, no visible change. -q:v needs Apple silicon; an Intel Mac's
-    # encoder refuses it and every span is redone with x264.
-    enc = ["-c:v", "h264_videotoolbox", "-q:v", "65"] if hw else x264
+    enc = x264
     # 1080p: a 4K take's short side down to 1080 (1080x1920 or 1920x1080), smaller never upscaled; the
     # edit renders at 1080 anyway, and a 4K encode costs about four times the time
     m = a.max
@@ -159,7 +154,7 @@ def main():
             # so without -r the muxer gives the last one ~0 s and FFmpeg 7's edit list ends on it,
             # dropping it on read. N/fps keeps the constant-rate clock from duplicating or dropping
             # frames over a 1/600 s source's jittered timestamps.
-            cmd = ["ffmpeg", "-v", "error", "-y", "-copyts", *(["-hwaccel", "videotoolbox"] if hw else []),
+            cmd = ["ffmpeg", "-v", "error", "-y", "-copyts",
                    "-ss", f"{max(0.0, t0 - fstart - LEAD_S):.6f}", "-i", src, "-an",
                    "-vf", trim_filter(s, e, fps, vstart, total) + (",hflip" if a.flip else "") + size,
                    "-r", str(fps), *enc, "-pix_fmt", "yuv420p", "-g", "15", str(part)]
@@ -173,8 +168,7 @@ def main():
 
         def encode_all():
             """The first span's error, else None."""
-            # the hardware encoder holds a few sessions at once; more get refused and send everything to x264
-            workers = 4 if enc is not x264 else max(2, (os.cpu_count() or 8) // 4)
+            workers = max(2, (os.cpu_count() or 8) // 4)
             with cf.ThreadPoolExecutor(workers) as ex:
                 for n, err in enumerate(ex.map(one, range(len(frames))), 1):
                     if err:
@@ -236,8 +230,8 @@ def main():
                 lock.unlink(missing_ok=True)
             print(f"segments: {err}" if err else f"segments ready in {cache()}")
             return
-        # A background --segments-only run still encoding holds the hardware sessions: wait for it rather
-        # than have the encoder refuse ours and send the whole render to x264. A lock with no segment
+        # A background --segments-only run still encoding is writing the same segments: wait for it rather
+        # than encode them twice. A lock with no segment
         # written for 60 s is a killed run.
         def busy():
             def fresh(f):
@@ -251,12 +245,6 @@ def main():
         while busy():
             time.sleep(2)
         err = attempt()
-        # A hardware render that fails anywhere (a refused session, a span short, a lost frame at the join)
-        # is redone whole with x264: re-encoding only the failed spans would mix two encoders in one concat -c copy.
-        if err and enc is not x264:
-            print(f"  hardware encode failed, again with x264 ({err[:200]})", flush=True)
-            enc = x264
-            err = attempt()
         if err:
             sys.exit(f"ERROR {err}")
         keep = {seg_of(i) for i in range(len(frames))}   # only this cut's spans stay on disk

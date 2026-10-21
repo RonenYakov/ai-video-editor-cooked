@@ -24,24 +24,6 @@ The same change said in the chat goes through the same `taste.py add`, so both l
 The page's own controls (sliders, zooms, cut, sound effects) save through `styleskill.learn` directly
 and need no job.
 
-### `JOB skill-change <skill> path=<its SKILL.md> text=<the user's words>`
-
-The user pressed "Improve with feedback" on the Skills page and typed what to change in that skill. Run the
-skill-improver skill on the words (no video): one short rule per thing they asked, checked with
-`skillrules.py similar` (sharpen a twin with `--replace`, ask in the question box when one conflicts), show the
-exact lines and ask `Save these (Recommended)` / `Change one` / `Don't save` (the question reaches the page).
-After the yes: `skillrules.py add <path> "<rule>" --why "you said: <their words>"`. Then
-`status skill-change --result '{"changed": ["<rule>", ...]}' --done` (or `--done` with `{"changed": []}` on
-Don't save). The page shows `changed`; the style pages of every style using the skill list the rules.
-
-### `JOB skill-new [text=<what it should do>]`
-
-The user pressed "Make a new skill" on the Skills page. Run the skill-maker skill, with `text` as the answer to
-its first interview question when given. Its questions go in the question box (they reach the page). Report
-each step with `status skill-new --step "..."`, and at the end
-`status skill-new --result '{"summary": "Made /<name>. It is on the Skills page."}' --done`. The new skill
-shows on the Skills page, where "Use as a style" makes it a style.
-
 ### `JOB motion <name> format=<f> film=<FILM> refs=<FILM>/refs.json root=<library> idea=<one line>`
 
 The user pressed "New motion video". The film folder, its `refs/` and `refs.json` already exist. Run the

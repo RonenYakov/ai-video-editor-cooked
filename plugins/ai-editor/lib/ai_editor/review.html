@@ -1,6 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Review · cooked.</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121211'/%3E%3Cg transform='translate%2810 10%29 scale%28.6875%29' fill='%23F2F0EA' color='%23F2F0EA'%3E%3Cpath d='M6 36H46C46 46 40 52 32 52H20C12 52 6 46 6 36Z'/%3E%3Cpath d='M45 36H58A3 3 0 0 1 58 42H45Z'/%3E%3Cpath d='M16 29C13 25 19 22 16 17M26 29C23 25 29 22 26 17M36 29C33 25 39 22 36 17' fill='none' stroke='currentColor' stroke-width='5' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
 
+<link rel="stylesheet" href="/ui.css">
 <style>
 /* stone, monochrome: black marks the current thing and the one button to press; green only what is done */
 :root{--page:#FFFFFF;--panel:#FFFFFF;--raise:#FFFFFF;--rail:#F7F7F6;--railon:#E2E1DE;--tile:#F6F5F3;--tileink:#0C0A09;--line:#E7E5E4;--line2:#D6D3D1;--chip:#F2F1EF;--track:#E9E8E6;--hover:#EAE9E6;
@@ -32,7 +33,7 @@ body.beatmode header,body.beatmode #how,body.beatmode main{display:none}
 #beatsview h2{margin:0;font-size:12px;line-height:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 #beatsview .bhead{display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
 #beatsview .bbtns{display:flex;gap:8px}
-#beatsview .bbtns button,#beatsview .bn button{height:36px;border-radius:10px;padding:0 14px;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--strong)}
+#beatsview .bbtns button,#beatsview .bn button{display:inline-flex;align-items:center;gap:6px;height:36px;border-radius:10px;padding:0 14px;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--strong)}
 #beatsview .bbtns button.primary{background:var(--ink);border-color:var(--ink);color:var(--onink)}
 #beatsview button:disabled{opacity:.5}
 #beatsview .refs{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
@@ -388,8 +389,13 @@ aside{width:var(--sidew,320px);flex-shrink:0;background:var(--panel);border-left
 #box{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:6px 8px;min-height:40px;padding:5px 4px 5px 6px;background:var(--panel);border:1px solid var(--line2);border-radius:10px}
 #box .crow{display:contents}
 #box.drag{border-color:var(--ink)}
-#ta{grid-row:1;grid-column:2/-1;min-width:0;border:0;background:transparent;resize:none;outline:none;padding:5px 0;font-size:14px;line-height:18px;min-height:28px;max-height:120px;color:var(--ink)}
+#ta{grid-row:1;grid-column:2/4;min-width:0;border:0;background:transparent;resize:none;outline:none;padding:5px 0;font-size:14px;line-height:18px;min-height:28px;max-height:120px;color:var(--ink)}
 #ta::placeholder{color:var(--quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#box .cc-ic{grid-row:1;grid-column:4;width:28px;height:28px}
+#box .cc-note{grid-row:3;grid-column:1/-1;margin:0 2px}
+.trask{flex-wrap:wrap}.trask .cc-ic{width:28px;height:28px;flex-shrink:0}.trask .cc-note{flex:0 0 100%;order:9;margin:0}
+#beatsview .cc-ic{align-self:flex-start}
+:root{--t2:var(--body);--t3:var(--muted);--t4:var(--quiet);--soft:var(--hover)}   /* chat.js reads these names */
 #clock{grid-row:1;grid-column:1;align-self:start;display:flex;align-items:center;gap:5px;height:28px;padding:0 8px;background:var(--chip);border-radius:6px;font-size:12px;line-height:16px;font-weight:600;color:var(--strong);white-space:nowrap;flex-shrink:0}
 #clock svg{color:var(--body)}
 #clock.pinned{box-shadow:inset 0 0 0 1px var(--ink)}
@@ -469,7 +475,8 @@ body.trtab #box,body.trtab #adds{display:none}body.trtab .pfoot{padding-top:0;bo
 .tridea{margin-left:28px;display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;background:var(--chip);font-size:12px;line-height:16px;color:var(--body)}
 .tridea b{color:var(--strong)}
 .trbtns{display:flex;gap:6px}.trbtns button{height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);font-size:12px;font-weight:600;color:var(--strong)}
-.trbtns button.go{background:var(--ink);border-color:var(--ink);color:var(--onink)}
+.trbtns button.go{border-color:var(--ink)}   /* Make trial reels is the one primary here */
+.trbtns button:disabled,.tradd:disabled,.trfoot .skip:disabled{opacity:.5}
 .tradd{align-self:flex-start;margin-left:28px;padding:0;border:0;background:none;font-size:13px;line-height:16px;font-weight:600;color:var(--body)}
 .tradd:hover{color:var(--strong)}
 .trq{align-self:flex-end;max-width:85%;padding:10px 12px;border-radius:12px;background:var(--raise);font-size:14px;line-height:20px;color:var(--strong)}
@@ -635,9 +642,11 @@ body.making #making{display:flex}
 <section id="beatsview" hidden></section>
 </div>
 <div id="toast" role="status"></div>
+<script src="/chat.js"></script>
 <script>
 let themeAt=0;   // a poll already in flight still carries the old theme: ignore the server's for 3 s after a click
-const $=id=>document.getElementById(id),v=$('v'),v2=$('v2'),bar=$('bar'),ta=$('ta'),box=$('box');
+const dict=t=>{try{if(window.CookedChat&&t&&!t.dataset.dict){t.dataset.dict='1';window.CookedChat.dictateButton(t)}}catch(e){}};   // chat.js's mic; the page works without it
+const $=id=>document.getElementById(id),v=$('v'),v2=$('v2'),bar=$('bar'),ta=$('ta'),box=$('box');dict(ta);
 const SPEEDS=[0.5,1,1.25,1.5,2],FPS=30,STAGE={cut:'The cut',edit:'The edit'};
 const KEYS=[['Play or pause','space'],['Back or forward 5 s','j l'],['Back or forward 1 s','← →'],['One frame',', .'],['Slower or faster','[ ]'],
  ['Write a note','c'],['Mark a range','i o'],['Save note','enter'],['Cancel','esc'],['Full screen','f'],['Mute','m'],['Safe zone (vertical)','z'],['This help','?']];
@@ -687,7 +696,7 @@ const D=()=>v.duration||data().duration||1;
 let lastRaw='';
 document.getElementById('homebtn').onclick=()=>{
   if(S&&S.home){location.href=S.home+'#videos';return}   // the same tab: back to the editor's window at its fixed address
-  const m=document.getElementById('homemsg');m.textContent='The editor window is closed. Type nextwork-editor in Terminal to open it again.';m.hidden=false;setTimeout(()=>m.hidden=true,6000);
+  const m=document.getElementById('homemsg');m.textContent='The editor window is closed. Type nextwork-editor in your terminal to open it again.';m.hidden=false;setTimeout(()=>m.hidden=true,6000);
 };
 // the rail: the home window's views at its address; without one, the items that cannot work are hidden
 function renderRail(){
@@ -1049,7 +1058,7 @@ function renderList(){
   if(tab==='trials'&&S.trials){
     const l=$('list'),h=trialsHtml(),a=document.activeElement,f=a&&a.classList.contains('trta'),pos=f?a.selectionStart:0;
     if(l._trh!==h){const st=l.scrollTop;l._trh=h;l.innerHTML=h;l.scrollTop=st;trPlace();
-      const ta2=l.querySelector('.trta');if(ta2){ta2.value=trAsk;if(f){ta2.focus();ta2.setSelectionRange(pos,pos)}}}
+      const ta2=l.querySelector('.trta');if(ta2){dict(ta2);ta2.value=trAsk;if(f){ta2.focus();ta2.setSelectionRange(pos,pos)}}}
     return;
   }
   $('list')._trh='';
@@ -1133,7 +1142,7 @@ function trialsHtml(){
   TR.versions.forEach((v,i)=>{
     const line=v.line&&v.kinds.join()===v.k0?v.line:v.kinds[0]==='claude'?'Claude picks the mix that looks most different.':'Claude picks the details when it makes it.';
     h+=`<div class="trv"><div class="row"><span class="tn">t${i+1}</span><button class="trsel" data-trk="${i}"${off?' disabled':''}><span>${esc(kindLab(v.kinds))}</span>${DOWN}</button></div><div class="ln">${esc(line)}</div>${trMenu===i?trMenuHtml(v,i):''}</div>`;
-    if(v.idea&&t.idea)h+=`<div class="tridea"><span>Claude suggests: <b>${esc(kindLab(t.idea.kinds))}.</b> ${esc(t.idea.line)}</span><div class="trbtns"><button class="go" data-truse="${i}">Use this</button><button data-tranother="${i}">Another idea</button></div></div>`;
+    if(v.idea&&t.idea)h+=`<div class="tridea"><span>Claude suggests: <b>${esc(kindLab(t.idea.kinds))}.</b> ${esc(t.idea.line)}</span><div class="trbtns"><button class="go" data-truse="${i}">Use this idea</button><button data-tranother="${i}">Show another idea</button></div></div>`;
   });
   if(TR.versions.length<8&&!off)h+='<button class="tradd" data-tradd>+ Add a version</button>';
   h+='</div>';
@@ -1190,7 +1199,7 @@ function renderBeats(){
   const box=id=>beatOpen===id?`<textarea id="bta" placeholder="${id===null?'A note on the whole sheet...':'A note on this beat...'}"></textarea><div class="bbtns"><button data-save="${id}">Save note</button><button data-cancel>Cancel</button></div>`
     :(okd||sent)?'':`<div class="bbtns"><button data-add="${id}">${id===null?'Add a general note':'Add a note'}</button></div>`;
   el.innerHTML=`<div class="bw"><div class="bhead"><h1>${esc(S.label||S.name||'Beat sheet')}</h1><div class="bbtns">
-    <button id="bsend" ${mine.length&&!S.sent?'':'disabled'}>Send notes</button><button id="bok" class="primary" ${S.sent?'disabled':''}>${okd?'Sheet approved':'Approve the sheet'}</button></div></div>
+    <button id="bsend" ${mine.length&&!S.sent?'':'disabled'}><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12V2M3 6l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Send notes to Claude</button><button id="bok" class="primary" ${S.sent?'disabled':''}>${okd?TICK+'Sheet approved':TICK+'Approve the sheet'}</button></div></div>
     <p class="btime">${okd?'The sheet is approved. Claude is building the film.':sent?'Notes sent. Claude is changing the sheet.':'Check the references and each beat. Approve it, or leave a note on any beat.'}</p>
     ${(B.refs||[]).length?`<h2>References</h2><div class="refs">${B.refs.map(r=>`<div class="ref">${img(r.still)}<div><b>${esc(r.id)}</b><br>${esc(r.take||'')}${r.source?`<br><i style="color:var(--muted);font-style:normal">${esc(r.source)}</i>`:''}</div></div>`).join('')}</div>`:''}
     <h2>Beats</h2>${(B.beats||[]).map(b=>`<div class="brow" data-beat="${b.id}"><div class="bstill">${img(b.still)}</div><div>
@@ -1199,7 +1208,7 @@ function renderBeats(){
       ${(b.refs||[]).map(r=>`<span class="chip">${esc(r)}</span>`).join('')}</div>
       <div class="bn">${mine.filter(c=>c.beat===b.id).map(noteHtml).join('')}${box(b.id)}</div></div>`).join('')}
     <h2>General</h2><div class="bn">${mine.filter(c=>c.beat==null).map(noteHtml).join('')}${box(null)}</div></div>`;
-  const ta2=$('bta');if(ta2)ta2.focus();
+  const ta2=$('bta');if(ta2){dict(ta2);ta2.focus()}
   el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{beatOpen=b.dataset.add==='null'?null:+b.dataset.add;lastRaw='';renderBeats()});
   el.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>{beatOpen=undefined;renderBeats()});
   el.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const text=$('bta').value.trim();if(!text)return;
@@ -1267,7 +1276,7 @@ $('pins').addEventListener('pointerdown',e=>{const b=e.target.closest('.pin');if
 // ---- the transcript beside the player: the whole take, cut words struck, removed pauses as chips, and each of
 // Claude's cuts flagged with its reason (a spans.json kind, or the pause trim). On the current cut round it edits:
 // drag across words for the pill (Restore / Copy / Cut); a flag's tick keeps that cut, its cross brings it back.
-// Changes wait in PEND until Apply (POST /edits); Cmd+Z undoes the last one. Preview plays the raw take skipping
+// Changes wait in PEND until Apply (POST /edits); Ctrl+Z undoes the last one. Preview plays the raw take skipping
 // every cut range. Read only on older rounds and on the edit (the last cut round's transcript).
 let PEND=[],HIST=[],ACK=new Set(),txSel=null,txAnchor=null,txMoved=false,txDown=false,previewOn=false,seekTo=null,txFor='',W=[],KEEP=[],BLK=[],txSig='',txVer=0,txLines=[],txCur=-1,txNow=-1;
 const KIND={retake:'Retake',false_start:'False start',filler:'Filler',meta:'Aside',audio_event:'Sound',redundant:'Repeat',alt_hook:'Other hook',manual:'Your cut',pause:'Cut with a pause'};
@@ -1348,8 +1357,8 @@ function renderTools(){
   else if(!isCur())h='<p>An older draft, read only.</p>';
   else if(p==='send')h='<p>Claude is working on this draft. Words can change again in the next draft.</p>';
   else if(p==='approve')h='<p>The cut is approved. Words are read only now.</p>';
-  else if(n)h=`<b class="num" title="not applied yet">${plural(n,'change')}</b><button class="pbtn" data-undo title="Cmd+Z">Undo</button><button class="pbtn" data-discard>Discard</button>`;
-  else if(HIST.length)h='<button class="pbtn" data-undo title="Cmd+Z">Undo</button>';   // an Accept all, or one tick
+  else if(n)h=`<b class="num" title="not applied yet">${plural(n,'change')}</b><button class="pbtn" data-undo title="Ctrl+Z">Undo</button><button class="pbtn" data-discard>Discard</button>`;
+  else if(HIST.length)h='<button class="pbtn" data-undo title="Ctrl+Z">Undo</button>';   // an Accept all, or one tick
   else h=txSeen()?'<p></p>':'<p>Select words to cut or restore them.</p>';
   if(canPreview()&&(ed||previewOn))h+=`<button class="pbtn${previewOn?' on':''}" data-preview>${previewOn?'Back to the cut':'Play your changes'}</button>`;
   const nf=ed&&p!=='send'&&p!=='approve'?$('txlines').querySelectorAll('[data-acc]').length:0;   // Claude's suggested cuts still showing

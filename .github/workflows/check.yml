@@ -1,6 +1,6 @@
 name: check
 
-# Runs the self-checks on Mac, Linux and Windows every Monday, and on every push.
+# Runs the self-checks on Linux and Windows every Monday, and on every push.
 # The TikTok step can't fail the run: GitHub's servers are sometimes blocked by
 # TikTok. weekly.yml says when the pinned yt-dlp itself broke (RELEASING.md: refresh the lock).
 on:
@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -44,11 +44,7 @@ jobs:
           python-version: "3.12"
       - name: Install tools (the pinned set)
         run: python -m pip install --no-deps --require-hashes -r plugins/ai-editor/requirements/requirements.lock
-      # setup-ffmpeg has no Apple Silicon build; macOS runners are arm64.
-      - if: runner.os != 'macOS'
-        uses: FedericoCarboni/setup-ffmpeg@v3
-      - if: runner.os == 'macOS'
-        run: brew install ffmpeg
+      - uses: FedericoCarboni/setup-ffmpeg@v3
       - name: Self-checks
         run: tests/demos.sh
       - name: List a TikTok profile
@@ -65,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     defaults:
@@ -81,11 +77,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      # setup-ffmpeg has no Apple Silicon build; macOS runners are arm64.
-      - if: runner.os != 'macOS'
-        uses: FedericoCarboni/setup-ffmpeg@v3
-      - if: runner.os == 'macOS'
-        run: brew install ffmpeg
+      - uses: FedericoCarboni/setup-ffmpeg@v3
       - name: Fresh AI_EDITOR_HOME
         run: echo "AI_EDITOR_HOME=$RUNNER_TEMP/ave-home" >> "$GITHUB_ENV"
       - name: Bootstrap from zero, twice; drift; repair

@@ -98,18 +98,16 @@ def test_real_renders():
                 quoted = d / "it's tmp"
                 quoted.mkdir(exist_ok=True)
                 env = dict(os.environ, **({"TMPDIR": str(quoted), "TMP": str(quoted), "TEMP": str(quoted)} if run else {}))
-                # the second run on a Mac decodes and encodes with VideoToolbox (or falls back to x264)
-                hw = [] if run and sys.platform == "darwin" else ["--no-hw"]
-                r = subprocess.run([sys.executable, HERE / "render.py", src, ed, *hw],
+                r = subprocess.run([sys.executable, HERE / "render.py", src, ed],
                                    capture_output=True, text=True, env=env)
                 assert r.returncode == 0, (name, frames, r.stdout[-400:], r.stderr[-400:])
                 if not run:   # a changed cut re-encodes only its new spans, and still lands frame-exact
                     frames2 = frames[:-2] + [[frames[-2][0], frames[-1][1]]]   # the last cut given back
                     (ed / "report.json").write_text(json.dumps({"fps": fps, "frames": frames2}), encoding="utf-8")
-                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed, "--no-hw", "--segments-only"],
+                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed, "--segments-only"],
                                        capture_output=True, text=True)
                     assert r.returncode == 0 and "segments ready" in r.stdout, r.stdout[-400:]
-                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed, "--no-hw"],
+                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed],
                                        capture_output=True, text=True)
                     assert f"{len(frames2)} of {len(frames2)} spans already encoded" in r.stdout, r.stdout[-400:]
                     assert R.count_frames(ed / "cut.mp4") == sum(e - s for s, e in frames2)
@@ -117,7 +115,7 @@ def test_real_renders():
                 if run:   # one span past the last frame fails, and the segments are still cleaned up
                     (ed / "report.json").write_text(json.dumps({"fps": fps, "frames": [[0, total + 5]]}),
                                                     encoding="utf-8")
-                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed, *hw],
+                    r = subprocess.run([sys.executable, HERE / "render.py", src, ed],
                                        capture_output=True, text=True, env=env)
                     assert r.returncode and not list(quoted.glob("cut_render_*")), (r.stderr[-300:],)
 
@@ -132,11 +130,11 @@ def test_late_last_frame():
         fps, _, total = B.probe(src)
         assert total == 90, total
         frames = [[10, 40], [60, total]]
-        for hw in (["--no-hw"], []) if sys.platform == "darwin" else (["--no-hw"],):
-            ed = d / f"edit{len(hw)}"
+        if True:
+            ed = d / "edit"
             ed.mkdir()
             (ed / "report.json").write_text(json.dumps({"fps": fps, "frames": frames}), encoding="utf-8")
-            r = subprocess.run([sys.executable, HERE / "render.py", src, ed, *hw], capture_output=True, text=True)
+            r = subprocess.run([sys.executable, HERE / "render.py", src, ed], capture_output=True, text=True)
             assert r.returncode == 0 and "again with x264" not in r.stdout, (r.stdout[-400:], r.stderr[-400:])
             assert R.count_frames(ed / "cut.mp4") == 60
             md5 = subprocess.run(["ffmpeg", "-v", "error", "-i", ed / "cut.mp4", "-map", "0:v", "-f", "framemd5", "-"],

@@ -44,7 +44,7 @@ every Modal render.
 
 Only when the user picks **Other: GitHub Actions** at render time. Doctor shows `gh` as optional.
 
-1. Install it: Mac `brew install gh`, Windows `winget install --id GitHub.CLI` (then a new
+1. Install it: Windows `winget install --id GitHub.CLI` (then a new
    terminal), Linux: follow github.com/cli/cli/blob/trunk/docs/install_linux.md.
 2. A free GitHub account (github.com/signup).
 3. In their own terminal, not this chat: `gh auth login --web`. Pick GitHub.com and HTTPS, and say

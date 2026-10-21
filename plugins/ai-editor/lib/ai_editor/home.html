@@ -5,14 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>cooked.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121211'/%3E%3Cg transform='translate%2810 10%29 scale%28.6875%29' fill='%23F2F0EA' color='%23F2F0EA'%3E%3Cpath d='M6 36H46C46 46 40 52 32 52H20C12 52 6 46 6 36Z'/%3E%3Cpath d='M45 36H58A3 3 0 0 1 58 42H45Z'/%3E%3Cpath d='M16 29C13 25 19 22 16 17M26 29C23 25 29 22 26 17M36 29C33 25 39 22 36 17' fill='none' stroke='currentColor' stroke-width='5' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="/ui.css">
 <style>
-:root{--bg:#FAFAF9;--panel:#FFFFFF;--ink:#0C0A09;--t2:#57534E;--t3:#78716C;--t4:#A8A29E;--line:#E7E5E4;--soft:#F5F5F4;--ring:#D6D3D1;
-  --onink:#FFFFFF;--ok:#16A34A;--page:#FFFFFF;--side:#F7F7F6;--card:#F2F1EF;--menu:#FFFFFF;--track:#E7E5E4;--act:#E9E8E6;--ract:#E2E1DE;--tile:#F6F5F3;--onok:#FFFFFF;--oktext:#15803D;--dotbg:#FFFFFFF0;--dotfg:#0C0A09;--skbg:#FFFFFF;--segon:#FFFFFF;--inbg:#FFFFFF;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
-/* dark: the OS setting until the user picks with the header switch (html[data-theme]), as on the review page */
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#100E0E;--panel:#161413;--ink:#F2F0EB;--t2:rgba(242,240,235,.80);--t3:rgba(242,240,235,.58);--t4:rgba(242,240,235,.42);
-  --line:rgba(255,255,255,.10);--soft:rgba(255,255,255,.06);--ring:rgba(255,255,255,.22);--onink:#100E0E;--ok:#4ADE80;--page:#100E0E;--side:#161413;--card:#1E1C1C;--menu:#221F1E;--track:rgba(255,255,255,.12);--act:rgba(255,255,255,.08);--ract:rgba(255,255,255,.10);--tile:#0C0A09;--onok:#052E16;--oktext:#4ADE80;--dotbg:#100E0EB8;--dotfg:#F2F0EB;--skbg:#2A2726;--segon:#3A3634;--inbg:transparent;color-scheme:dark}}
-:root[data-theme=dark]{--bg:#100E0E;--panel:#161413;--ink:#F2F0EB;--t2:rgba(242,240,235,.80);--t3:rgba(242,240,235,.58);--t4:rgba(242,240,235,.42);
-  --line:rgba(255,255,255,.10);--soft:rgba(255,255,255,.06);--ring:rgba(255,255,255,.22);--onink:#100E0E;--ok:#4ADE80;--page:#100E0E;--side:#161413;--card:#1E1C1C;--menu:#221F1E;--track:rgba(255,255,255,.12);--act:rgba(255,255,255,.08);--ract:rgba(255,255,255,.10);--tile:#0C0A09;--onok:#052E16;--oktext:#4ADE80;--dotbg:#100E0EB8;--dotfg:#F2F0EB;--skbg:#2A2726;--segon:#3A3634;--inbg:transparent;color-scheme:dark}
+
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font:14px/20px system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
@@ -602,11 +597,6 @@ main.pg>*{max-height:none}main.pg>:not(.pgc){padding-bottom:56px}main.pg>.pgc::a
 .sb-job .tx{font-size:13px;line-height:18px;color:var(--t2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .trk{height:4px;border-radius:2px;background:var(--track);overflow:hidden;flex-shrink:0}.trk>i{display:block;height:4px;border-radius:2px;background:var(--ink);transition:width .4s}
 .trk.indet{position:relative}.trk.indet>i{position:absolute;inset:0;width:40%!important;animation:slide 1.3s ease-in-out infinite}
-.sb-upd{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);flex-shrink:0}
-.sb-upd>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.sb-upd b{font-size:13px;line-height:16px;font-weight:600;display:flex;align-items:center;gap:6px;overflow-wrap:normal}
-#side .sb-updb{display:flex;align-items:center;justify-content:center;height:32px;border-radius:8px;background:var(--ink);color:var(--onink);font-size:13px;font-weight:600;border:0;cursor:pointer;width:100%}
-#side .sb-updb:hover{opacity:.88}
-.sb-upd span{font-size:12px;line-height:16px;color:var(--t3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sb-bot{display:flex;align-items:center;gap:4px;padding-top:8px;flex-shrink:0}.sb-bot .sb-row{flex:1}
 .sb-theme{width:36px;height:36px;border-radius:8px!important;background:var(--panel)!important;border:1px solid var(--line)!important;display:grid;place-items:center;color:var(--ink);flex-shrink:0}.sb-theme:hover{border-color:var(--ring)!important}
 .sring{width:14px;height:14px;flex-shrink:0;animation:spin .9s linear infinite}
@@ -620,11 +610,6 @@ body.rail .sbar{width:80px;padding:16px 8px;align-items:center;gap:6px}
 .rl-job .ic{height:36px;background:var(--panel);border:1px solid var(--line);position:relative;font-size:11px;font-weight:700;color:var(--ink)}.rl-job .ic svg{position:absolute;left:13px;top:5px}
 body.rail .sb-theme{margin-top:2px}
 /* components: one primary and one secondary button, small sizes, the ⋯ on a picture, the menu */
-.b1,.b2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;font-size:14px;line-height:18px;font-weight:600;white-space:nowrap;flex-shrink:0;text-decoration:none}
-.b1{background:var(--ink);color:var(--onink);border:0}.b1:hover{opacity:.88}
-.b2{background:var(--inbg);color:var(--ink);border:1px solid var(--ring)}.b2:hover{border-color:var(--t3)}
-.b1.s,.b2.s{height:32px;padding:0 12px;border-radius:8px;font-size:13px;line-height:16px}
-.b1:disabled,.b2:disabled{opacity:.45;cursor:default}
 .dots{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border-radius:8px;border:0;padding:0;display:grid;place-items:center;background:var(--dotbg);color:var(--dotfg);box-shadow:0 1px 2px #0C0A0929;cursor:pointer}
 .cmenu{background:var(--menu)!important;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px #0C0A091F,0 1px 2px #0C0A090F;padding:4px;min-width:220px;z-index:30}
 .cmenu button{display:flex;align-items:center;gap:10px;padding:8px!important;border-radius:6px;font-size:14px!important;line-height:18px;color:var(--ink);width:100%}
@@ -709,13 +694,6 @@ body.rail .sb-theme{margin-top:2px}
 .sk .nm{font-size:15px;line-height:18px;font-weight:600}.sk .ds{font-size:13px;line-height:16px;color:var(--t3)}
 .ss{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:13px;line-height:16px;font-weight:600;color:var(--t3);white-space:nowrap;flex-shrink:0}.ss.ok{color:var(--oktext)}.ss.bad{color:var(--ink)}
 .fld{display:flex;gap:8px;min-width:0}
-.chat{display:flex;flex-direction:column;gap:10px;min-width:0}
-.cbox{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--ring);border-radius:14px;background:var(--inbg);padding:10px 10px 10px 14px}
-.cbox:focus-within{border-color:var(--ink)}
-.cbox textarea{flex:1;min-width:0;border:0;background:none;resize:none;font-family:inherit;font-size:15px;line-height:22px;color:var(--ink);outline:none;max-height:200px;padding:5px 0}
-.csend{width:34px;height:34px;flex:none;border:0;border-radius:50%;background:var(--ink);color:var(--onink);display:grid;place-items:center;cursor:pointer}
-.cmine{align-self:flex-end;max-width:80%;background:var(--soft);border-radius:14px 14px 4px 14px;padding:8px 12px;font-size:14px;line-height:20px;color:var(--ink);white-space:pre-wrap}
-.cclaude{align-self:flex-start;max-width:90%;font-size:14px;line-height:20px;color:var(--t2);white-space:normal}
 .calls{white-space:normal;line-height:22px}.calls span{font-family:var(--mono);font-size:12px;color:var(--t2)}
 .in2{flex:1;min-width:0;display:flex;align-items:center;height:40px;border:1px solid var(--ring);border-radius:10px;background:var(--inbg);padding:0 0 0 12px}
 .in2 input{flex:1;min-width:0;border:0;outline:0;background:none;font:13px/16px system-ui,sans-serif;color:var(--ink)}
@@ -791,7 +769,7 @@ body.rail .sb-theme{margin-top:2px}
 .lr{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;min-width:0}
 .lr b{font-size:15px;font-weight:600}.lr .u{font-size:14px;line-height:18px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .lth{width:36px;height:60px;border-radius:6px;background:var(--card);display:grid;place-items:center;flex-shrink:0}
-.lkb{display:flex;flex-direction:column;gap:8px;margin-top:4px}.lkb textarea{height:72px;padding:10px 12px;font:14px/20px system-ui,sans-serif;resize:vertical}
+.lkb{display:flex;flex-direction:column;gap:8px;margin-top:4px}.lkb .input{flex:none;font:14px/20px system-ui,sans-serif}.lkb textarea{height:72px;padding:10px 12px;font:14px/20px system-ui,sans-serif;resize:vertical}
 .lr.rf{padding:8px 10px}.lr.rf .t1{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nbox.over{border-color:var(--ink)}
 .lin{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border:1.5px solid var(--ink);border-radius:10px;color:var(--t3);cursor:text}
 .lin input{flex:1;min-width:0;border:0;outline:0;background:none;font:15px/20px system-ui,sans-serif;color:var(--ink)}
@@ -968,6 +946,10 @@ body:has(.smprow) .sb-smp{display:none}   /* the page offers the sample itself: 
 </header>
 <main id="main"></main>
 </div>
+<aside id="chatdock" aria-label="Chat with Claude"><div class="cd-head"><b>Claude</b><button class="cd-x" onclick="dockOpen(false)" aria-label="Close chat" title="Close chat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="chatbody"></div></aside>
+<button id="chatfab" class="btn-primary" onclick="dockOpen(true)" title="Open the chat with Claude"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Ask Claude</button>
+<div id="slidebg" onclick="closeAsk()"></div>
+<aside id="slide" aria-label="Ask Claude about this style"><div class="cd-head"><b id="slidettl">Ask Claude</b><button class="cd-x" onclick="closeAsk()" aria-label="Close" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="slidebody"></div></aside>
 <div id="modal"></div>
 <div id="dropov">Drop to add<span class="muted" style="font-size:14px;font-weight:400">Each clip is added and picked</span></div><div id="toast" role="status"></div><div id="ghost" aria-hidden="true"></div><div id="menus"></div>
 <input type="file" id="coverf" accept="image/*,video/*" class="hide" onchange="this.files[0]&&setCover(this.files[0]);this.value=''">
@@ -1123,8 +1105,8 @@ function toEditor(r){const e=(r.edits||[])[0];if(e){location.href='/review?dir='
 // the view lives in the address (#videos, #style/@sample-50-50), so a reload stays on it; the review page's rail opens one
 const HASHV=['home','videos','mystyle','skills','settings','new'];
 let L=null, R=null, rv=null;
-{const h=decodeURIComponent(location.hash.slice(1));if(h.startsWith('style/')){rv='stylepage';ui.sp=h.slice(6)}else if(HASHV.includes(h))rv=h}
-function setHash(){const h=rv==='stylepage'&&ui.sp?'#style/'+encodeURIComponent(ui.sp):HASHV.includes(rv)&&rv!=='home'?'#'+rv:'';if(location.hash!==h)history.replaceState(null,'',location.pathname+location.search+h)}
+{const h=decodeURIComponent(location.hash.slice(1));if(h.startsWith('style/')){rv='stylepage';ui.sp=h.slice(6)}else if(h.startsWith('project/')){rv='project';ui.pslug=h.slice(8)}else if(HASHV.includes(h))rv=h}
+function setHash(){const h=rv==='project'&&ui.pslug?'#project/'+encodeURIComponent(ui.pslug):rv==='stylepage'&&ui.sp?'#style/'+encodeURIComponent(ui.sp):HASHV.includes(rv)&&rv!=='home'?'#'+rv:'';if(location.hash!==h)history.replaceState(null,'',location.pathname+location.search+h)}
 const nv={sel:[],clips:{},join:true,aspect:'9:16',style:'mine',filter:'all',up:[],script:'',scriptName:'',scriptMsg:'',draft:null,assets:[],assetMsg:''};
 const CMD='nextwork-editor';
 const UP='<svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 15V5M7 9l4-4 4 4M4 15v2a1 1 0 001 1h12a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1167,9 +1149,9 @@ function toggleClip(p){const i=nv.sel.indexOf(p);if(i>=0)nv.sel.splice(i,1);else
 function vNew(){
   const fresh=Object.values(nv.clips).filter(c=>c.fresh&&!(R&&R.videos.some(v=>v.path===c.path)));
   const vids=[...fresh,...(R?R.videos:[])].filter(v=>nv.filter==='all'||v.where===nv.filter);
-  const n=nv.sel.length,places=R&&R.scan_home?['Movies','Desktop','Downloads']:[];
+  const n=nv.sel.length,places=R&&R.scan_home?['Videos','Desktop','Downloads']:[];
   const chips=R&&R.scan_home?`<button class="pill ${nv.filter==='all'?'on':''}" onclick="nv.filter='all';render()">All recent</button>${places.map(p=>`<button class="pill ${nv.filter===p?'on':''}" onclick="nv.filter='${p}';render()">${p}</button>`).join('')}<span class="muted" style="padding-left:8px">Your newest clips</span>`
-    :`<button class="pill" onclick="scanHome(true)">Show recent clips from Movies, Desktop and Downloads</button>`;
+    :`<button class="pill" onclick="scanHome(true)">Show recent clips from Videos, Desktop and Downloads</button>`;
   const ups=nv.up.map(u=>`<div class="clip" id="up-${u.id}"><div class="pic upic">${u.bad?`<span>${esc(u.bad)}</span><button class="more" style="opacity:1" aria-label="Dismiss" title="Dismiss" onclick="nv.up=nv.up.filter(x=>x.id!==${u.id});render()">${CROSS}</button>`
     :`<span class="uptxt">${u.msg==='Adding...'?`Adding... ${u.pct}%`:esc(u.msg)}</span><div class="upbar"><div style="width:${u.pct}%"></div></div>`}</div><div class="nm">${esc(u.name)}</div></div>`).join('');
   const side=`<div class="panel rv-side" style="width:520px;flex-shrink:0">
@@ -1277,7 +1259,7 @@ function sendFile(u){return new Promise(res=>{const x=new XMLHttpRequest();x.ope
   x.upload.onprogress=e=>{if(e.lengthComputable){u.pct=Math.round(e.loaded/e.total*100);paintUp(u)}};
   x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}res(j)};x.onerror=()=>res({ok:false,msg:'The copy stopped. Try again.'});x.send(u.f)})}
 async function chooseFiles(files){
-  // the Mac dialog hands files back in its own order: sort them by when they were filmed (file date), then drag to change
+  // the file dialog hands files back in its own order: sort them by when they were filmed (file date), then drag to change
   const fs=[...files].sort((a,b)=>a.lastModified-b.lastModified);
   const items=fs.map(f=>({id:++upN,name:f.name,f,pct:0,msg:'Waiting',bad:/\.(mov|mp4|m4v|mkv|webm|avi|mts|3gp)$/i.test(f.name)?null:'Not a video. Add a .mov, .mp4 or .mkv file.'}));
   nv.up=[...items,...nv.up];render();
@@ -1384,15 +1366,12 @@ const crSub=c=>c.studying?'Being analysed now':handleOf(c).startsWith('links-')?
 const tdOf=c=>S.jobs.filter(j=>j.type==='teardown'&&'@'+j.args.handle===c.id).pop();
 // the analysing card: the real teardown steps, then what is still to come, a clock and the bar
 function studyCard(c){
-  const j=tdOf(c),steps=j?tdSteps(j):[],cur=steps.find(s=>!s.done),n=j&&j.listing&&j.listing.videos?j.listing.videos.length:0;
+  const j=tdOf(c),steps=j?tdSteps(j):[],n=j&&j.listing&&j.listing.videos?j.listing.videos.length:0;
   const rows=steps.map(s=>`<div class="sr ${s.done?'':'cur'}">${s.done?`<span class="okc">${ic('check',14,2.4)}</span>`:SPIN}<span>${esc(s.text)}${!s.done&&s.detail?' · '+esc(s.detail):''}</span></div>`).join('')
     +tdPlan(j).slice(steps.length,steps.length+Math.max(0,6-steps.length)).map(p=>`<div class="sr later"><i></i><span>${esc(p)}</span></div>`).join('');
-  const t=j?jobStart(j):Date.now()/1000,f=j?jobFrac(j):0;
   return `<div class="cs" id="sc-${esc(c.id)}"><div class="steps">${rows||`<div class="sr cur">${SPIN}<span>${j&&j.state==='queued'&&!S.listening?connectHTML('Waiting for Claude.'):'Starting'}</span></div>`}</div>
     <div class="who">${avaHTML(c.face)}<div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="t2">${esc(crSub({...c,studying:0}))}</div></div></div>
-    <div><div class="t1" style="font-weight:600">Analysing ${n?n+' videos':'the videos'} · <span data-since="${t}" data-f="t">${fmtT(Math.max(0,Math.round(Date.now()/1000-t)))}</span></div><div class="t2" style="white-space:normal;margin-top:4px">It keeps going if you leave.</div></div>
-    <div class="bar"><i style="width:${Math.round((f||0)*100)}%"></i></div>
-    ${j?`<button class="b2 s" style="align-self:flex-start" onclick="stopStudy(${J(j.args.handle)})">Stop</button>`:''}</div>`;
+    ${j?jobCard(j,{title:`Analysing ${n?n+' videos':'the videos'}`,flat:1}):''}<div class="t2" style="white-space:normal">It keeps going if you leave.</div></div>`;
 }
 // Stop on an analysing card or page: that creator's analysis only; Claude stops its commands (JOB cancel teardown @handle)
 async function stopStudy(h){await post('/cancel',{type:'teardown',handle:h});toast('Stopped analysing.');ui.ob=null;await load();await loadLib();render()}
@@ -1430,7 +1409,7 @@ function vMyStyle(){
   const tabs=STABS.filter(([t])=>t==='arch'?arch.length:t!=='sample'||base.some(c=>c.sample)).map(([t,l])=>`<button class="${tab===t?'on':''}" onclick="ui.stab='${t}';render()">${l} <span>${cnt(t)}</span></button>`).join('');
   const head=f?`<div class="ph"><button class="back" onclick="ui.fold.styles=null;render()" ${dropAttrs('styles',null)}>${ic('back',14,2)}Styles</button><h1>${esc(f.name)}</h1><p>${base.length} style${base.length===1?'':'s'}. Drag a style onto a folder to move it.</p></div>`
     :`<div class="ph"><h1>Styles</h1><p>How your videos get edited. Each one learns from your reviews.</p></div>`;
-  return `<div class="pgc"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px">${head}<div class="row hact" style="margin-top:${f?32:0}px">${newFoldBtn('styles')}<button class="b1" onclick="openCreate()">${ic('plus',16,2.2)}New style</button></div></div>
+  return `<div class="pgc"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px">${head}<div class="row hact" style="margin-top:${f?32:0}px">${newFoldBtn('styles')}<button class="btn-secondary" onclick="rgo('skills')">${ic('skill',16)}Skills</button><button class="b1" onclick="openCreate()">${ic('plus',16,2.2)}New style</button></div></div>
     <div class="stabs" role="tablist">${tabs}</div>
     ${shown.length||tab==='all'||tab==='own'?gridRows([...shown.map(c=>crCard(c,idx(c))),...(!f&&(tab==='all'||tab==='own')?[newTile()]:[])],per):`<div class="none">${tab==='cr'?'No styles from creators yet. Paste 3 to 6 videos edited the same way, and Claude analyses them.':'Nothing here yet.'}</div><button class="b2" style="align-self:flex-start" onclick="${tab==='cr'?'openCreate()':`ui.stab='all';render()`}">${tab==='cr'?'Analyse a format':'See all styles'}</button>`}</div>`;
 }
@@ -1478,50 +1457,25 @@ async function archStyle(id,on){
 // ---- Skills: the user's Claude Code skills that edit videos, the styles that run each, and what to do with one
 async function loadSkills(){try{const r=await fetch('/skills');if(r.ok){const j=await r.json();ui.skills=j.skills;ui.skOther=j.other||[];render()}}catch(e){}}
 // a job's line, in plain words, from its real state (the same as a style's "Tell it what to change")
-function jobText(job){
-  const jr=job.result||{};
-  const c=job.claude;
-  return job.state==='queued'?(c&&c.opened?`<span class="cnx">${SPIN}Claude is opening in a new Terminal window.</span>`:c&&c.command?`<span class="cnx">Run this in a new Terminal window:<span class="codebox"><span>${esc(c.command)}</span><button class="hlink" onclick="copyText(${esc(JSON.stringify(c.command))},this)">Copy</button></span></span>`:S.listening?'Claude is picking this up.':connectHTML('Waiting for Claude.')):job.state==='taken'?`Claude: ${esc((job.steps.at(-1)||{}).text||'working on it')}`
-    :job.state==='done'?esc(jr.changed&&jr.changed.length?'Saved: '+jr.changed.join('; '):jr.summary||'Done.'):job.state==='failed'?esc(job.error||'That stopped.'):'';
-}
-// a chat box: what the user types goes to a Claude of its own (a new Terminal window, unless one is listening).
-// Enter sends, Shift+Enter is a new line. j: the last job it sent, shown as the user's words and Claude's reply.
-function chatBox(id,ph,send,j,btn){
-  const said=j&&j.args&&j.args.text?String(j.args.text).replace(/^Combined from .*?\)\. /,''):'',live=j&&(j.state!=='done'||Date.now()/1000-(j.finished||0)<600);
-  return `<div class="chat">${said&&live?`<div class="cmine">${esc(said)}</div><div class="cclaude">${jobText(j)}</div>`:''}
-    <div class="cbox"><textarea id="${id}" rows="2" placeholder="${esc(ph)}" aria-label="${esc(ph)}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,200)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();${send}}"></textarea>
-      <button class="csend" onclick="${send}" aria-label="${esc(btn||'Send')}">${ic('up',16,2.2)}</button></div></div>`;
-}
 function vSkills(){
   if(ui.skills==null&&!ui.skLoading){ui.skLoading=1;loadSkills().finally(()=>ui.skLoading=0)}   // opened from a link (#skills), not the sidebar
   const cards=L?[...(L.styles||[]),...(L.archived_styles||[])]:[],used=n=>cards.filter(c=>c.kind==='skill'&&c.skill===n);
   const all=(ui.skills||[]).slice(),oth=ui.skOther||[];
   for(const c of cards)if(c.kind==='skill'&&!all.some(x=>x.name===c.skill)&&!oth.some(x=>x.name===c.skill))all.push({name:c.skill,description:c.description||'',found:!!c.found,own:false,deleted:!!c.deleted});
   const ls=all.filter(x=>!x.hidden),ols=oth.filter(x=>!x.hidden),hid=[...all,...oth].filter(x=>x.hidden);
-  const jobs=t=>S.jobs.filter(j=>j.type===t),last=(t,f)=>jobs(t).filter(f).at(-1),nj=last('skill-new',()=>true);
-  const mk=ui.skNew||nj&&(nj.state!=='done'||Date.now()/1000-(nj.finished||0)<600)?`<div class="ssec"><div class="shd"><b>Make a new skill</b></div><div class="t2" style="white-space:normal">Say what you like and what it should do: the look, the pace, creators or videos you want it to copy. Claude opens in a new window, asks what it needs, writes the skill, tests it and shows you.</div>
-      ${chatBox('sk-new','I like big yellow captions on the key word, a zoom every few seconds, and logos when I name a tool','makeSkill()',nj,'Start')}</div>`:'';
-  const njl='';
-  const row=x=>{const us=used(x.name),open=ui.skImp===x.name,j=last('skill-change',j=>j.args.skill===x.name);
+  const row=x=>{const us=used(x.name);
     return `<div class="skr ssec"><div class="shd"><span class="snm">/${esc(x.name)}</span><span class="row" style="gap:12px;min-width:0"><span class="t2">${us.length?'Used by '+us.map(c=>`<a href="#" onclick="openStyle(${J(c.id)});return false">${esc(dname(c))}</a>`).join(', '):'Not used by a style yet'}</span>${x.found===false?'':`<span class="pgdots">${skMenu(x)}</span>`}</span></div>
       <div class="t1" style="white-space:normal;line-height:22px">${x.found===false?(x.deleted?'This skill was deleted.':'The editor can\'t find this skill on this computer.'):esc(x.description||'No description.')}</div>
       ${x.rules?`<div class="t2">${x.rules} learned rule${x.rules>1?'s':''}</div>`:''}
-      <div class="acts">${x.found===false?'':`<button class="b2 s" onclick="useSkill(${J(x.name)})">Use as a style</button>${x.own?`<button class="b2 s" onclick="ui.skImp=${open?'null':J(x.name)};render();setTimeout(()=>{const e=$('#sk-imp');if(e)e.focus()},0)">Improve with feedback</button>`:''}<button class="b2 s" onclick="skillFile('open',${J(x.name)})">Open the file</button><button class="b2 s" onclick="skillFile('reveal',${J(x.name)})">Show in ${FINDER()}</button>`}</div>
-      ${open?`<div class="fld"><div class="in2"><input id="sk-imp" placeholder="never zoom in the first second" aria-label="What to change in this skill" onkeydown="if(event.key==='Enter')improveSkill(${J(x.name)})"></div><button class="b1" onclick="improveSkill(${J(x.name)})">Send</button></div>
-        <div class="t2" style="white-space:normal">Claude turns it into a rule, shows you the exact line and saves it when you say yes.</div>`:''}
-      ${j&&(j.state!=='done'||Date.now()/1000-(j.finished||0)<600)?`<div class="t2" style="white-space:normal;color:var(--ink)">${jobText(j)}</div>`:''}</div>`};
+      <div class="acts">${x.found===false?'':`<button class="b2 s" onclick="useSkill(${J(x.name)})">Use as a style</button><button class="b2 s" onclick="skillFile('open',${J(x.name)})">Open the file</button><button class="b2 s" onclick="skillFile('reveal',${J(x.name)})">Show in ${FINDER()}</button>`}</div></div>`};
   // one list, the same rows everywhere: yours, then plugins'. Hidden and Not for editing open in place at the bottom
   const grp=xs=>{const a=xs.filter(x=>!x.plugin),b=xs.filter(x=>x.plugin);return a.length&&b.length?`<b class="skg">Your skills</b>${a.map(row).join('')}<b class="skg">From plugins</b>${b.map(row).join('')}`:xs.map(row).join('')};
   const tail=(k,lbl,xs)=>xs.length?`<button class="ul skq" aria-expanded="${!!ui[k]}" onclick="ui.${k}=!ui.${k};render()">${ui[k]?'Hide '+lbl.toLowerCase():lbl+' ('+xs.length+')'}</button>${ui[k]?`<div class="skl">${xs.map(row).join('')}</div>`:''}`:'';
   const more=hid.length||ols.length?`<div class="ssec">${tail('skHid','Hidden',hid)}${tail('skOth','Not for editing',ols)}</div>`:'';
   const body=(ui.skills==null&&!ls.length?'<div class="none">Looking for skills...</div>':ls.length?`<div class="skl">${grp(ls)}</div>`
-    :ui.skNew?'':`<div class="ssec"><div class="t1" style="white-space:normal;line-height:22px">You have no skills that edit videos yet. Claude can make one with you: say what it should do, and it writes and tests it.</div><button class="b1" style="align-self:flex-start" onclick="newSkill()">${ic('plus',16,2.2)}Make a new skill</button></div>`)+more;
-  return `<div class="pgc"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px"><div class="ph"><h1>Skills</h1><p>A skill is a set of steps Claude follows. A style can use one to make your edit.</p></div>
-      <div class="row hact">${ls.length?`<button class="b1" onclick="newSkill()">${ic('plus',16,2.2)}Make a new skill</button>`:''}</div></div>${mk}${njl}${body}</div>`;
+    :`<div class="ssec"><div class="t1" style="white-space:normal;line-height:22px">You have no skills that edit videos yet.</div></div>`)+more;
+  return `<div class="pgc"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px"><div class="ph"><h1>Skills</h1><p>A skill is a set of steps Claude follows. A style can use one to make your edit.</p></div></div>${body}</div>`;
 }
-function newSkill(){ui.skNew=true;if(rv!=='skills')rgo('skills');else render();setTimeout(()=>{const e=$('#sk-new');if(e)e.focus()},0)}
-async function makeSkill(){const t=($('#sk-new')||{}).value||'';if(!t.trim())return;const r=await queue({type:'skill-new',text:t.trim()});if(r._ok){$('#sk-new').value='';render()}}
-async function improveSkill(n){const t=($('#sk-imp')||{}).value||'';if(!t.trim())return;const r=await queue({type:'skill-change',skill:n,text:t.trim()});if(r._ok){ui.skImp=null;render()}}
 async function useSkill(n){const r=await post('/style/new',{name:skStyleName(n),skill:n});if(!r._ok){toast(r.error||'That did not work.');return}await loadLib();openStyle(r.id)}
 // a skill row's menu: Hide (the editor's own list, the skill stays on disk) and Delete (to the Trash, own folder only)
 const skMenu=x=>dotsBtn('k:'+x.name,'More for this skill')+cMenu('k:'+x.name,[x.hidden?['Show in this list',`skHide(${J(x.name)},false)`,'minus']:['Hide from this list',`skHide(${J(x.name)},true)`,'minus'],'hr',
@@ -1545,7 +1499,7 @@ async function skillFile(how,name){const r=await post('/skill/'+how,{name});if(!
 
 // ---- New style: Analyse a format (3 to 6 links, any creators; or pick them from a profile), or Build it yourself
 function openCreate(){ui.create=true;ui.study={};render();setTimeout(()=>{const e=$('#lb-study');if(e)e.focus()},0)}
-function closeCreate(){ui.create=false;ui.study=null;render()}
+function closeCreate(){ui.create=false;ui.study=null;ui.studyProject=null;render()}
 const linkHandle=u=>(/@([\w.-]+)/.exec(u)||[])[1]||'';
 function linkRow(u,i){
   const h=linkHandle(u),known=h&&(L.styles||[]).find(c=>c.id==='@'+h.toLowerCase()),p=platOf(u);
@@ -1616,7 +1570,7 @@ async function combineStyles(){
 async function openSkills(forId){ui.study={skills:{list:null,for:forId||null}};if(forId)ui.create=true;render();try{ui.study.skills.list=(await (await fetch('/skills')).json()).skills.filter(x=>!x.hidden)}catch(e){ui.study.skills.list=[]}render()}
 function skillModal(){
   const k=ui.study.skills,ls=k.list;
-  const body=!ls?'<div class="t2">Looking for skills...</div>':!ls.length?`<div class="t2" style="white-space:normal">You have no skills that edit videos yet. Claude can make one with you, step by step.</div><button class="b1" style="align-self:flex-start" onclick="closeCreate();newSkill()">Make a new skill</button>`
+  const body=!ls?'<div class="t2">Looking for skills...</div>':!ls.length?`<div class="t2" style="white-space:normal">You have no skills that edit videos yet.</div>`
     :ls.map(x=>`<button class="nbox brow" style="${k.sel===x.name?'outline:1.5px solid var(--ink)':''}" onclick="ui.study.skills.sel=${J(x.name)};ui.study.skills.name=ui.study.skills.name||${J(skStyleName(x.name))};render()"><div style="min-width:0"><b style="font-family:var(--mono)">/${esc(x.name)}</b><p style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(x.description||'')}</p></div></button>`).join('');
   return `<div class="modalbg" onclick="if(event.target===this)closeCreate()"><div class="modal nsm" role="dialog" aria-modal="true" aria-labelledby="mtitle">
     <div class="row" style="justify-content:space-between">${k.for?'<b class="mt2" id="mtitle">Pick another skill</b>':`<button class="back" style="text-decoration:none" onclick="ui.study={};render()">${ic('back',14,2)}<b class="mt2" id="mtitle">Use your own skill</b></button>`}<button class="mx2" aria-label="Close" title="Close" onclick="closeCreate()">${ic('x',18,2)}</button></div>
@@ -1662,9 +1616,10 @@ async function studyLink(){
   if(rows.some(r=>platOf(r)==='instagram')&&rows.some(r=>platOf(r)!=='instagram')){ui.study={msg:'Use links from one app at a time.'};return render()}
   if((b.files||[]).some(f=>!f.bad&&!f.path)){ui.study={msg:'Wait for your files to finish adding.'};return render()}
   ui.study={busy:1};render();
-  const j=await post('/job',{type:'teardown',urls:rows,take:PARTS.map(p=>p[0]),notes:b.notes||'',files:(b.files||[]).filter(f=>f.path).map(f=>f.path)});
+  const j=await post('/job',{type:'teardown',urls:rows,take:PARTS.map(p=>p[0]),notes:b.notes||'',files:(b.files||[]).filter(f=>f.path).map(f=>f.path),project:ui.studyProject||undefined});
   if(!j._ok){ui.study={msg:j.error||'That did not start.'};return render()}
   if(rv==='style'&&j.handle)nv.style='@'+j.handle;
+  if(ui.studyProject&&j.handle){await post('/project/link',{slug:ui.studyProject,field:'refs',value:'@'+j.handle});ui.studyProject=null;await loadProject()}
   LB.study={rows:[],draft:'',notes:'',files:[]};ui.create=false;ui.study=null;toast(`Analysing ${rows.length} video${rows.length>1?'s':''}.`);await load();await loadLib();
 }
 
@@ -1686,7 +1641,7 @@ function vStyle(){
       <div class="ph"><button class="back" style="text-decoration:none" onclick="rgo('new')">${ic('back',14,2)}New video · step 2 of 2</button><h1>Pick a style</h1></div>
       <div class="clipsum"><span class="th" style="background-image:url('${esc(c0.thumb||'')}')"></span><div style="min-width:0"><div class="t1" style="font-weight:600">${n>1?`${n} clips, ${nv.join?'joined':'separate'}`:esc(c0.name)}</div><div class="t2">${n} clip${n>1?'s':''}${total()?' · '+fmtT(Math.round(total())):''} · ${aspectOf()==='9:16'?'Tall':'Wide'} ${aspectOf()}</div></div><button class="ul" onclick="rgo('new')">Change</button></div></div>
     <div class="sec2"><div class="sh"><b>Styles</b><button class="b2 s" onclick="openCreate()">${ic('plus',14,2.2)}New style</button></div>${gridRows([...cards].sort((a,b)=>(isDefault(b)-isDefault(a))||(!!b.studying-!!a.studying)||(!!b.own-!!a.own)||((b.made||0)-(a.made||0))).map(c=>pickCard(c,idx(c))),per)}</div>
-    <div class="pfoot"><div style="min-width:0"><div class="t1" style="font-weight:600">${esc(cur?cur.name:styleName(nv.style))}</div>${cur&&cur.runs?`<div class="t2 calls" style="margin:4px 0 6px">Runs ${cur.runs.map(r=>`<span>${esc(r)}</span>`).join(' → ')} · <a href="#" onclick="openStyle(${J(cur.id)});return false">Change</a></div>`:''}<div class="t2" style="white-space:normal">First the cut. Captions, zooms and sound start after you approve it.${S.new_claude?` ${n>1&&!nv.join?'Each video gets':'It gets'} its own Claude in a new Terminal window.`:''}</div>${S.listening||S.new_claude?'':`<div class="t2" style="white-space:normal;margin-top:10px">${connectHTML('Claude is not listening.')}</div>`}</div>
+    <div class="pfoot"><div style="min-width:0"><div class="t1" style="font-weight:600">${esc(cur?cur.name:styleName(nv.style))}</div>${cur&&cur.runs?`<div class="t2 calls" style="margin:4px 0 6px">Runs ${cur.runs.map(r=>`<span>${esc(r)}</span>`).join(' → ')} · <a href="#" onclick="openStyle(${J(cur.id)});return false">Change</a></div>`:''}<div class="t2" style="white-space:normal">First the cut. Captions, zooms and sound start after you approve it.${S.new_claude?` ${n>1&&!nv.join?'Each video gets':'It gets'} its own Claude in a terminal window.`:''}</div>${S.listening||S.new_claude?'':`<div class="t2" style="white-space:normal;margin-top:10px">${connectHTML('Claude is not listening.')}</div>`}</div>
       <span class="row" style="gap:12px"><button class="b2" onclick="openMotion()">New motion video</button><button class="b1" id="make" onclick="makeVideo()">Make my video</button></span></div></div>`;
 }
 // ---- New motion video: a film name, a one-line idea, a format and references (files or links, each with what to take).
@@ -1737,7 +1692,7 @@ async function makeFilm(){
   if(!m.idea.trim()){m.msg='Say the idea in one line.';return render()}
   if(m.refs.some(r=>!r.bad&&r.kind==='file'&&!r.path)){m.msg='Wait for your files to finish adding.';return render()}
   m.busy=1;m.msg=null;render();
-  const r=await post('/job',{type:'motion',name,idea:m.idea,format:m.format,lang:m.lang,refs:m.refs.filter(r=>!r.bad).map(r=>({source:r.kind==='link'?r.url:r.path,take:r.take||'',role:r.role||''}))});
+  const r=await post('/job',{type:'motion',project:m.project||undefined,name,idea:m.idea,format:m.format,lang:m.lang,refs:m.refs.filter(r=>!r.bad).map(r=>({source:r.kind==='link'?r.url:r.path,take:r.take||'',role:r.role||''}))});
   if(!r._ok){m.busy=0;m.msg=r.error||'That did not start.';return render()}
   ui.mfilm=null;toast('Motion video started.');await load();render();
 }
@@ -1802,7 +1757,7 @@ function vSkillPage(P){
         <span style="font:500 14px var(--mono)">/${esc(K.name)}</span>
         <div class="t1" style="white-space:normal;line-height:22px">${K.found?esc(K.description||'This style runs its own skill.'):K.deleted?'Its skill was deleted. Pick another skill for this style, or archive it.':`Skill not found: the editor can't see /${esc(K.name)} on this computer. Claude still tries it when you make a video. If it can't, it offers the standard edit instead.`}</div>
         ${K.found?'':`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="b2 s" onclick="openSkills(${J(P.id)})">Pick another skill</button>${isArch(card)?'':`<button class="b2 s" onclick="archStyle(${J(P.id)},true)">Archive style</button>`}</div>`}</div>
-      ${chatBox('tell',`Tell Claude what to change in /${K.name}: fewer cards, bigger captions`,'tellChange()',liveJob(P.job))}
+      ${askBtn(P.id)}
       ${chainSec(P)}${K.calls&&K.calls.length?`<div class="t2 calls">Also calls ${K.calls.map(x=>`<span>/${esc(x)}</span>`).join(' ')}</div>`:''}${rulesSec(P)}
       ${P.references&&P.references.videos.length?`<div class="ssec"><div class="shd"><b>Analysed from</b></div><div class="refs">${P.references.videos.map(v=>`<a class="ref" href="${esc(v.url)}" target="_blank" rel="noopener"><span class="rth" style="${v.thumbnail?`background-image:url('${esc(v.thumbnail)}')`:''}">${v.thumbnail?'':LINKG}</span><span style="min-width:0;flex:1"><span class="t1" style="display:block">${esc(v.title||shortLink(v.url))}</span></span></a>`).join('')}</div></div>`:''}</div></div>`;
 }
@@ -1822,7 +1777,7 @@ function vStylePage(){
     <div class="spr"><div class="row sphd" style="gap:20px;align-items:flex-start">${P.example&&!P.cover?`<video class="spex" src="${esc(P.example)}" poster="${esc(P.thumb)}" controls playsinline preload="metadata" aria-label="Example video in this style"></video>`:P.own?'':`<span class="sth" style="${bgPic(pic)}"></span>`}
         <div class="sptx" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px"><div class="row" style="justify-content:space-between;gap:12px"><span class="row" style="gap:8px;min-width:0;flex:1">${editing?'':`<h1 class="sname">${esc(dname(P))}</h1>`}${editField('name',P.id,P.name,'font-size:24px;font-weight:600')}</span><span class="pgdots">${sMenu(card)}</span></div>
           ${meta}${useFor(P)}</div></div>
-      ${chatBox('tell','Tell Claude what to change: captions a bit bigger, fewer zooms, no sound effects','tellChange()',job)}
+      ${askBtn(P.id)}
       ${rulesSec(P)}${chainSec(P)}
       <div class="ssec">${secHd('caption','Captions',((fact3(card).find(f=>f[0]==='caption')||[])[2]||'').replace(/^Captions, /,''),C.tag,'captions')}
         <div class="ctiles"><button class="ct ${C.off?'on':''}" onclick="setCtl('captions.preset','none')"><span class="ci"><span class="t2">No captions</span></span><b>None</b></button>${C.tiles.slice(0,5).map(t=>`<button class="ct ${t.id===C.sel&&!C.off?'on':''}" onclick="setCtl('captions.preset',${J(t.id)})"><span class="ci">${t.img?`<img src="${esc(t.img)}" alt="${esc(t.name)} captions" style="object-position:50% ${t.block.y_pct||C.y}%">`:`<span class="t2">${t.err?'No preview':'Loading...'}</span>`}</span><b>${esc(capName(t))}</b></button>`).join('')}</div>
@@ -1875,14 +1830,14 @@ function planFor(j){
     ['You check the cut','The editor opens on your clip. Each new draft shows up there. Leave notes, or approve it.'],
     ['Captions, zooms and sound in '+st,studying?`Starts after you approve the cut, once ${a.as}'s style is analysed.`:'Starts after you approve the cut.']];
 }
-// nobody listening: "Connect Claude" opens a new Terminal with a listening Claude (launcher.connect, one at a time);
+// nobody listening: "Connect Claude" opens a terminal window with a listening Claude (launcher.connect, one at a time);
 // where no terminal can open (S.new_claude false), the old instruction
 function connectHTML(lead,old){
   const c=ui.connect||{},t=S.connect?Date.now()/1000-S.connect:null,l=lead?esc(lead)+' ':'',stop='event.stopPropagation();';
-  if(c.command)return `<span class="cnx">${l}Run this in a new Terminal window:<span class="codebox"><span>${esc(c.command)}</span><button class="hlink" onclick="${stop}copyText(${esc(JSON.stringify(c.command))},this)">Copy</button></span></span>`;
-  if(t!=null&&t<60)return `<span class="cnx">${SPIN}Opening Claude in a new Terminal window...</span>`;
-  if(!S.new_claude)return `<span class="cnx">${l}${old||`Type ${CMD} in Terminal.`}</span>`;
-  if(t!=null)return `<span class="cnx">Claude didn't connect. Check the Terminal window it opened.<button class="btn sm" onclick="${stop}connectClaude()">Try again</button></span>`;
+  if(c.command)return `<span class="cnx">${l}Run this in a terminal window:<span class="codebox"><span>${esc(c.command)}</span><button class="hlink" onclick="${stop}copyText(${esc(JSON.stringify(c.command))},this)">Copy</button></span></span>`;
+  if(t!=null&&t<60)return `<span class="cnx">${SPIN}Opening Claude in a terminal window...</span>`;
+  if(!S.new_claude)return `<span class="cnx">${l}${old||`Type ${CMD} in a terminal.`}</span>`;
+  if(t!=null)return `<span class="cnx">Claude didn't connect. Check the terminal window it opened.<button class="btn sm" onclick="${stop}connectClaude()">Try again</button></span>`;
   return `<span class="cnx">${l}<button class="btn dark sm" onclick="${stop}connectClaude()">Connect Claude</button></span>`;
 }
 async function stopJob(id){const r=await post('/stop',{id});toast(r.stopped?'Stopped. Claude stops at its next step.':'Stopped.');await load()}
@@ -1912,7 +1867,7 @@ function vStat(v){
   if(ph==='done')return {ok:1,txt:v.duration?`Done. ${fmtT(Math.round(v.duration))} long`:'Done',btn:open};
   if(TURN[ph])return {txt:TURN[ph],title:TURN[ph],frac:1,btn:open};
   const j=vJob(v);
-  if(j){const s=j.steps.filter(x=>!x.done).at(-1),t=s?s.t:jobStart(j),w=s?s.text:j.state==='queued'?((j.claude||{}).opened?'Claude is working on this video in its own Terminal window':S.listening?(S.busy&&S.busy.id!==j.id?'Waiting for Claude':'Starting'):'Waiting for Claude'):'Starting';
+  if(j){const s=j.steps.filter(x=>!x.done).at(-1),t=s?s.t:jobStart(j),w=s?s.text:j.state==='queued'?((j.claude||{}).opened?'Claude is working on this video in its own terminal window':S.listening?(S.busy&&S.busy.id!==j.id?'Waiting for Claude':'Starting'):'Waiting for Claude'):'Starting';
     return {title:w,txt:`${esc(w)} · <span data-since="${t}" data-f="t">${fmtT(Math.max(0,Math.round(Date.now()/1000-t)))}</span>`,frac:j.state==='queued'?0:jobFrac(j),btn:see}}
   return {txt:DOING[ph]||'Being made',frac:null,btn:see};
 }
@@ -1991,7 +1946,7 @@ function obSetup(sj){
   const now=sj.state==='failed'?'Setup stopped':sj.state==='queued'?(S.listening?'Claude is picking this up':'Waiting for Claude'):s?s.text:'Starting';
   return `<div class="pgc obw"><div class="ph"><h1>Getting your computer ready</h1><p>Installing the free tools the editor runs on. This happens once.</p></div>
     <div class="obc"><div class="obnow"><div class="row" style="justify-content:space-between"><span class="cap">Now</span><b>${sj.state==='taken'?pct+'%':''}</b></div><div class="big">${esc(now)}</div><div class="trk ${sj.state==='queued'?'indet':''}" style="height:6px;border-radius:3px"><i style="width:${pct}%;height:6px"></i></div>
-      ${sj.state==='failed'?`<div class="msg bad">${CROSS}<span>${esc(sj.error||'Something did not install.')}</span></div><button class="b2" style="align-self:flex-start" onclick="queue({type:'setup'})">Try again</button>`:sj.state==='queued'&&!S.listening?`<div class="t2" style="white-space:normal">${connectHTML('',`Type ${CMD} in Terminal, or say "set up the editor" in Claude Code.`)}</div>`:''}</div>
+      ${sj.state==='failed'?`<div class="msg bad">${CROSS}<span>${esc(sj.error||'Something did not install.')}</span></div><button class="b2" style="align-self:flex-start" onclick="queue({type:'setup'})">Try again</button>`:sj.state==='queued'&&!S.listening?`<div class="t2" style="white-space:normal">${connectHTML('',`Type ${CMD} in a terminal, or say "set up the editor" in Claude Code.`)}</div>`:''}</div>
       <div class="obrs">${obRows(SETUP_PLAN,sj.steps)}</div></div>
     <div class="obnext"><div><span class="cap">Next, while this runs</span><b>Analyse a format</b><p>Paste 3 to 6 videos edited the same way. Setup keeps going in the background.</p></div><button class="b1" onclick="obAnalyseNow()">Analyse a format</button></div>
     <div class="obnext"><div><span class="cap">Optional</span><b>Two free keys</b><p>They make your edits better. ElevenLabs hears every um and retake, so the cut is cleaner. Gemini reads the fonts and colours when it analyses a format. Skip them and Claude does those jobs instead.</p></div><button class="b2" onclick="ui.ob='keys';render()">Add keys now</button></div></div>`;
@@ -2034,7 +1989,7 @@ function obAnalysing(td){
   return `<div class="pgc obw"><div class="row" style="gap:20px">${faces.length?`<span class="obav">${faces.slice(0,3).map(f=>avaHTML(f,48)).join('')}</span>`:''}<div class="ph"><h1>Analysing your format</h1><p>${n?`${n} video${n>1?'s':''}${hs.length>1?` from ${hs.length} creators`:''}. `:''}You can leave this page.</p></div></div>
     <div class="obc"><div class="obnow"><div class="row" style="justify-content:space-between"><span class="cap">Now</span><b data-since="${t}" data-f="t">${fmtT(Math.max(0,Math.round(Date.now()/1000-t)))}</b></div><div class="big">${esc(s?tdStep(td,s.text):td.state==='queued'?(S.listening?'Claude is picking this up':'Waiting for Claude'):'Starting')}</div><div class="trk" style="height:6px;border-radius:3px"><i style="width:${Math.round((jobFrac(td)||0)*100)}%;height:6px"></i></div>
       ${vs.length?`<div class="obth">${vs.map((v,i)=>`<span style="${v.thumbnail?`background-image:url('${esc(v.thumbnail)}')`:''}" class="${i<k?'got':i===k?'now':''}">${i<k?OKDOT:''}</span>`).join('')}</div>`:''}
-      ${td.state==='queued'&&!S.listening?`<div class="t2" style="white-space:normal">${connectHTML('',`Type ${CMD} in Terminal, or say "edit my video" in Claude Code.`)}</div>`:''}</div>
+      ${td.state==='queued'&&!S.listening?`<div class="t2" style="white-space:normal">${connectHTML('',`Type ${CMD} in a terminal, or say "edit my video" in Claude Code.`)}</div>`:''}</div>
       <div class="obrs">${obRows(tdPlan(td),tdSteps(td))}</div></div>
     <div class="obnext"><div><span class="cap">Next</span><b>Make your first video</b><p>Drop a clip now if you like. It starts when the style is ready.</p></div><button class="b1" onclick="ui.ob='drop';render()">Drop a clip now</button></div>
     <button class="b2" style="align-self:flex-start" onclick="stopStudy(${J(td.args.handle)})">Stop analysing</button></div>`;
@@ -2082,24 +2037,6 @@ function firstVideoHome(v){
   }
   return `<div class="ph"><h1>Home</h1><p>${{cut:'Your first cut is ready to check.',approve:'Your preview is ready to approve.',edit:'Your first edit is ready to watch.',done:'Your first video is done.'}[ph]||'Your first video is being made. You can leave this window open or closed.'}</p></div>
     <div class="obhome">${vCard(v)}${side}</div>`;
-}
-function vHome(){
-  if(firstRun())return obView();
-  const vids=L.videos,W=cw(),st=L.styles||[],own=st.filter(c=>c.own),cr=st.filter(c=>!c.own&&!c.sample);   // samples stay off the creators shelf
-  const nc=Math.min(3,Math.max(0,Math.floor((W+12)/212)-1)),rec=(R?R.videos:[]).slice(0,nc),P=J,per=perRow();
-  const sw=innerWidth<=760?W:(W-40)*1.4/2.4,ns=Math.max(1,Math.floor((sw+12)/162)),tw=Math.floor((sw-(ns-1)*12)/ns);
-  const clip=v=>`<div class="hd-clip" role="button" tabindex="0" title="${esc(v.name)}" onclick="nv.sel=[${P(v.path)}];rgo('new')" onkeydown="if(event.key==='Enter'&&event.target===this){nv.sel=[${P(v.path)}];rgo('new')}"><div class="th" style="background-image:url('${esc(v.thumb)}')"></div><div style="min-width:0"><div class="t1">${esc(v.name)}</div><div class="t2">${esc(whereAgo(v))}</div></div>
-    <button class="more2" aria-label="More for this clip" aria-expanded="${ui.clipmenu===v.path}" title="More" onclick="event.stopPropagation();ui.cmenu=null;ui.clipmenu=ui.clipmenu===${P(v.path)}?null:${P(v.path)};render()">${DOTS}</button>${ui.clipmenu===v.path?`<div class="cmenu" onclick="event.stopPropagation()"><button onclick="clipAct('hide',${P(v.path)})">${ic('minus',16)}<span class="lb">Remove from this list</span></button><button onclick="ui.clipmenu=null;ui.cliptrash=${P(v.path)};rgo('new')">${ic('trash',16)}<span class="lb">Move to Trash</span></button></div>`:''}</div>`;
-  const stl=(c,i)=>`<div class="stl" style="width:${tw}px" ${c.studying?'aria-disabled="true"':`role="button" tabindex="0" onclick="openStyle(${P(c.id)})" onkeydown="if(event.key==='Enter'&&event.target===this)openStyle(${P(c.id)})"`}><div class="pic" style="${bgPic(picOf(c,i))}">${sMenu(c)}</div><div class="t1">${esc(c.name)}</div></div>`;
-  const crow=c=>`<button class="cr" ${c.studying?'disabled':''} onclick="openStyle(${P(c.id)})"><span class="ava" style="${c.face?`background-image:url('${esc(c.face)}')`:''}">${c.face?'':SIL}</span><span style="min-width:0"><span class="t1" style="display:block">${esc(c.name)}</span><span class="t2" style="display:block">${c.studying?'Being analysed now':c.videos?`Analysed from ${c.videos} videos`:'Analysed'}</span></span></button>`;
-  const shelves=()=>`<div class="sec2"><div class="sh"><b>Built by you</b>${seeAllGo(own.length,ns,"ui.fold.styles=null;ui.stab='own';rgo('mystyle')")}</div><div class="sts">${own.slice(0,ns).map(c=>stl(c,st.indexOf(c))).join('')||'<div class="none">No styles yet. Build one with the captions, zooms and sound you want.</div><button class="b2 s" style="align-self:flex-start" onclick="buildYourself()">Build a style</button>'}</div></div>
-    <div class="sec2"><div class="sh"><b>From creators</b>${seeAllGo(cr.length,3,"ui.fold.styles=null;ui.stab='cr';rgo('mystyle')")}</div><div class="crs">${cr.slice(0,3).map(crow).join('')||'<div class="none">No creator styles yet. Paste a few of their videos to copy how they edit.</div><button class="b2 s" style="align-self:flex-start" onclick="openCreate()">Analyse a format</button>'}</div></div>`;
-  if(vids.length===1)return `<div class="pgc">${firstVideoHome(vids[0])}<div class="hshelf">${shelves()}</div></div>`;
-  return `<div class="pgc">
-  <div class="ph"><h1>Home</h1>${vids.length?`<p>${vSum(vids)}</p>`:''}</div>
-  <div class="hdrop"><label class="hd-box" id="droptile">${ic('up',20)}<div><div class="t1" style="font-weight:600">Drop a video here</div><div class="t2">or choose a file</div></div><input type="file" multiple accept="video/*,.mov,.mkv,.mp4" class="hide" onchange="const f=[...this.files];this.value='';rgo('new');chooseFiles(f)"></label>${rec.map(clip).join('')}${'<div aria-hidden="true"></div>'.repeat(nc-rec.length)}</div>
-  <div class="sec2"><div class="sh"><b>Your videos</b>${seeAllGo(vids.length,per,"ui.fold.videos=null;rgo('videos')")}</div>${vids.length?cardRows(vids.slice(0,per)):'<div class="none">No videos yet. Drop a clip above, or pick one to start.</div><button class="b2 s" style="align-self:flex-start" onclick="rgo(\'new\')">New video</button>'}</div>
-  <div class="hshelf">${shelves()}</div></div>`;
 }
 // ---- Your videos: Now (cards) and Done (tiles); a folder opens from the sidebar
 function vVideos(){
@@ -2149,6 +2086,255 @@ function setRail(on){railPref=!!on;try{localStorage.setItem('ave-rail',on?'1':'0
 // the content width of a page view (for how many cards fit in one row)
 const cw=()=>{const m=$('#main');if(m&&m.classList.contains('pg')&&m.clientWidth){const c=getComputedStyle(m);return m.clientWidth-parseFloat(c.paddingLeft)-parseFloat(c.paddingRight)}return innerWidth-(isRail()?80:232)-(innerWidth<=760?32:80)};
 const inApp=()=>!!(L&&S);   // the first run lives in the shell too (Home shows its steps)
+
+// ---------------------------------------------------------------- projects
+// A project is one piece of work: its video, the creators it copies, its edits and its chat with Claude.
+// Home starts one, the sidebar lists them, #project/<slug> is the workspace (steps on the left, Claude on the right).
+IC.mic='<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
+IC.chat='<path d="M4 5h16v11H9l-5 4z"/>';
+const KINDS=[
+ {id:'edit',name:'Edit a video',ico:'videos',line:'Any footage. Tell Claude what you want done to it.',btn:'Start editing'},
+ {id:'talking-head',name:'Talking-head edit',ico:'mic',line:'Cut the retakes, then style the video like a creator you pick.',btn:'Edit talking head'},
+ {id:'motion',name:'Motion Studio',ico:'skill',line:'A motion video made from an idea, with no footage needed.',btn:'Open Motion Studio'}];
+const kindOf=k=>KINDS.find(x=>x.id===k)||KINDS[0];
+const tsOf=t=>typeof t==='number'?t:(Date.parse(t)/1000||0);
+const quiet=t=>`<div class="cd-quiet">${t}</div>`;
+let PJ=[];   // GET /projects, newest first
+async function loadProjects(){try{const r=await fetch('/projects');if(r.ok){const j=await r.json();PJ=(j.projects||[]).filter(p=>!p.archived).sort((a,b)=>tsOf(b.updated||b.created)-tsOf(a.updated||a.created));render()}}catch(e){}}
+async function loadProject(){const s=ui.pslug;if(!s)return;try{const r=await fetch('/project?slug='+encodeURIComponent(s));if(s!==ui.pslug)return;if(r.ok)ui.pj=await r.json();else if(r.status===404)ui.pj={missing:1}}catch(e){}}
+function openProject(slug){ui.pslug=slug;ui.pj=null;ui.pren=null;rgo('project');loadProject().then(render)}
+function goProjects(){PJ.length?openProject(PJ[0].slug):goHome()}
+const pjJobProject=j=>j.project||(j.args&&j.args.project)||'';
+const isRun=j=>j.state==='queued'||j.state==='taken';
+const base=p=>String(p||'').split(/[\\/]/).pop();
+const newestEdit=E=>(E||[]).slice().sort((a,b)=>(b.updated||b.mtime||0)-(a.updated||a.mtime||0))[0]||null;
+async function pjLink(field,value){await post('/project/link',{slug:ui.pslug,field,value});await loadProject();await loadProjects();render()}
+
+// ---- New project: a name, one of the three kinds, and optionally a video
+function openNewProject(kind,files){
+  ui.npm={name:'',kind:kind||'talking-head',sources:[],busy:0,msg:null,adding:0,named:false};render();
+  setTimeout(()=>{const e=$('#np-name');if(e)e.focus()},0);
+  if(files&&files.length)npmAdd(files);
+}
+function closeNewProject(){ui.npm=null;render()}
+// the same upload as the old New video page; the clips it picks are taken back out of that page's selection
+async function addVideos(files){
+  const before=new Set(nv.sel);await chooseFiles(files);
+  const added=nv.sel.filter(p=>!before.has(p));nv.sel=nv.sel.filter(p=>before.has(p));
+  return added.map(p=>({path:p,name:(nv.clips[p]||{}).name||base(p)}));
+}
+async function npmAdd(files){
+  const m=ui.npm;if(!m)return;m.adding=1;render();
+  const got=await addVideos(files);
+  for(const g of got)if(!m.sources.some(s=>s.path===g.path))m.sources.push(g);
+  if(!m.name.trim()&&got.length&&!m.named)m.name=got[0].name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ');
+  m.adding=0;render();
+}
+async function npmCreate(){
+  const m=ui.npm;if(!m||m.busy)return;const name=m.name.trim();
+  if(!name){m.msg='Give the project a name.';return render()}
+  if(m.adding){m.msg='Wait for your video to finish adding.';return render()}
+  m.busy=1;m.msg=null;render();
+  const r=await post('/projects',{name,kind:m.kind,sources:m.kind==='motion'?[]:m.sources.map(s=>s.path)});
+  if(!r._ok){m.busy=0;m.msg=r.error||r.msg||'That did not work. Try again.';return render()}
+  const p=r.project||r;ui.npm=null;await loadProjects();openProject(p.slug);
+}
+function npmModal(){
+  const m=ui.npm,ups=nv.up.filter(u=>u.bad||m.adding);
+  const drop=m.kind==='motion'?`<div class="lkb"><b>Video</b><span class="t2">Motion Studio starts from an idea. You add references inside the project.</span></div>`
+    :`<div class="lkb"><b>Video <span class="t2" style="font-weight:400">Optional</span></b>
+      <label class="npdrop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('over');npmAdd([...event.dataTransfer.files])">${ic('up',20)}<span><b>Drop a video here</b><br><span class="t2">or choose a file</span></span><input type="file" multiple accept="video/*,.mov,.mkv,.mp4" class="hide" onchange="const f=[...this.files];this.value='';npmAdd(f)"></label>
+      <div class="npmf">${m.sources.map(s=>fileRow('videos',s.name)).join('')}${ups.map(u=>`<div class="fr ${u.bad?'bad':''}">${ic('up',16)}<span class="nm">${esc(u.name)}</span><span class="muted">${esc(u.bad||(u.msg==='Adding...'?`Adding... ${u.pct}%`:u.msg))}</span></div>`).join('')}</div></div>`;
+  return `<div class="modalbg" onclick="if(event.target===this)closeNewProject()"><div class="modal nsm" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <div class="row" style="justify-content:space-between"><b class="mt2" id="mtitle">New project</b><button class="mx2" aria-label="Close" title="Close" onclick="closeNewProject()">${ic('x',18,2)}</button></div>
+    <label class="lkb"><b>Name</b><input id="np-name" class="input" placeholder="Launch day video" value="${esc(m.name)}" oninput="ui.npm.name=this.value;ui.npm.named=true" onkeydown="if(event.key==='Enter')npmCreate()" autocomplete="off"></label>
+    <div class="lkb"><b>What are you making?</b><div class="kpicks" role="radiogroup" aria-label="Kind of project">${KINDS.map(k=>`<button class="kpick ${m.kind===k.id?'on':''}" role="radio" aria-checked="${m.kind===k.id}" onclick="ui.npm.kind='${k.id}';render()"><span class="kic s">${ic(k.ico,18,1.7)}</span><b>${k.name}</b><span class="t2">${k.line}</span></button>`).join('')}</div></div>
+    ${drop}
+    ${m.msg?`<div class="msg bad">${CROSS}<span>${esc(m.msg)}</span></div>`:''}
+    <button class="btn-primary" style="align-self:flex-end" ${m.busy?'disabled title="Creating the project"':''} onclick="npmCreate()">${ic('plus',16,2.2)}${m.busy?'Creating...':'Create project'}</button></div></div>`;
+}
+
+// ---- Home
+const kindCard=k=>`<article class="kcard"><span class="kic">${ic(k.ico,22,1.7)}</span><h2>${k.name}</h2><p>${k.line}</p>
+  <button class="btn-primary" onclick="openNewProject('${k.id}')" ${GS().setup?'':'disabled title="Finish setup first, then you can start a project."'}>${ic(k.ico,16,2)}${k.btn}</button></article>`;
+const pjRow=p=>`<button class="pjr" onclick="openProject(${J(p.slug)})"><span class="kic s">${ic(kindOf(p.kind).ico,18,1.7)}</span><span class="pjn"><b>${esc(p.name)}</b><small>${esc(p.status||kindOf(p.kind).name)}</small></span><span class="muted">${ago(tsOf(p.updated||p.created))}</span></button>`;
+function vHome(){
+  if(firstRun())return obView();
+  const vids=L.videos;
+  if(vids.length===1&&!gsDone())return `<div class="pgc">${firstVideoHome(vids[0])}</div>`;
+  return `<div class="pgc">
+  <div class="ph"><h1>What are we making?</h1><p>Pick one. You can also drop a video anywhere on this page to begin.</p></div>
+  <div class="kinds">${KINDS.map(kindCard).join('')}</div>
+  <div class="sec2"><div class="sh"><b>Recent projects</b></div>${PJ.length?`<div class="pjlist">${PJ.slice(0,4).map(pjRow).join('')}</div>`:'<div class="none">No projects yet. Start one above.</div>'}</div>
+  <div class="hlinks"><button class="hlink" onclick="ui.fold.videos=null;rgo('videos')">All your videos (${vids.length})</button></div></div>`;
+}
+
+// ---- one status card for every job (cut, style, render, analysis): what, step n of m, how long, Stop
+function jobCard(j,o={}){
+  let plan=[];try{plan=j.type==='video'?planFor(j).map(p=>p[0]):j.type==='teardown'?PLAN:j.type==='skill'?SKILL_PLAN:[]}catch(e){}
+  const s=farStep(j),q=j.state==='queued',i=s?plan.indexOf(s.text):-1,m=plan.length,n=q?0:m?Math.max(1,i+1):Math.max(1,j.steps.length);
+  const a=j.args||{},tgt=a.handle?'@'+a.handle:a.name||(a.edit?base(a.edit):'');
+  const what=o.title||`${JOBNAME[j.type]||'Working'}${tgt?' '+tgt:''}`;
+  const text=q?(S.listening?'Claude is picking this up.':connectHTML('Waiting for Claude.')):esc(s?tdStep(j,s.text)+(s.detail?', '+s.detail:''):'Starting');
+  const f=q?0:jobFrac(j),since=jobStart(j);
+  return `<div class="jc ${o.flat?'flat':''}" role="status"><div class="jc-top"><b>${esc(what)}</b><span class="jc-t" data-since="${since}" data-f="t">${fmtT(Math.max(0,Math.round(Date.now()/1000-since)))}</span></div>
+    <div class="jc-tx">${SPIN}<span>${text}</span></div>
+    <div class="jc-bar ${f==null?'indet':''}"><i style="width:${Math.round((f||0)*100)}%"></i></div>
+    <div class="jc-ft"><span class="muted">${q?'Waiting to start':m?`Step ${n} of ${m}`:`Step ${n}`}</span><button class="btn-danger s" onclick="askStop(${J(j.id)},${J(a.handle||'')})">${ic('x',14,2.2)}Stop</button></div></div>`;
+}
+async function askStop(id,handle){
+  if(!confirm('Stop this? Claude stops at its next step.'))return;
+  if(handle)await stopStudy(handle);else await stopJob(id);
+}
+
+// ---- the project page
+const PH_STEP={cutting:2,notes:2,stills:3,rendering:3,cut:4,approve:4,edit:4,ask:4,done:5};
+function pjPlan(P,E,jobs){
+  const K=P.kind,run=jobs.filter(isRun),e=newestEdit(E),ph=e?vPh(e):'',src=P.sources||[],refs=P.refs||[];
+  const names={'talking-head':['Source','References','Cut','Style','Review','Done'],motion:['Brief','References','Beat sheet','Render','Review'],edit:['Source','Edits','Review']}[K]||['Source','Edits','Review'];
+  const reviewable=['cut','approve','edit','ask','done'].includes(ph);
+  let cur=0;
+  if(K==='talking-head'){cur=e?(PH_STEP[ph]??2):run.length?2:!src.length?0:refs.length?2:1}
+  else if(K==='motion'){cur=e?(reviewable?4:3):run.length?(/render/i.test((farStep(run[0])||{}).text||'')?3:2):0}
+  else cur=e?(reviewable?2:1):(src.length||run.length)?1:0;
+  const finished=!!e&&ph==='done'&&!run.length;
+  return {names,cur,run,e,finished,ph};
+}
+const fileRow=(icn,name,extra='')=>`<div class="fr">${ic(icn,16)}<span class="nm" title="${esc(name)}">${esc(name)}</span>${extra}</div>`;
+const editRow=e=>`<div class="fr">${e.thumb?`<i class="th" style="background-image:url('${esc(e.thumb)}')"></i>`:ic('videos',16)}<span class="nm" title="${esc(e.name)}">${esc(e.name)}</span><span class="muted">${vStat(e).txt}</span></div>`;
+const upRows=()=>nv.up.map(u=>`<div class="fr ${u.bad?'bad':''}">${ic('up',16)}<span class="nm">${esc(u.name)}</span><span class="muted">${esc(u.bad||(u.msg==='Adding...'?`Adding... ${u.pct}%`:u.msg))}</span>${u.bad?`<button class="ax" aria-label="Dismiss" title="Dismiss" onclick="nv.up=nv.up.filter(x=>x.id!==${u.id});render()">${CROSS}</button>`:''}</div>`).join('');
+function pjBtn(a,cur){
+  const k=a.kind==='danger'?'btn-danger':(a.kind==='secondary'||!cur)?'btn-secondary':'btn-primary',inner=`${ic(a.ico||'check',16,2)}${esc(a.label)}`;
+  if(a.dis)return `<button class="${k} is-off" disabled title="${esc(a.why||'Not available yet')}">${inner}</button>`;
+  if(a.file)return `<label class="${k}">${inner}<input type="file" multiple accept="video/*,.mov,.mkv,.mp4" class="hide" onchange="const f=[...this.files];this.value='';projAdd(f)"></label>`;
+  if(a.href)return `<a class="${k}" href="${esc(a.href)}">${inner}</a>`;
+  return `<button class="${k}" onclick="${a.js}">${inner}</button>`;
+}
+function refsBody(P){
+  const refs=P.refs||[];
+  return refs.filter(r=>!/^https?:/i.test(r)).map(r=>{const h=String(r).replace(/^@/,'');return `<div class="refmount" id="rm-${esc(h)}" data-keep data-h="${esc(h)}"></div>`}).join('')
+    +refs.filter(r=>/^https?:/i.test(r)).map(r=>fileRow('link',shortLink(r))).join('');
+}
+function creatorPick(P){
+  const have=new Set((P.refs||[]).map(r=>String(r).replace(/^@/,'')));
+  const cs=(L.styles||[]).filter(c=>/^@/.test(c.id)&&!c.studying&&!have.has(c.id.slice(1)));
+  return cs.length?`<select aria-label="Use a creator you already analysed" onchange="if(this.value)pjLink('refs',this.value)"><option value="">Use a creator you have</option>${cs.map(c=>`<option value="${esc(c.id)}">${esc(dname(c))}</option>`).join('')}</select>`:'';
+}
+function pjSteps(P,E,pl){
+  const src=P.sources||[],K=P.kind,{e,run,finished}=pl,rv2=e?'/review?dir='+encodeURIComponent(e.dir):'';
+  const srcFiles=src.map(p=>fileRow('videos',base(p))).join('')+upRows();
+  const srcA={label:src.length?'Add another video':'Choose video',ico:'up',file:1,always:1};
+  const addCreator={label:'Add a creator',ico:'plus',js:'pjCreator()',always:1};
+  const ask={label:'Ask Claude',ico:'chat',js:'dockFocus()',kind:'secondary',always:1};
+  const reviewA=e?{label:'Open review',ico:'videos',href:rv2}:{label:'Open review',ico:'videos',dis:1,why:'There is nothing to review yet.'};
+  const refsStep={hint:'Optional. Add a creator and Claude studies how they edit, then copies it.',files:refsBody(P),acts:[addCreator],extra:creatorPick(P)};
+  if(K==='talking-head'){
+    const noRun={label:'Cut my video',ico:'videos',js:'projCut()',dis:!src.length||run.length||ui.pbusy,why:!src.length?'Add a video first.':'A job is already running on this project.'};
+    const sid=P.style||(L&&L.default_style)||'mine',sty=(L.styles||[]).filter(c=>!c.studying);
+    const styleSel=`<select aria-label="Style for this video" onchange="this.value&&pjLink('style',this.value)">${P.style?'':`<option value="">Default: ${esc(styleName(sid))}</option>`}${sty.map(c=>`<option value="${esc(c.id)}" ${c.id===P.style?'selected':''}>${esc(dname(c))}</option>`).join('')}</select>`;
+    return [
+      {hint:'Add the video you want cut. You can also drop it anywhere on this page.',files:srcFiles,acts:[srcA]},
+      {...refsStep,acts:[addCreator,...(src.length&&!e&&!run.length?[{label:'Skip, cut without them',ico:'videos',js:'projCut()',kind:'secondary'}]:[])]},
+      {hint:'Claude removes the retakes and the pauses. You check the cut before any styling.',files:e?editRow(e):'',acts:e?[]:[noRun]},
+      {hint:'The look comes from the style you pick. Change it any time before you approve.',files:fileRow('styles',P.style?styleName(P.style):'Default: '+styleName(sid)),extra:styleSel,acts:[{label:'Open the style',ico:'styles',js:`openStyle(${J(sid)})`,kind:'secondary',always:1}]},
+      {hint:'Watch the preview, leave notes, then approve it.',files:e?editRow(e):'',acts:[reviewA]},
+      {hint:finished?'Your video is ready.':'This is done when you approve the edit.',files:finished&&e?editRow(e):'',acts:[{label:'Open finished video',ico:'videos',href:rv2,dis:!finished,why:'Approve the edit first.'}]}];
+  }
+  if(K==='motion'){
+    const started=!!e||run.length;
+    return [
+      {hint:'Say the idea, the format and what to copy. Claude plans the film from it.',files:started?fileRow('file','Brief sent'):'',acts:started?[]:[{label:'Write the brief',ico:'pencil',js:'openMotionFor()'}]},
+      refsStep,
+      {hint:'Claude lays out the beats, each with its words and its look.',files:'',acts:[ask]},
+      {hint:'The film renders from the beat sheet. This can take a few minutes.',files:'',acts:[ask]},
+      {hint:'Watch the film and leave notes.',files:e?editRow(e):'',acts:[reviewA]}];
+  }
+  return [
+    {hint:'Optional. Add the footage you want worked on.',files:srcFiles,acts:[srcA]},
+    {hint:'Tell Claude in the chat what to change. Each edit shows up here.',files:(E||[]).map(editRow).join(''),acts:[{label:'Describe the edit',ico:'chat',js:'dockFocus()'}]},
+    {hint:'Watch the edit, leave notes, then approve it.',files:e?editRow(e):'',acts:[reviewA]}];
+}
+function vProject(){
+  if(!ui.pslug)return vHome();
+  const d=ui.pj,P=d&&d.project,back=`<button class="back" style="text-decoration:none;font-size:14px" onclick="goHome()">${ic('back',14,2)}Home</button>`;
+  if(!P)return `<div class="pgc"><div class="ph">${back}</div><div class="none">${d&&d.missing?'That project is gone. It may have been archived.':'Loading the project...'}</div></div>`;
+  const E=d.edits||[],jobs=(S.jobs||[]).filter(j=>pjJobProject(j)===P.slug),pl=pjPlan(P,E,jobs),steps=pjSteps(P,E,pl),K=kindOf(P.kind);
+  const bad=!pl.run.length?jobs.filter(j=>j.state==='failed'&&Date.now()/1000-(j.finished||0)<600).pop():null;
+  const lis=steps.map((s,i)=>{
+    const st=pl.finished||i<pl.cur?'done':i===pl.cur?'cur':'later';
+    const acts=(s.acts||[]).map(a=>st==='later'&&!a.always?{...a,dis:1,why:a.why||`Finish "${pl.names[pl.cur]}" first.`}:a).map(a=>pjBtn(a,st==='cur')).join('');
+    return `<li class="${st}" ${st==='cur'?'aria-current="step"':''}><span class="mk">${st==='done'?ic('check',16,2.4):i+1}</span><div class="sbody"><div class="sh"><b>${esc(pl.names[i])}</b></div>
+      <p class="hint">${esc(s.hint)}</p>${s.files?`<div class="files">${s.files}</div>`:''}
+      ${st==='cur'?pl.run.map(j=>jobCard(j)).join('')+(bad?`<div class="msg bad">${CROSS}<span>${esc(bad.error||'That stopped. Ask Claude to try again.')}</span></div>`:''):''}
+      ${acts||s.extra?`<div class="acts">${acts}${s.extra||''}</div>`:''}</div></li>`}).join('');
+  const ren=ui.pren;
+  return `<div class="pgc"><div class="pj"><div class="pj-head">${back}
+    <div class="pj-title">${ren?`<input id="pj-name" value="${esc(ren.val)}" aria-label="Project name" onkeydown="if(event.key==='Enter')pjRenameSave();if(event.key==='Escape'){ui.pren=null;render()}">`:`<h1>${esc(P.name)}</h1>`}<span class="ktag">${ic(K.ico,14,1.8)}${K.name}</span></div>
+    <div class="muted">${esc(P.status||'')}</div>
+    <div class="pj-acts">${ren?`<button class="btn-primary s" onclick="pjRenameSave()">${ic('check',14,2.4)}Save name</button><button class="btn-secondary s" onclick="ui.pren=null;render()">${ic('x',14,2.2)}Cancel</button>`
+      :`<button class="btn-secondary s" onclick="pjRename()">${ic('pencil',14,2)}Rename</button><button class="btn-danger s" onclick="pjArchive()">${ic('trash',14,2)}Archive</button>`}</div></div>
+    <ol class="stp" aria-label="Steps">${lis}</ol></div></div>`;
+}
+function pjRename(){ui.pren={val:ui.pj.project.name};render();setTimeout(()=>{const e=$('#pj-name');if(e){e.focus();e.select()}},0)}
+async function pjRenameSave(){const v=(($('#pj-name')||{}).value||'').trim();ui.pren=null;if(v&&v!==ui.pj.project.name){await post('/project/rename',{slug:ui.pslug,name:v});await loadProject();await loadProjects()}render()}
+async function pjArchive(){if(!confirm('Archive this project? Its videos and files stay where they are.'))return;await post('/project/archive',{slug:ui.pslug});ui.pslug=null;ui.pj=null;await loadProjects();goHome()}
+async function projAdd(files){
+  const slug=ui.pslug,got=await addVideos(files);
+  for(const g of got)await post('/project/link',{slug,field:'sources',value:g.path});
+  await loadProject();await loadProjects();render();
+}
+// Cut my video: the existing new-video job, tagged with the project
+async function projCut(){
+  const P=ui.pj&&ui.pj.project;if(!P||!(P.sources||[]).length||ui.pbusy)return;
+  ui.pbusy=1;render();
+  const wide=P.sources.some(p=>clipOf(p).vertical===false);
+  const r=await queue({type:'video',paths:P.sources,join:true,as:P.style||(L&&L.default_style)||'mine',aspect:wide?'16:9':'9:16',script:'',assets:[],project:P.slug});
+  ui.pbusy=0;if(r._ok)toast('Cutting started.');
+  await loadProject();render();
+}
+function openMotionFor(){const P=ui.pj&&ui.pj.project;if(!P)return;ui.mfilm={name:filmSlug(P.name),idea:'',format:'9:16',lang:'',refs:[],project:P.slug};render();setTimeout(()=>{const e=$('#mf-idea');if(e)e.focus()},0)}
+function pjCreator(){ui.studyProject=ui.pslug;openCreate()}
+// the reference tiles live in elements the repaint leaves alone (data-keep); ref.js fills them
+function mountRefs(){
+  for(const el of document.querySelectorAll('#main .refmount')){
+    const ph=el.firstChild&&el.firstChild.className==='cd-quiet';
+    if(el.firstChild&&!ph)continue;
+    if(window.CookedRef&&CookedRef.list){el.innerHTML='';try{CookedRef.list(el,el.dataset.h)}catch(e){el.innerHTML=quiet('This reference could not open.')}}
+    else if(!ph)el.innerHTML=quiet('The reference breakdown is not available yet.');
+  }
+}
+
+// ---- Claude, docked on the project page; a slide-over on the style page. Both sit outside #main, so a repaint never touches them.
+let CHAT=null,CHATK='',SL=null,SLK='';
+function mountChat(host,opts){
+  host.innerHTML='';
+  try{return CookedChat.mount(host,opts)||{}}catch(e){host.innerHTML=quiet('The chat could not start. Reload the page to try again.');return {}}
+}
+function syncDock(){
+  const want=rv==='project'&&ui.pslug&&ui.pj&&ui.pj.project?ui.pslug:'',host=$('#chatbody');
+  document.body.classList.toggle('inproj',!!want);
+  if(!want){if(CHAT||CHATK){try{CHAT&&CHAT.destroy&&CHAT.destroy()}catch(e){}CHAT=null;CHATK='';host.innerHTML=''}document.body.classList.remove('dockopen');return}
+  if(CHATK===want)return;
+  if(!window.CookedChat||!CookedChat.mount){if(!host.firstChild)host.innerHTML=quiet('Chat is not available in this build yet.');return}
+  try{CHAT&&CHAT.destroy&&CHAT.destroy()}catch(e){}
+  CHAT=mountChat(host,{slug:want});CHATK=want;
+}
+function dockOpen(on){document.body.classList.toggle('dockopen',!!on)}
+function dockFocus(){dockOpen(true);setTimeout(()=>{try{CHAT&&CHAT.focus&&CHAT.focus()}catch(e){}},60)}
+function askStyle(id){ui.askst=id;render()}
+function closeAsk(){ui.askst=null;render()}
+function syncSlide(){
+  const id=rv==='stylepage'&&ui.askst?ui.askst:'',host=$('#slidebody');
+  document.body.classList.toggle('slideopen',!!id);
+  if(!id){if(SL||SLK){try{SL&&SL.destroy&&SL.destroy()}catch(e){}SL=null;SLK='';host.innerHTML=''}return}
+  if(SLK===id)return;
+  $('#slidettl').textContent='Ask Claude about '+styleName(id);
+  if(!window.CookedChat||!CookedChat.mount){if(!host.firstChild)host.innerHTML=quiet('Chat is not available in this build yet.');return}
+  try{SL&&SL.destroy&&SL.destroy()}catch(e){}
+  SL=mountChat(host,{slug:null,context:`About style ${id}: `});SLK=id;
+}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.askst)closeAsk()});
+const askBtn=id=>`<div class="row"><button class="btn-secondary" onclick="askStyle(${J(id)})">${ic('chat',16,2)}Ask Claude about this style</button></div>`;
 // the furthest a job got: a step Claude reports again from earlier in the plan (it took the job over, or went
 // back to redo one) never moves the text or the bar backwards
 const FAR={};
@@ -2166,7 +2352,7 @@ function jobFrac0(j){
   const done=j.steps.filter(s=>s.done).length,cur=j.steps.find(s=>!s.done);
   return Math.min(1,(done+(cur?(cur.progress!=null?cur.progress:.3):0))/n);
 }
-const JOBNAME={video:'Making',teardown:'Analysing',skill:'Building a skill',setup:'Setting up',update:'Updating',modal:'Connecting Modal','modal-test':'Testing Modal','style-change':'Changing a style','skill-change':'Improving a skill','skill-new':'Making a skill'};
+const JOBNAME={motion:'Making a motion video',video:'Making',teardown:'Analysing',skill:'Building a skill',setup:'Setting up',modal:'Connecting Modal','modal-test':'Testing Modal','style-change':'Changing a style'};
 // the sidebar's live card: the job being worked on, from the real job state
 function jobInfo(){
   const act=S.jobs.filter(j=>j.state==='queued'||j.state==='taken'),j=busyJob(),mk=(L?L.videos:[]).filter(v=>v.status==='making'||v.status==='cutting');
@@ -2176,9 +2362,9 @@ function jobInfo(){
   const last=Math.max(j.u||0,s?s.t||0:0,S.claude_seen||0)||jobStart(j),age=Math.max(0,Math.round(Date.now()/1000-last));
   const vn=j.type==='video'&&j.args.edit&&(((L?L.videos:[]).find(v=>v.dir===j.args.edit)||{}).name||j.args.edit.split(/[\\/]/).pop());
   const what=j.type==='video'&&j.args.edit?' in '+j.args.edit.split(/[\\/]/).pop():j.type==='teardown'&&j.args.handle?' · '+styleName('@'+j.args.handle):'';
-  const how=S.new_claude?'':` Type ${CMD} in Terminal.`,own=(j.claude||{}).opened,text=j.state==='queued'?(own?'Claude is working on this video in its own Terminal window.':S.listening?'Claude is picking this up.':'Waiting for Claude.'+how)
+  const how=S.new_claude?'':` Type ${CMD} in a terminal.`,own=(j.claude||{}).opened,text=j.state==='queued'?(own?'Claude is working on this video in its own terminal window.':S.listening?'Claude is picking this up.':'Waiting for Claude.'+how)
     :j.owner!=='home'&&!S.listening&&!own&&age>60?'Claude is not listening.'+how:vn?`Claude is working on ${vn}: ${s?s.text:'Starting'}`:(s?tdStep(j,s.text):'Starting')+what;
-  const name=JOBNAME[j.type]||'Working',go=j.type==='video'?"ui.fold.videos=null;rgo('videos')":j.type==='teardown'||j.type==='skill'?"rgo('mystyle')":j.type==='skill-change'||j.type==='skill-new'?"rgo('skills')":j.type==='setup'?'goHome()':j.type==='update'||j.owner==='home'?"rgo('settings')":'';
+  const name=JOBNAME[j.type]||'Working',go=pjJobProject(j)?'openProject('+J(pjJobProject(j))+')':j.type==='video'?"ui.fold.videos=null;rgo('videos')":j.type==='teardown'||j.type==='skill'?"rgo('mystyle')":j.type==='setup'?'goHome()':j.owner==='home'?"rgo('settings')":'';
   return {id:j.id,label:j.type==='video'||j.type==='teardown'?`${name} ${n}`:name,short:j.type==='video'||j.type==='teardown'?name:'Working',n:j.type==='video'||j.type==='teardown'?n:'',text,frac:j.state==='queued'?0:jobFrac(j),since:jobStart(j),go};   // the whole job's time, not the step's
 }
 const ringSvg=f=>{const C=2*Math.PI*10;return `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="var(--line)" stroke-width="2.5"/><circle cx="12" cy="12" r="10" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-(f==null?.25:f))).toFixed(1)}" transform="rotate(-90 12 12)"/></svg>`};
@@ -2196,16 +2382,17 @@ function newFolder(move,name,kind='videos'){
 }
 async function foldSaveName(e,name){const r=await post('/folder/create',{kind:e.kind,name});if(!r._ok){toast(r.error||'That did not save.');return}L.folders=r.folders;if(e.move)return moveTo(e.kind,e.move,r.id,e.name);render()}
 function sideHTML(){
-  const rail=isRail(),app=inApp(),cur=app?rv:null,vids=L?L.videos:[],st=L?L.styles:[],ji=jobInfo(),upd=S.update&&S.update.newer;
+  const rail=isRail(),app=inApp(),cur=app?rv:null,vids=L?L.videos:[],st=L?L.styles:[],ji=jobInfo();
   const onS=cur==='mystyle'||cur==='stylepage',tl=rail?'Expand the sidebar':'Collapse the sidebar';
   const tog=narrow()?'':`<button class="sb-ico" title="${tl}" aria-label="${tl}" onclick="setRail(${!rail})">${ic('panel')}</button>`;
   const thm=`<button class="sb-theme" title="${isDark()?'Light mode':'Dark mode'}" aria-label="${isDark()?'Light mode':'Dark mode'}" onclick="toggleTheme()">${ic(isDark()?'moon':'sun',16)}</button>`;
   const vgo="ui.fold.videos=null;rgo('videos')";
+  const pr=p=>`<button class="sb-row sb-proj ${cur==='project'&&ui.pslug===p.slug?'on':''}" onclick="openProject(${J(p.slug)})" title="${esc(p.name)}">${ic(kindOf(p.kind).ico,18)}<span class="pn"><b>${esc(p.name)}</b><small>${esc(p.status||kindOf(p.kind).name)}</small></span></button>`;
   if(rail){
     const it=(k,label,on,js,extra='')=>`<button class="rl-it ${on?'on':''}" onclick="${js}" ${extra}><span class="ic">${ic(k,20,1.9)}</span>${label}</button>`;
     return `<button class="rl-pan" data-home onclick="goHome()" title="Home" aria-label="cooked. home">${PAN(24)}</button>${tog}
-      <button class="rl-it rl-new" onclick="rgo('new')"><span class="ic">${ic('plus',20,2.2)}</span>New</button><div style="height:10px;flex-shrink:0"></div>
-      ${it('home','Home',cur==='home','goHome()')}${it('videos','Videos',cur==='videos',vgo,dropAttrs('videos',null))}${it('styles','Styles',onS,"rgo('mystyle')")}${it('skill','Skills',cur==='skills',"rgo('skills')")}
+      <button class="rl-it rl-new" onclick="openNewProject()"><span class="ic">${ic('plus',20,2.2)}</span>New</button><div style="height:10px;flex-shrink:0"></div>
+      ${it('home','Home',cur==='home','goHome()')}${it('folder','Projects',cur==='project',"goProjects()")}${it('styles','Styles',onS,"rgo('mystyle')")}
       <div class="sb-sp"></div>
       ${ji?`<button class="rl-it rl-job" onclick="${ji.go}" title="${esc(ji.label+': '+ji.text)}"><span class="ic">${ringSvg(ji.frac)}${ji.n}</span>${ji.short}</button>`:''}
       ${it('gear','Settings',cur==='settings',"rgo('settings')")}${thm}`;
@@ -2219,19 +2406,17 @@ function sideHTML(){
     return `<div class="sb-row sfold ${on?'on':''}" role="button" tabindex="0" onclick="openFold(${J(f.id)},'${k}')" onkeydown="if(event.key==='Enter'&&event.target===this)this.click()" ${dropAttrs(k,f.id)}>${ic(icn)}<span class="lb">${esc(f.name)}</span>${moreBtn(K,'More for this folder')}<span class="n hv">${cnt(k,f.id)}</span>${cMenu(K,[['Rename',`ui.renfold={kind:'${k}',id:${J(f.id)},val:${J(f.name)}};render();setTimeout(()=>{const e=$('#fold-name');if(e){e.focus();e.select()}},0)`,'pencil'],['Delete folder',`foldDel('${k}',${J(f.id)})`,'trash']])}</div>`};
   const nf=ui.newfold&&ui.newfold.at!=='head'?`<div class="sb-row">${ic(ui.newfold.kind==='videos'?'folder':'styles')}${inp(ui.newfold,'Folder name')}</div>${ui.newfold.msg?`<div class="msg bad" style="padding:0 12px;font-size:12px">${esc(ui.newfold.msg)}</div>`:''}`:'';
   return `<div class="sb-brand"><button class="brand" data-home onclick="goHome()" title="Home"><span class="mark" aria-hidden="true">${PAN(18)}</span><b>cooked.</b></button>${tog}</div>
-    <button class="sb-new" ${GS().setup?'':'disabled title="New video opens once setup is done"'} onclick="rgo('new')">${ic('plus',16,2.2)}New video</button>
-    <button class="sb-row" style="margin-top:6px" onclick="openMotion()">${ic('plus',16,2.2)}<span class="lb">New motion video</span></button>
-    <nav class="sb-nav"><button class="sb-row ${cur==='home'?'on':''}" onclick="goHome()">${ic('home')}<span class="lb">Home</span></button>
-      <button class="sb-row ${cur==='videos'&&!ui.fold.videos?'on':''}" onclick="${vgo}" ${dropAttrs('videos',null)}>${ic('videos')}<span class="lb">Your videos</span><span class="n">${vids.length}</span></button>
-      <button class="sb-row ${onS?'on':''}" onclick="rgo('mystyle')">${ic('styles')}<span class="lb">Styles</span><span class="n">${st.length}</span></button>
-      <button class="sb-row ${cur==='skills'?'on':''}" onclick="rgo('skills')">${ic('skill')}<span class="lb">Skills</span></button></nav>
-    <div class="sb-fold"><div class="sb-fh">Folders<button class="sb-add" title="New folder" aria-label="New folder" onclick="newFolder(null,null,rv==='mystyle'||rv==='stylepage'?'styles':'videos')">${ic('plus',12,2.4)}</button></div>
-      <div class="sb-flist">${fd('videos').folders.map(f=>frow('videos',f)).join('')}${fd('styles').folders.map(f=>frow('styles',f)).join('')}${nf}</div></div>
+    <button class="sb-newp" ${GS().setup?'':'disabled title="New project opens once setup is done"'} onclick="openNewProject()">${ic('plus',16,2.2)}New project</button>
+    <nav class="sb-nav" style="padding-top:12px"><button class="sb-row ${cur==='home'?'on':''}" onclick="goHome()">${ic('home')}<span class="lb">Home</span></button></nav>
+    <div class="sb-ph"><span>Projects</span></div>
+    <div class="sb-plist">${PJ.length?PJ.map(pr).join(''):'<div class="sb-none">No projects yet.</div>'}</div>
+    <nav class="sb-nav" style="padding-top:8px"><button class="sb-row ${onS?'on':''}" onclick="rgo('mystyle')">${ic('styles')}<span class="lb">Styles</span><span class="n">${st.length}</span></button></nav>
+    ${onS||cur==='videos'?`<div class="sb-fold"><div class="sb-fh">Folders<button class="sb-add" title="New folder" aria-label="New folder" onclick="newFolder(null,null,rv==='mystyle'||rv==='stylepage'?'styles':'videos')">${ic('plus',12,2.4)}</button></div>
+      <div class="sb-flist">${fd(cur==='videos'?'videos':'styles').folders.map(f=>frow(cur==='videos'?'videos':'styles',f)).join('')}${nf}</div></div>`:''}
     <div class="sb-sp"></div>
     ${ji?`<button class="sb-job" onclick="${askAbout()?'askOpen()':ji.go}"><div class="tp"><b>${SPIN}${esc(ji.label)}</b><span class="row" style="gap:8px;flex-shrink:0">${ji.since?`<span data-since="${ji.since}" data-f="t">${fmtT(Math.max(0,Math.round(Date.now()/1000-ji.since)))}</span>`:''}${ji.id?`<span class="sb-stop" role="button" tabindex="0" title="Stop Claude on this" onclick="event.stopPropagation();stopJob(${J(ji.id)})" onkeydown="if(event.key==='Enter'){event.stopPropagation();stopJob(${J(ji.id)})}">Stop</span>`:''}</span></div><div class="tx">${askAbout()?`Claude is asking about ${esc(askAbout())}: <u>Open</u>`:esc(ji.text)}</div><div class="trk ${ji.frac==null?'indet':''}"><i style="width:${Math.round((ji.frac||0)*100)}%"></i></div></button>`:''}
-    ${rail?'':updCard()}
     ${gsBlock()}
-    <div class="sb-bot"><button class="sb-row ${cur==='settings'?'on':''}" onclick="rgo('settings')" ${upd?'title="A new version is out"':''}>${ic('gear')}<span class="lb">Settings</span>${upd?'<span class="sdot"></span>':''}</button>${thm}</div>`;
+    <div class="sb-bot"><button class="sb-row ${cur==='settings'?'on':''}" onclick="rgo('settings')">${ic('gear')}<span class="lb">Settings</span></button>${thm}</div>`;
 }
 // a question for a video whose editor tab has it (askhook "elsewhere"): one row on Home and in the sidebar job card
 const askAbout=()=>{const q=window.askq;return q&&q.elsewhere?q.about||'your video':null};
@@ -2317,8 +2502,8 @@ document.addEventListener('click',()=>{if(ui.cmenu||ui.clipmenu){ui.cmenu=ui.cli
 // the page scrolls under an open menu: it follows its button, and closes once the button leaves the window
 document.addEventListener('scroll',e=>{const ms=[...$('#menus').children];if(ms.length&&!(e.target.closest&&e.target.closest('.cmenu'))&&!ms.every(placeMenu)){ui.cmenu=ui.clipmenu=null;render()}},true);
 addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(ui.skdel){ui.skdel=null;render()}else if(ui.del){ui.del=null;render()}else if(ui.create){ui.create=false;render()}else if(ui.cmenu||ui.clipmenu){ui.cmenu=ui.clipmenu=null;render()}});
-// ---- Settings: keys (each with its own status), updates, the videos folder, the theme, this computer
-const FINDER=()=>/Mac/.test(navigator.platform)?'Finder':'Explorer';
+// ---- Settings: keys (each with its own status), the videos folder, the theme, this computer
+const FINDER=()=>'File Explorer';
 const ST_HINT={gemini:'Paste the key. It starts with AIza or AQ.'};
 // ElevenLabs' "Create API key" form, as testers should leave it (they did not know which switches to touch)
 const ST_PERMS=[['Speech to Text','Access',1],['Text to Speech, Voices, Dubbing and the rest','No access'],['Credit quota','Set a limit',1]];
@@ -2327,7 +2512,7 @@ function stHelp(k){
   return `<div class="st-perm"><div class="st-permhd"><span>On ElevenLabs, create the key like this</span><a href="${k.url}" target="_blank" rel="noopener">Open ElevenLabs</a></div>
     ${ST_PERMS.map(([a,b,on])=>`<div class="st-prow"><span>${a}</span><span class="st-chip${on?' on':''}">${b}</span></div>`).join('')}</div>`;
 }
-// ---- Settings: keys (each with its own status and a little of its brand colour), updates, the videos folder, the theme
+// ---- Settings: keys (each with its own status and a little of its brand colour), the videos folder, the theme
 const KLT={elevenlabs:'var(--soft)',gemini:'color-mix(in srgb,#9168C0 14%,var(--skbg))'};
 const KDS={elevenlabs:'Exact words, so the cut finds your retakes',gemini:"Reads a creator's look when it analyses them",zernio:'Does the posting for cooked.'};
 const OKTICK=ic('check',14,2.6);
@@ -2369,33 +2554,6 @@ function stModal(){
 }
 async function stCheck(id){ui.keys[id]={busy:1};render();await post('/key/check',{name:id});ui.keys[id]={};await load();render()}
 async function stRemove(id){const r=await post('/key/remove',{name:id});ui.strm=null;ui.keys[id]=r._ok?{}:{bad:1,edit:1,msg:r.msg||'Not removed.'};await load();render()}
-function stUpdate(){
-  // the window runs Update itself (update.py market), then restarts on the new version and this tab reloads
-  const u=S.update||{},j=latest('update'),busy=j&&j.state==='taken',ok=u.latest&&!u.newer,jr=(j&&j.result)||{};
-  const st=!j?'':busy?`${(j.steps.at(-1)||{}).text||'Updating'}...`:j.state==='done'?`Updated to ${jr.version||u.installed}.`:j.state==='failed'?j.error:'';
-  // Claude sessions keep the version they loaded until /reload-plugins: u.claude is the version their last command ran
-  const old=u.claude&&u.installed&&u.claude!==u.installed,recent=j&&j.state==='done'&&Date.now()/1000-(j.finished||0)<86400;
-  const rl=old||recent&&!u.claude?`<div style="display:flex;flex-direction:column;gap:8px"><div class="t2" style="white-space:normal">Claude sessions that are open still run ${old?esc(u.claude):'the old version'}. Type this in each one:</div><span class="codebox"><span>/reload-plugins</span><button class="hlink" onclick="copyText('/reload-plugins',this)">Copy</button></span></div>`
-    :recent&&u.claude===u.installed?`<div class="t2">Claude is on ${esc(u.installed)} too.</div>`:'';
-  const line=u.checking?'Checking...':u.newer?'A new version is out':u.latest?'Up to date':u.checked?'Could not reach GitHub':'';
-  return `<div class="scd"><div class="hd"><b>Updates</b><span class="ss">${ok?OKTICK:''}${line}</span></div>
-    <div class="kvs"><div><span>Installed</span><b>${esc(u.installed||'?')}</b></div><div><span>Latest</span><b>${esc(u.latest||'?')}</b></div></div>
-    ${u.dev?'':'<div class="t2" style="white-space:normal">Turn on auto-updates: type <b>/plugin</b>, open Marketplaces, pick nextwork, choose Enable auto-update.</div>'}
-    ${u.newer&&(u.notes||[]).length?`<div><div class="t2">What changed</div>${u.notes.map(n=>`<div class="dash">${esc(n)}</div>`).join('')}</div>`:''}
-    ${u.fork?'<div class="t2" style="white-space:normal">Your own copy (a fork): ask Claude Code to update my editor.</div>':''}
-    <div class="lks">${u.newer&&!u.fork?`<button class="b1 s" ${busy?'disabled':''} onclick="stDoUpdate()">${busy?'Updating...':'Update'}</button>`:`<button class="b2 s" ${u.checking?'disabled':''} onclick="stCheckUpd()">Check now</button>`}<a href="https://github.com/nextwork-projects/ai-video-editor-cooked/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Full changelog</a></div>
-    ${st?`<div class="msg ${j.state==='failed'?'bad':''}">${esc(st)}</div>`:''}${rl}</div>`;
-}
-// the sidebar's Update: a new version is out (or one is installing, or just installed), one press, no Settings trip
-function updCard(){
-  const u=S.update||{},j=latest('update'),busy=j&&j.state==='taken',done=j&&j.state==='done'&&Date.now()/1000-(j.finished||0)<300;
-  if(busy)return `<div class="sb-upd"><div><b>${SPIN}Updating cooked.</b><span>${esc(((j.steps||[]).at(-1)||{}).text||'Starting')}</span></div></div>`;
-  if(done)return `<div class="sb-upd"><div><b>Updated${(j.result||{}).version?' to '+esc(j.result.version):''}</b><span>Type /reload-plugins in Claude Code to load it.</span></div></div>`;
-  if(!u.newer||u.fork)return '';
-  return `<div class="sb-upd"><div><b>New version ${esc(u.latest)}</b><span>${esc((u.notes||[])[0]||'A new version of cooked. is out.')}</span></div><button class="sb-updb" onclick="stDoUpdate()">Update now</button></div>`;
-}
-async function stDoUpdate(){const r=await post('/job',{type:'update'});if(!r._ok)toast(r.error||'That did not start.');await load()}
-async function stCheckUpd(){await post('/update/check',{});await load();render();setTimeout(async()=>{await load();render()},2500)}
 function stFolder(){
   const d=ui.disk,c=ui.clean,mb=b=>b==null?'...':b>=1e9?(b/1e9).toFixed(1)+' GB':Math.round(b/1e6)+' MB';
   return `<div class="scd"><div class="hd"><b>Videos folder</b></div><div class="pathbox" title="${esc(L.path)}">${ic('folder',16)}<span>${esc(L.place||L.path)}</span></div>
@@ -2414,10 +2572,10 @@ function stLook(){
   return `<div class="scd" style="flex-direction:row;align-items:center;justify-content:space-between;padding:16px 20px"><b style="font-size:17px;line-height:22px">Theme</b><div class="seg3">${['light','dark','system'].map(t=>`<button class="${cur===t?'on':''}" onclick="stTheme('${t}')">${sw[t]}${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>`;
 }
 function vSettings(){
-  return `<div class="pgc"><div class="ph"><h1>Settings</h1><p>Keys, updates, where your videos live, and the look.</p></div><div class="sgrid">
+  return `<div class="pgc"><div class="ph"><h1>Settings</h1><p>Keys, where your videos live, and the look.</p></div><div class="sgrid">
     <div class="scol"><div class="scd" style="gap:16px"><div class="hd"><b>Keys</b><span class="st-lock">${ic('lock',14)}Saved on this computer only</span></div>${KEYS.map(stKey).join('')}${stModal()}</div>${stPost()}</div>
-    <div class="scol">${stUpdate()}${stFolder()}${stLook()}${stAlerts()}
-      <div class="scd"><label class="srow" style="cursor:pointer"><div><div>Recent clips</div><div class="t2">From Movies, Desktop and Downloads</div></div><input type="checkbox" class="st-check" ${R&&R.scan_home?'checked':''} onchange="scanHome(this.checked)"></label>
+    <div class="scol">${stFolder()}${stLook()}${stAlerts()}
+      <div class="scd"><label class="srow" style="cursor:pointer"><div><div>Recent clips</div><div class="t2">From Videos, Desktop and Downloads</div></div><input type="checkbox" class="st-check" ${R&&R.scan_home?'checked':''} onchange="scanHome(this.checked)"></label>
         ${toolsRow()}</div></div></div></div>`;
 }
 // Alerts: the chime (this browser only) and system notices while the tab is hidden; permission only from the button
@@ -2449,7 +2607,6 @@ async function loadStyle(){if(!ui.sp)return;try{const r=await fetch('/style?id='
 async function setCtl(key,value){const r=await post('/style/set',{id:ui.sp,key,value});if(r._ok){ui.spage=r;loadLib()}else alert(r.error||'That did not save.');render()}
 async function setCards(v){if(ui.spage&&!ui.spage.presets.cards.on)await post('/style/set',{id:ui.sp,key:'cards.on',value:true});setCtl('cards.per_min',v)}   // a rate turns cards back on
 async function forgetRule(id){const r=await post('/style/forget',{id:ui.sp,rule:id});if(r._ok){ui.spage=r;loadLib()}render()}
-async function tellChange(){const t=($('#tell')||{}).value||'';if(!t.trim())return;const r=await queue({type:'style-change',style:ui.sp,text:t.trim()});if(r._ok){$('#tell').value='';loadStyle()}}
 const liveJob=j=>j&&(S.jobs.find(x=>x.id===j.id)||j);   // the page's job as the status poll has it now
 async function resetSec(section){const r=await post('/style/reset',{id:ui.sp,section});if(r._ok){ui.spage=r;loadLib()}else alert(r.error||'That did not reset.');render()}
 async function resetAll(){for(const s of ['captions','zoom','cut','cards','sound'])await post('/style/reset',{id:ui.sp,section:s});ui.spclip=null;await loadStyle();loadLib()}
@@ -2470,23 +2627,23 @@ const ZOOMILL={none:'<i class="zb"></i>',smooth:'<i class="zb dash"></i><i class
 const CUTILL={relaxed:[22,16,26,14,18],natural:[24,7,28,6,20],tight:[26,0,30,0,22]};
 function rrender(){
   if(rv==='settings'&&!(ui.diskAt>Date.now()-10000)){ui.diskAt=Date.now();loadDisk()}   // free space is live: read again every 10 s
-  let h=(rv==='stylepage'?vStylePage():rv==='new'?vNew():rv==='style'?vStyle():rv==='videos'?vVideos():rv==='mystyle'?vMyStyle():rv==='skills'?vSkills():rv==='settings'?vSettings():vHome());
+  let h=(rv==='stylepage'?vStylePage():rv==='new'?vNew():rv==='style'?vStyle():rv==='videos'?vVideos():rv==='mystyle'?vMyStyle():rv==='skills'?vSkills():rv==='settings'?vSettings():rv==='project'?vProject():vHome());
   if(rv==='home'&&askRow())h=h.replace(/^\s*(<div class="pgc[^"]*">)/,'$1'+askRow());   // Home's first row
-  $('#main').classList.toggle('pg',['home','videos','settings','mystyle','style','stylepage','skills'].includes(rv));
-  paint($('#main'),h,rv+'|'+ui.sp);$('#main').classList.toggle('spwrap',rv==='stylepage');
-  const md=ui.mfilm?motionModal():ui.skdel?skDelModal():ui.del?delModal():ui.create?createModal():'';paint($('#modal'),md,'m');document.documentElement.style.overflow=md?'hidden':'';$('#main').classList.toggle('hmain',rv==='home');
+  $('#main').classList.toggle('pg',['home','videos','settings','mystyle','style','stylepage','skills','project'].includes(rv));
+  paint($('#main'),h,rv+'|'+ui.sp+'|'+ui.pslug);mountRefs();$('#main').classList.toggle('spwrap',rv==='stylepage');
+  const md=ui.npm?npmModal():ui.mfilm?motionModal():ui.skdel?skDelModal():ui.del?delModal():ui.create?createModal():'';paint($('#modal'),md,'m');document.documentElement.style.overflow=md?'hidden':'';$('#main').classList.toggle('hmain',rv==='home');
   if(rv==='mystyle'||rv==='style')flashBuilt();
   const o=$('#order');if(o)o.querySelectorAll('[draggable]').forEach(el=>{
     el.ondragstart=e=>{e.dataTransfer.setData('text/plain',el.dataset.i)};el.ondragover=e=>e.preventDefault();
     el.ondrop=e=>{e.preventDefault();e.stopPropagation();const a=+e.dataTransfer.getData('text/plain'),b=+el.dataset.i;if(isNaN(a)||a===b)return;const [x]=nv.sel.splice(a,1);nv.sel.splice(b,0,x);render()}});
 }
-window.addEventListener('drop',e=>{if(inApp()&&!ui.create&&e.dataTransfer.files.length){const fs=[...e.dataTransfer.files],sc=fs.filter(f=>SCRIPT_EXT.test(f.name)),im=fs.filter(isImg),vs=fs.filter(f=>!SCRIPT_EXT.test(f.name)&&!isImg(f));if(rv!=='new')rgo('new');if(sc.length)scriptFile(sc[0]);if(im.length)addImages(im);if(vs.length)chooseFiles(vs)}});   // a script file dropped anywhere is the script, an image goes to Add images or links
+window.addEventListener('drop',e=>{if(inApp()&&!ui.create&&!ui.npm&&e.dataTransfer.files.length){const fs=[...e.dataTransfer.files],sc=fs.filter(f=>SCRIPT_EXT.test(f.name)),im=fs.filter(isImg),vs=fs.filter(f=>!SCRIPT_EXT.test(f.name)&&!isImg(f));if(rv==='project'){if(vs.length)projAdd(vs);return}if(rv==='home'&&vs.length){openNewProject('talking-head',vs);return}if(rv!=='new')rgo('new');if(sc.length)scriptFile(sc[0]);if(im.length)addImages(im);if(vs.length)chooseFiles(vs)}});   // a script file dropped anywhere is the script, an image goes to Add images or links
 // while files are dragged over the window: one overlay, so it is clear where they go
 let dragN=0;const hasFiles=e=>[...((e.dataTransfer||{}).types||[])].includes('Files');
 // The overlay lives only while files are being dragged over the window: every dragover renews a short timer,
 // so a lost dragleave (the page re-renders while you drag) can never leave it stuck. Esc, drop or a click clears it.
 let dragT=null;const dragOff=()=>{dragN=0;clearTimeout(dragT);document.body.classList.remove('dragging')};
-window.addEventListener('dragenter',e=>{if(hasFiles(e)&&inApp()&&!ui.create){dragN++;document.body.classList.add('dragging');clearTimeout(dragT);dragT=setTimeout(dragOff,400)}});
+window.addEventListener('dragenter',e=>{if(hasFiles(e)&&inApp()&&!ui.create&&!ui.npm){dragN++;document.body.classList.add('dragging');clearTimeout(dragT);dragT=setTimeout(dragOff,400)}});
 window.addEventListener('dragover',e=>{if(document.body.classList.contains('dragging')){clearTimeout(dragT);dragT=setTimeout(dragOff,400)}});
 window.addEventListener('dragleave',e=>{if(!e.relatedTarget||(dragN&&--dragN===0))dragOff()});
 for(const ev of ['drop','dragend','blur','mousedown'])window.addEventListener(ev,dragOff,true);
@@ -2514,7 +2671,7 @@ function morph(a,b){   // make a's children match b's
     if(x.nodeType!==1){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
     for(const at of [...x.attributes])if(!y.hasAttribute(at.name))x.removeAttribute(at.name);
     for(const at of [...y.attributes]){let v=at.value;if(at.name==='class')v=[v,...[...x.classList].filter(c=>KEEPC.has(c))].join(' ').trim();if(x.getAttribute(at.name)!==v)x.setAttribute(at.name,v)}
-    morph(x,y);
+    if(!x.hasAttribute('data-keep'))morph(x,y);
   }
   for(let i=A.length-1;i>=B.length;i--)if(A[i].parentNode===a)a.removeChild(A[i]);
 }
@@ -2558,14 +2715,14 @@ function render(){
   if(!inApp())return;   // the library is still loading
   document.body.classList.toggle('rh',true);paintSide();
   if(!rv||rv==='making')rv=L.videos.length||firstRun()?'home':'new';
-  rrender();
+  rrender();syncDock();syncSlide();
   const ji=jobInfo(),tt=ji?`${ji.label} · cooked.`:'cooked.';if(document.title!==tt&&!document.documentElement.dataset.ask)document.title=tt;
   if(keep){const e=document.getElementById(keep);if(e&&'value' in e&&!e.matches(':focus')){if(e.type!=='file')e.value=val;e.focus();try{e.setSelectionRange(pos,end??pos)}catch(x){}}}
 }
 setInterval(tickClocks,1000);
 addEventListener('resize',()=>render());
 async function load(){
-  try{const r=await fetch('/state');if(!r.ok)throw 0;S=await r.json();if(S.listening)ui.connect=null;if(Date.now()-themeAt>3000)applyTheme(S.theme)}catch(e){const uj=latest('update');if(uj&&uj.state==='done'&&Date.now()/1000-(uj.finished||0)<60){if(!ui.rst){ui.rst=1;toast('Restarting on the new version...')}return}const lv=$('#live');lv.className='live';lv.style.width='auto';lv.style.maxWidth='520px';lv.style.whiteSpace='normal';lv.textContent='The editor stopped. Run nextwork-editor to start it again.';return}
+  try{const r=await fetch('/state');if(!r.ok)throw 0;S=await r.json();if(S.listening)ui.connect=null;if(Date.now()-themeAt>3000)applyTheme(S.theme)}catch(e){const lv=$('#live');lv.className='live';lv.style.width='auto';lv.style.maxWidth='520px';lv.style.whiteSpace='normal';lv.textContent='The editor stopped. Run nextwork-editor to start it again.';return}
   // live reload: a new page version (home.html, ask.js or the Python changed) reloads this tab, keeping the view
   if(S.page){if(PV&&S.page!==PV&&canReload()){keepView();location.reload();return}PV=PV||S.page}
   // typing in a key box: do not redraw under the cursor
@@ -2573,16 +2730,19 @@ async function load(){
   if(a&&a.type==='range'||ui.spdrag||DRAG)return;   // dragging a slider, the caption or a card: do not redraw under the hand   // dragging a slider or the caption: do not redraw under the hand
   if(!L)await loadLib();
   if(rv==='stylepage')await loadStyle();
+  if(rv==='project')await loadProject();
   render();
   if(keepY!=null){window.scrollTo(0,keepY);keepY=null}
 }
 let PV=null,keepY=null;
 const canReload=()=>{const a=document.activeElement;return !(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.value)&&!nv.up.some(u=>!u.bad)&&!ui.edit};
-function keepView(){try{sessionStorage.setItem('ave-home-keep',JSON.stringify({rv,sp:ui.sp,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join}}))}catch(e){}}
-try{const k=JSON.parse(sessionStorage.getItem('ave-home-keep')||'null');sessionStorage.removeItem('ave-home-keep');if(k){rv=k.rv;ui.sp=k.sp;Object.assign(nv,k.nv);keepY=k.y}}catch(e){}
+function keepView(){try{sessionStorage.setItem('ave-home-keep',JSON.stringify({rv,sp:ui.sp,ps:ui.pslug,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join}}))}catch(e){}}
+try{const k=JSON.parse(sessionStorage.getItem('ave-home-keep')||'null');sessionStorage.removeItem('ave-home-keep');if(k){rv=k.rv;ui.sp=k.sp;ui.pslug=k.ps;Object.assign(nv,k.nv);keepY=k.y}}catch(e){}
 window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
-load().then(loadRecent);setInterval(load,1500);setInterval(loadLib,4000);
+load().then(loadRecent);loadProjects();setInterval(load,1500);setInterval(loadLib,4000);setInterval(loadProjects,4000);
 </script>
 <script src="/ask.js"></script>
+<script src="/chat.js"></script>
+<script src="/ref.js"></script>
 </body>
 </html>

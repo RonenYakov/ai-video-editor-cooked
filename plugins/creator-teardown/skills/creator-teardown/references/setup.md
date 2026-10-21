@@ -13,7 +13,6 @@ python3 <skill>/scripts/fetch.py doctor
 `<skill>` is this skill's folder. On Windows use `py` instead of `python3`.
 
 If `python3` itself is missing, install Python first:
-- Mac: `brew install python` if Homebrew exists. If it doesn't, see step 2.
 - Windows: `winget install -e --id Python.Python.3.13`, then open a new terminal.
 - Linux: `sudo apt install -y python3` (Fedora: `sudo dnf install -y python3`; Arch:
   `sudo pacman -S --needed python`).
@@ -25,12 +24,7 @@ sentence, then run it once the user says yes.
 
 The user has to run these themselves, in a terminal window, because they ask for a
 password or open a window:
-- **Homebrew on a Mac.** Give them:
-  `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-  and tell them to run the **Next steps** lines it prints at the end.
 - Anything starting with `sudo`.
-- Running `git` for the first time on a Mac opens an "install command line
-  developer tools" window. Tell them to click **Install** and wait.
 
 Lines marked `optional` can wait. Mention them only if the user wants frame
 strips or edit plans.
@@ -51,8 +45,7 @@ Walk them through it:
 3. Keep **Restrict Key** on and give it **Speech to Text** access only.
 4. Copy the key.
 5. In a terminal window (not this chat), run the `setkey` line doctor printed. It
-   asks for the key and hides what they type. On a Mac, after copying the key,
-   this works too: `pbpaste | python3 <skill>/scripts/fetch.py setkey`.
+   asks for the key and hides what they type.
 
 ## 4. The Gemini key (optional, free)
 
@@ -67,15 +60,13 @@ a small model reads one frame sheet per video instead. Offer it once.
    let it create one. No card is needed: the free tier covers a teardown.
 3. Copy the key (new keys start with `AQ.`, older ones with `AIza`).
 4. In a terminal window (not this chat), run the `setkey --gemini` line doctor
-   printed. It asks for the key and hides what they type. On a Mac, after copying:
-   `pbpaste | python3 <skill>/scripts/fetch.py setkey --gemini`.
+   printed. It asks for the key and hides what they type.
 5. Tell them: on the free tier Google may use what is sent to improve its products.
    Only the creator's public videos are sent, silent and at 480 px.
 
 ## 5. The OCR engine (optional)
 
-Doctor's OCR line installs the text reader that measures captions: `ocrmac` (Apple
-Vision) on a Mac, `rapidocr` + `onnxruntime` on Windows and Linux. The first run of
+Doctor's OCR line installs the text reader that measures captions: `rapidocr` + `onnxruntime`. The first run of
 RapidOCR fetches its models once.
 
 ## 6. Check

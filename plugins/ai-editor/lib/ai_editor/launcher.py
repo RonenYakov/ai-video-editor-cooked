@@ -3,7 +3,7 @@
 
     nextwork-editor                 open the window (the same address every time), with a listening Claude behind it
     nextwork-editor --window-only   open the window only, never start Claude
-    nextwork-editor --dry-run [--os Darwin|Linux|Windows]   print what it would run, and where
+    nextwork-editor --dry-run [--os Linux|Windows]   print what it would run, and where
     open_claude(folder, prompt)     a Claude of its own for each new video (home.py claude_for): a new terminal window
     connect(folder)                 the home page's "Connect Claude": a new terminal with a listening Claude
     python3 launcher.py demo        self-check
@@ -168,11 +168,6 @@ def show(cmd, os_name):
 def terminal(folder, cmd, os_name):
     """The command that opens a new terminal window running cmd in folder, or None when this computer has no
     terminal to open (Linux without x-terminal-emulator): the page then shows the command to copy."""
-    if os_name == "Darwin":
-        line = f"cd {shlex.quote(str(folder))} && {shlex.join(cmd)}"
-        esc = line.replace("\\", "\\\\").replace('"', '\\"')   # inside an AppleScript string
-        return ["osascript", "-e", f'tell application "Terminal" to do script "{esc}"',
-                "-e", 'tell application "Terminal" to activate']
     if os_name == "Windows":
         # a console of its own (CREATE_NEW_CONSOLE) started in folder, so the folder is never quoted for cmd. One
         # string, not a list: a list would escape the inner quotes as \" (cmd reads them literally); cmd /k
@@ -187,8 +182,6 @@ def terminal(folder, cmd, os_name):
 def start(argv, folder, os_name):
     """Run terminal()'s command. True only when the window opened (as far as the OS says)."""
     try:
-        if os_name == "Darwin":   # osascript returns once Terminal has the window, non-zero when it is refused
-            return subprocess.run(argv, capture_output=True, timeout=60).returncode == 0
         if os_name == "Windows":
             subprocess.Popen(argv, cwd=str(folder), creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10))
             return True
@@ -206,7 +199,7 @@ def open_claude(folder, prompt, os_name=None, run=start, lang=None):
     run(argv, folder, os_name) -> bool; the demos pass a recorder so no real window opens."""
     os_name = os_name or platform.system()
     cmd = plan(os_name, prompt=prompt, lang=lang)
-    # the window's own folders: a Terminal opened by osascript does not inherit them, so the new Claude would
+    # the window's own folders: a terminal opened by x-terminal-emulator may not inherit them, so the new Claude would
     # listen on another home. Windows and x-terminal-emulator start as children and inherit them.
     pairs = [f"{k}={os.environ[k]}" for k in ("AI_EDITOR_HOME", "AI_EDITOR_LIBRARY") if os.environ.get(k)]
     if pairs and os_name != "Windows":
@@ -288,7 +281,7 @@ def demo():
     tmp = Path(tempfile.mkdtemp(prefix="launcher_demo_"))
     os.environ["AI_EDITOR_HOME"] = str(tmp / "home")
     os.environ["AI_EDITOR_LIBRARY"] = str(tmp / "My Videos")
-    for os_name in ("Darwin", "Linux", "Windows"):
+    for os_name in ("Linux", "Windows"):
         cmd = plan(os_name, plugin=Path("/repo/plugins/ai-editor"), claude="claude")
         assert cmd[:4] == ["claude", "--strict-mcp-config", "--setting-sources", "project,local"] and cmd[-1] == PROMPT, cmd
         assert cmd[cmd.index("--plugin-dir") + 1] == str(Path("/repo/plugins")), cmd
@@ -327,7 +320,7 @@ def demo():
         print(f"{os_name:<8} {lines[0]}  &&  {lines[1]}")
     assert not (tmp / "My Videos").exists(), "a dry run makes nothing"
     # a Claude of its own for a new video: the window it would open, per OS (recorded, never run)
-    for os_name in ("Darwin", "Windows", "Linux"):
+    for os_name in ("Windows", "Linux"):
         ran = []
         opened, text = open_claude(Path("/lib/My Videos"), "/ai-editor:start take job video-2", os_name,
                                    run=lambda w, f, o: ran.append((w, f)) or True)
@@ -337,7 +330,6 @@ def demo():
             w, f = ran[0]
             flat = w if isinstance(w, str) else " ".join(w)
             assert "take job video-2" in flat and (os_name == "Windows" or "My Videos" in flat), flat
-            assert os_name != "Darwin" or w[0] == "osascript", w
             assert os_name != "Windows" or (w.startswith('cmd /k "') and "My Videos" not in w and text.startswith("cd /d ")), (w, text)
         else:
             assert os_name == "Linux" and not opened and not shutil.which("x-terminal-emulator"), "no terminal: copy it"
@@ -356,11 +348,12 @@ def demo():
         home.running, webbrowser.open = real
     # "Connect Claude": the start prompt and the narrow settings layer, one terminal at a time (recorded, never run)
     real_open, ran = open_claude, []
-    open_claude = lambda f, p: real_open(f, p, "Darwin", run=lambda w, fo, o: ran.append(w) or True)
+    open_claude = lambda f, p: real_open(f, p, "Linux", run=lambda w, fo, o: ran.append(w) or True)
+    real_which, shutil.which = shutil.which, lambda n, *a, **k: "/usr/bin/x-terminal-emulator" if n == "x-terminal-emulator" else real_which(n, *a, **k)
     try:
         st, text = connect(tmp)
         assert st == "opened" and len(ran) == 1 and text.endswith(shlex.quote(LISTEN)), (st, text)
-        script = ran[0][2]   # osascript -e '<the Terminal script>'
+        script = ran[0][4]   # x-terminal-emulator -e sh -c '<the script>'
         assert LISTEN in script and "Bash(python3 " in script and "Bash(ffmpeg *)" in script and "Bash(*)" not in script, script
         os.environ["AI_EDITOR_HOME"] = str(tmp / "home")
         assert " && env " + shlex.quote(f"AI_EDITOR_HOME={tmp / 'home'}") + " " in open_claude(tmp, LISTEN)[1], "the new Claude uses the window's home"
@@ -402,7 +395,7 @@ def demo():
             assert out == "ran 2.10.0", out
             print("newest   ok: nextwork-editor runs the newest installed version")
     finally:
-        open_claude, (home.running, webbrowser.open) = real_open, real
+        open_claude, (home.running, webbrowser.open), shutil.which = real_open, real, real_which
     shutil.rmtree(tmp, ignore_errors=True)
     print("launcher demo ok")
 

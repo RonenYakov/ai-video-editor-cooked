@@ -27,7 +27,7 @@ MCP tool or plugin from outside the job's list, and the three jobs still finish 
 
 | Layer | Items |
 |---|---|
-| Plugin `ai-editor` skills (17) | start, setup, taste, cut, style-edit, clips, overlays, logo-pack, motion, motion-film, motion-design, product-video, post, update, improve, skill-improver, skill-maker |
+| Plugin `ai-editor` skills (14) | start, setup, taste, cut, style-edit, clips, overlays, logo-pack, motion, motion-film, motion-design, product-video, post, improve |
 | Plugin `creator-teardown` | skill creator-teardown, agent video-analyst |
 | Agents (11) | cut-judge, cut-reader, visual-prep, template-filler, stills-critic, clip-editor, clip-builder, motion-builder, motion-reviser, render-watcher, storyboard-critic |
 | Hooks | SessionStart doctor, PreToolUse AskUserQuestion + `*`, Notification, Stop (all needed by the window) |
@@ -46,10 +46,10 @@ Core is on in every video job: `start` (as router only), `taste`, `setup` (used 
 | Global skills | hyperframes, hyperframes-core, hyperframes-animation, hyperframes-keyframes (only for `motion` beats) | none | same four, only if `motion` is chosen |
 | MCPs | none | none | none |
 | Engine | Remotion, ffmpeg, HyperFrames CLI | Motion Studio, ffmpeg | ffmpeg, plus whichever skill it routes to |
-| Off | product-video, motion-film, motion-design, update, improve, skill-improver, skill-maker | everything else in ai-editor | product-video, motion-film, maintenance skills |
+| Off | product-video, motion-film, motion-design, improve | everything else in ai-editor | product-video, motion-film, maintenance skills |
 
 Other profiles (same mechanism, no new button): **product** (core + product-video, storyboard-critic, Remotion),
-**teardown/setup/update** (core only), **maintenance** (improve, skill-improver, skill-maker; for repo work, never inside a video job).
+**teardown/setup** (core only), **maintenance** (improve; for repo work, never inside a video job).
 
 ### Language add-on: Hebrew
 

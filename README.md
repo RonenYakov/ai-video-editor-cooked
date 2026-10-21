@@ -23,7 +23,7 @@ It also makes:
 
 <!-- TODO(owner): drop a 10-second before/after demo GIF at docs/demo.gif, then replace this comment with: ![Before and after](docs/demo.gif) -->
 
-Built by [NextWork](https://nextwork.ai). Free and open source (MIT). Works on Mac, Windows and Linux.
+Built by [NextWork](https://nextwork.ai). Free and open source (MIT). Works on Windows and Linux.
 
 ## Start here
 
@@ -49,27 +49,25 @@ style, press **Make my video**. **Make it in a new Claude chat** keeps that vide
 own chat. The first time, Claude Code asks whether you trust this folder: press the down arrow to pick
 **Yes, I trust this folder**, then Enter (Enter alone picks **No, exit**). It is your videos folder.
 
-Your videos are saved in one folder, wherever you start: `~/Movies/AI Editor` on a Mac,
-`~/Videos/AI Editor` on Windows and Linux. Change it in Settings (or set `AI_EDITOR_LIBRARY`).
+Your videos are saved in one folder, wherever you start: `~/Videos/AI Editor`. Change it in Settings (or set `AI_EDITOR_LIBRARY`).
 
 ### Way 1: open this folder in Claude Code (easiest)
 
 **1. Install Claude Code** (skip if you have it). Open a terminal:
 
-- **Mac:** press Cmd + Space, type `Terminal`, press Enter. Paste this and press Enter:
-  ```
-  curl -fsSL https://claude.ai/install.sh | bash
-  ```
 - **Windows:** press the Windows key, type `PowerShell`, press Enter. Paste this and press Enter:
   ```
   irm https://claude.ai/install.ps1 | iex
   ```
-- **Linux:** open your terminal app and paste the Mac line.
+- **Linux:** open your terminal app, paste this and press Enter:
+  ```
+  curl -fsSL https://claude.ai/install.sh | bash
+  ```
 
 **2. Get this folder.** Either:
 
 - **No git:** at the top of this page click the green **Code** button, then **Download ZIP**. Unzip
-  it (double-click on Mac, right-click > **Extract All** on Windows). You get a folder called
+  it (right-click > **Extract All** on Windows). You get a folder called
   `ai-video-editor-cooked-main`.
 - **With git:** `git clone https://github.com/nextwork-projects/ai-video-editor-cooked.git`
 
@@ -144,7 +142,7 @@ and goes away once your first cut is ready.
 
 1. **Set up.** Press **Start setup**. It checks your computer and installs what is missing: Python,
    ffmpeg, Node, the free transcription model and the renderer (about 1.5 GB, most of it the
-   renderer). On GitHub's clean runners this took 25-36 s on Linux, 33-49 s on a Mac and 66-75 s on
+   renderer). On GitHub's clean runners this took 25-36 s on Linux and 66-75 s on
    Windows, with the 75 MB test model in place of the 500 MB default. A home connection is slower.
    Anything that needs your password, Claude gives you to paste into your own terminal. While it
    installs, it offers two optional keys (see [Keys](#keys)).
@@ -268,8 +266,6 @@ Your styles, skills and settings live in your library folder, not in the plugin,
 | `overlays` | after a render: "add an animation here", "make a diagram of how this works", "this card is wrong", "swap the logo", "show the real page instead", "fewer cards" | |
 | `taste` | "captions too small", "fewer zooms" | |
 | `logo-pack` | "make a logo pack", "get the logos for this video", "the logos look fake" | |
-| `skill-maker` | "make a skill", "create a skill", "turn this into a skill", "help me write a skill" | |
-| `skill-improver` | "teach my style from this video", "turn my notes into rules", "make this feedback stick" | |
 | `clips` | "clip this video", "make shorts from my podcast" | a long video, a YouTube link, a podcast episode (Apple Podcasts, RSS, YouTube) |
 | `product-video` | "make a launch video for my site" | a website URL |
 | `update` | "update the editor", "get the latest version", "sync my fork" | |
@@ -326,7 +322,7 @@ published prices, not measured on a bill.
 | You skipped a key or step | Say **finish setup**. Only the skipped steps run. |
 | Where do Claude's questions show up? | In the editor's window or review page when one is open in front of you; answer there. Otherwise in the terminal. Permission prompts (Allow or Deny for a command) always show in the terminal. |
 | Claude does not know "edit my video" | The editor is not loaded. Type `/reload-plugins`, or install it with Way 2. |
-| `python3` not found | Mac: `brew install python`. Windows: `winget install -e --id Python.Python.3.12`, then open a new terminal. Linux: `sudo apt install -y python3 python3-venv`. |
+| `python3` not found | Windows: `winget install -e --id Python.Python.3.12`, then open a new terminal. Linux: `sudo apt install -y python3 python3-venv`. |
 | Node is too old on Debian or Ubuntu | Doctor prints the fix: it adds NodeSource's signed package source, then installs Node. |
 | Chrome or Chromium installed as a Flatpak | Only logged-in product videos need your Chrome, and a Flatpak one cannot be used. Install Google Chrome or your distro's `chromium` package; doctor says which it found. |
 | A tool installed on Windows is still "not found" | Close and reopen Claude Code: a `winget` install only shows up in a new terminal. |

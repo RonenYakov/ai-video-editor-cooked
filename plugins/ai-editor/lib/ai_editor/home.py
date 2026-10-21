@@ -22,8 +22,6 @@ for it, and reports back with `status`:
         JOB video ~/.ai-video-editor/home/sample/sample-take.mp4 as=@sample-card-edit aspect=9:16 edit=DIR/edits/sample-video sample=1 root=DIR
                                                  (Try it with a sample video: its decisions are already in edit=)
         JOB style-change @handle style=DIR/creator-teardowns/handle/style.json text=<the user's words>
-        JOB skill-change <skill> path=<its SKILL.md> text=<the user's words>   Skills: Improve with feedback (skill-improver)
-        JOB skill-new [text=<what it should do>]  Skills: Make a new skill (skill-maker)
         JOB motion <name> format=9:16 film=DIR/films/<name> refs=DIR/films/<name>/refs.json root=DIR idea=<one line>
                                                  New motion video: refs.json is [{id, source, take, role?}] (a link, or a copy in refs/; take = what the user wants from it, role = brand|style|both)
         JOB cancel <type>                         the user pressed Cancel or Stop on that job: stop it
@@ -35,9 +33,8 @@ for it, and reports back with `status`:
     python3 home.py chain <style> <skill> --at before|after   chain a skill onto a style's What runs (--off: take it off)
     python3 home.py demo                         self-check (no network, no keys)
 
-Connect Modal, Test render and Update run here, not through Claude: the server runs `setup.py modal-connect`,
-`modal-test` or `update.py market` and shows its STEP lines as the job's steps (jobs `modal`, `modal-test` and
-`update`, owner "home"). A finished update restarts the server from the new version (restart_on).
+Connect Modal and Test render run here, not through Claude: the server runs `setup.py modal-connect` or
+`modal-test` and shows its STEP lines as the job's steps (jobs `modal` and `modal-test`, owner "home").
 
 State: $AI_EDITOR_HOME/home/state.json (default ~/.ai-video-editor). Keys typed on the page go
 straight to keys.py (prefix check, one free verify request, then saved 0600); a key value is never
@@ -87,22 +84,25 @@ from urllib.parse import parse_qs, quote, unquote, urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import askhook  # noqa: E402
 import assets  # noqa: E402
+import chat  # noqa: E402
 import custom  # noqa: E402
+import dictate  # noqa: E402
 import keys  # noqa: E402
 import post  # noqa: E402
 import library  # noqa: E402
 import links  # noqa: E402
 import live  # noqa: E402
 import presets  # noqa: E402
+import projects  # noqa: E402
+import reference  # noqa: E402
 from review import disposition, download_name, load, now, save, set_theme, theme, themed  # noqa: E402  (atomic write; review.py's server owns the rest)
 
 HTML = Path(__file__).with_name("home.html")
 SETUP = Path(__file__).resolve().parents[2] / "skills" / "setup" / "scripts" / "setup.py"
-UPDATE = Path(__file__).resolve().parents[2] / "skills" / "update" / "scripts" / "update.py"
 TRANSCRIBE = Path(__file__).resolve().parents[2] / "skills" / "cut" / "scripts" / "transcribe.py"
 EDIT_PY = Path(__file__).resolve().parents[2] / "skills" / "style-edit" / "scripts" / "edit.py"
 BEAT_S = 6
-JOBS = ("teardown", "skill", "video", "modal", "modal-test", "setup", "style-change", "update", "skill-change", "skill-new", "motion")
+JOBS = ("teardown", "skill", "video", "modal", "modal-test", "setup", "style-change", "motion")
 TAKE = ("captions", "pace", "graphics", "sound")          # the page's parts; editplan.py --take names
 # The page's "graphics" box is her visuals as a whole: what she shows, how it moves in and where it sits.
 EDITPLAN_PARTS = {"graphics": ("graphics", "entrances", "layout")}
@@ -118,7 +118,6 @@ PORT = 47821              # the fixed address; the next free one up to PORT + 19
 REVIEW = Path(__file__).with_name("review.py")
 HANDLE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 PLUGIN_JSON = Path(__file__).resolve().parents[2] / ".claude-plugin" / "plugin.json"
-RAW = "https://raw.githubusercontent.com/nextwork-projects/ai-video-editor-cooked/main/"
 MOTION_REF_EXT = links.VIDEO_EXT + (".png", ".jpg", ".jpeg", ".webp", ".gif", ".heic")   # New motion video: a reference is a video or a picture
 COVER_MAX = 50 << 20   # a style's chosen image, or a short clip to take a frame from
 SCRIPT_MAX = 200_000   # a script's text, in bytes; the file it came from may be up to 1 MB (a .docx with a logo)
@@ -1141,27 +1140,6 @@ def reset_mine():
     ss.write(None)
 
 
-_UPD = {"at": 0.0, "latest": None, "notes": [], "busy": False}
-
-
-def vtuple(v):
-    return tuple(int(x) for x in re.findall(r"\d+", str(v or ""))[:3])
-
-
-def fetch_latest():
-    """The version on GitHub main and the first lines of its CHANGELOG entry. (None, []) offline."""
-    try:
-        v = json.loads(urllib.request.urlopen(RAW + "plugins/ai-editor/.claude-plugin/plugin.json", timeout=5).read())["version"]
-        log = urllib.request.urlopen(RAW + "CHANGELOG.md", timeout=5).read().decode("utf-8", "replace")
-    except (OSError, ValueError, KeyError, TypeError):
-        return None, []
-    secs = re.split(r"(?m)^## ", log)
-    sec = next((x for x in secs if re.match(rf"ai-editor {re.escape(str(v))}\b", x)), secs[1] if len(secs) > 1 else "")
-    bullets = [" ".join(b.split()) for b in re.findall(r"(?ms)^- (.*?)(?=^- |^\S|\Z)", sec)]
-    notes = [re.split(r"(?<=\.) ", re.sub(r"[*`]", "", b))[0] for b in bullets][:3]   # each one's first sentence
-    return v, notes
-
-
 def my_version():
     """This copy's plugin.json version, or None. A Claude session's commands run the copy it loaded, so after an
     update this says whether that session has typed /reload-plugins yet."""
@@ -1169,32 +1147,6 @@ def my_version():
         return json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))["version"]
     except (OSError, ValueError, KeyError):
         return None
-
-
-def update_info():
-    """Installed vs latest. The GitHub check runs in the background at most once an hour; offline it says nothing."""
-    if time.time() - _UPD["at"] > 3600 and not _UPD["busy"]:
-        _UPD["busy"] = True
-
-        def go():
-            v, notes = fetch_latest()
-            _UPD.update(at=time.time(), busy=False, **({"latest": v, "notes": notes} if v else {}))
-        threading.Thread(target=go, daemon=True).start()
-    mine = my_version()
-    newer = bool(mine and _UPD["latest"] and vtuple(_UPD["latest"]) > vtuple(mine))
-    from ai_editor import skillrules
-    plug, cache = PLUGIN_JSON.resolve().parents[1], (skillrules.claude_dir() / "plugins" / "cache").resolve()
-    up = [q for q in [plug, *plug.parents] if cache in q.parents] if cache in plug.parents else [plug, *plug.parents]
-    dev = any((q / ".git").exists() for q in up if q != cache)   # a git checkout (a clone or worktree): Update pulls it
-    fork = False
-    if dev:   # a fork is the user's own: the update skill merges it with them, the button does not
-        try:
-            o = subprocess.run(["git", "-C", str(plug), "remote", "get-url", "origin"], capture_output=True, text=True, timeout=5).stdout
-            fork = "nextwork-projects/ai-video-editor-cooked" not in o.strip().lower().removesuffix(".git") and bool(o.strip())
-        except (OSError, subprocess.TimeoutExpired):
-            pass
-    return {"installed": mine, "latest": _UPD["latest"], "newer": newer, "notes": _UPD["notes"] if newer else [],
-            "checking": _UPD["busy"], "checked": _UPD["at"] or None, "dev": dev, "fork": fork}
 
 
 def trash(p):
@@ -1504,14 +1456,10 @@ def modal_state():
     return {"installed": inst, "logged_in": inst and ("token_id" in cfg or bool(os.environ.get("MODAL_TOKEN_ID")))}
 
 
-_SRV = []   # the running window server, for the restart onto a new version
-
-
 def run_home(kind, jid):
     """A job the window runs itself, without Claude: Connect Modal (setup.py modal-connect), Test render
-    (modal-test) or Update (update.py market). Each STEP line becomes a step, LOGIN/CREDIT/TIME/VERSION/PATH go into
-    the result, FAIL fails the job. Modal's CLI keeps the token itself; no line here carries it. A finished update
-    restarts the window on the new version (restart_on)."""
+    (modal-test). Each STEP line becomes a step, LOGIN/CREDIT/TIME/VERSION/PATH go into
+    the result, FAIL fails the job. Modal's CLI keeps the token itself; no line here carries it."""
     def edit(fn):
         def f(d):
             j = next(x for x in d["jobs"] if x["id"] == jid)
@@ -1535,9 +1483,9 @@ def run_home(kind, jid):
                     s["done"], s["secs"] = True, round(t - s["t"])
             j["state"], j["error"], j["finished"] = ("failed" if err else "done"), err, t
         edit(f)
-    err = "The update stopped without saying why. Try again." if kind == "update" else "The setup step stopped without saying why. Try again."
+    err = "The setup step stopped without saying why. Try again."
     try:
-        cmd = {"modal": [SETUP, "modal-connect"], "modal-test": [SETUP, "modal-test"], "update": [UPDATE, "window"]}[kind]
+        cmd = {"modal": [SETUP, "modal-connect"], "modal-test": [SETUP, "modal-test"]}[kind]
         p = subprocess.Popen([sys.executable, *map(str, cmd)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                              text=True, encoding="utf-8", errors="replace")
         for line in p.stdout:
@@ -1548,44 +1496,24 @@ def run_home(kind, jid):
                 edit(lambda j, t, k=word.lower(), v=rest: j["result"].__setitem__(k, v))
             elif word == "FAIL":
                 err = rest
-            elif word in ("Connected.", "Tested.", "Updated."):
+            elif word in ("Connected.", "Tested."):
                 err = None
         p.wait()
     except OSError as e:
         err = f"Could not start the setup step: {e}"
     finish(err)
-    if kind == "update" and not err:
-        restart_on(next((j["result"].get("path") for j in read()["jobs"] if j["id"] == jid), None))
-
-
-def restart_on(plugin):
-    """After an update: the window server starts again from the new version's home.py, on the same port with the
-    same token (both kept in AI_EDITOR_HOME), so the open tab reconnects and reloads itself (its page version
-    changes). The launcher is pointed at the new version by that server's own start (serve, may_refresh)."""
-    new = Path(plugin or "") / "lib" / "ai_editor" / "home.py"
-    if not plugin or not new.is_file() or new.resolve() == Path(__file__).resolve() or not _SRV:
-        return False
-    while live._busy[0]:   # an upload in flight finishes first
-        time.sleep(0.5)
-    srv = _SRV[0]
-    port = srv.server_address[1]
-    srv.server_close()
-    argv = live.argv_with_port(sys.argv, port)
-    os.execv(sys.executable, [sys.executable, str(new), *argv[1:]])
 
 
 def drop_modal_runs(d):
-    """A server starting: a Connect, Test or Update left running by the last one has no thread watching it now.
-    An Update a Claude session took (before the window ran updates itself) is closed too: none finishes it."""
+    """A server starting: a Connect or Test left running by the last one has no thread watching it now."""
     for j in d["jobs"]:
-        if j["type"] in ("modal", "modal-test") and j["state"] == "taken" and j.get("owner") == "home" \
-                or j["type"] == "update" and j["state"] in ("queued", "taken"):
+        if j["type"] in ("modal", "modal-test") and j["state"] == "taken" and j.get("owner") == "home":
             j.update(state="failed", error="Stopped when the window restarted. Press it again.", finished=time.time())
 
 
 def start_modal(kind):
-    """One Connect (or Test, or Update) at a time: a running one is returned instead of a second."""
-    group = ("update",) if kind == "update" else ("modal", "modal-test")
+    """One Connect (or Test) at a time: a running one is returned instead of a second."""
+    group = ("modal", "modal-test")
 
     def f(d):
         j = next((x for x in reversed(d["jobs"]) if x["type"] in group and x["state"] == "taken"), None)
@@ -1664,10 +1592,6 @@ def job_line_base(j, root):
             (f" script={a['script']}" if a.get("script") else "") + (f" skill={a['skill']}" if a.get("skill") else "") + \
             (f" chain={a['chain']}" if a.get("chain") else "") + (" sample=1" if a.get("sample") else "") + \
             (f" assets={Path(a['edit']) / 'assets.json'}" if a.get("edit") and (Path(a["edit"]) / "assets.json").exists() else "") + f" root={root}"
-    if j["type"] == "skill-change":
-        return f"JOB skill-change {a['skill']} path={a['path']} text={a['text']}"
-    if j["type"] == "skill-new":
-        return "JOB skill-new" + (f" text={a['text']}" if a.get("text") else "")
     if j["type"] == "motion":
         return f"JOB motion {a['name']} format={a['format']} film={a['film']} refs={a['refs']} root={root} idea={a['idea']}"
     if j["type"] == "style-change":
@@ -1927,6 +1851,13 @@ def cmd_status(a):
         if a.result:
             r = json.loads(Path(a.result[1:]).read_text(encoding="utf-8") if a.result.startswith("@") else a.result)
             j["result"].update(r)
+            if j.get("project"):   # a job from a project: what it made belongs to it
+                for k in ("dir", "edit", "film"):
+                    if isinstance(r.get(k), str) and r[k]:
+                        try:
+                            projects.link(j["project"], "edits", r[k])
+                        except (KeyError, ValueError, OSError):
+                            pass
         if a.done and j["type"] == "teardown" and j["args"].get("handle"):
             try:
                 write_references(Path(d["root"]) / "creator-teardowns" / j["args"]["handle"])
@@ -1954,6 +1885,129 @@ def cmd_status(a):
     if a.job == "setup" and (a.step or a.done or a.failed):   # a step finished: the tool rows tick as it goes
         run_doctor()
     print(f"{j['id']}: {j['state']}" + (f", {a.step}" if a.step else ""))
+
+
+# ---------------------------------------------------------------- projects and chat
+STATIC = {"/ui.css": "text/css; charset=utf-8", "/chat.js": "text/javascript; charset=utf-8", "/ref.js": "text/javascript; charset=utf-8"}
+USER_TURN = ("ask", "cut", "approve", "edit")   # phase(): the user's move
+CLAUDE_TURN = ("cutting", "notes", "stills", "rendering")
+MAX_AUDIO = 25 << 20
+
+
+def project_status(p, d):
+    """One line for a project row: the running job's step, whose turn the edits are in, or Done."""
+    js = [j for j in d["jobs"] if j.get("project") == p["slug"]]
+    run = next((j for j in reversed(js) if j["state"] in ("queued", "taken")), None)
+    if run:
+        return ((run["steps"] or [{}])[-1].get("text")) or ("Waiting to start" if run["state"] == "queued" else "Working")
+    phases = []
+    for e in p.get("edits", []):
+        try:
+            if Path(e).is_dir():
+                phases.append(phase(library.entry(Path(e))))
+        except (OSError, ValueError):
+            pass
+    if any(x in USER_TURN for x in phases):
+        return "Waiting for your review"
+    if any(x in CLAUDE_TURN for x in phases):
+        return "Cutting" if "cutting" in phases else "Working"
+    return "Done" if phases else "New"
+
+
+def project_or_none(slug):
+    try:
+        return projects.show(slug) if slug else None
+    except KeyError:
+        return None
+
+
+def attach(slug, jid, sources=(), edits=(), refs=()):
+    """Tag a job with its project and link what it made or uses. Never raises: the job matters more."""
+    if not project_or_none(slug):
+        return
+    try:
+        update(lambda d: next((j for j in d["jobs"] if j["id"] == jid), {}).__setitem__("project", slug))
+        for field, vals in (("sources", sources), ("edits", edits), ("refs", refs)):
+            for v in vals:
+                projects.link(slug, field, v)
+    except Exception as e:  # noqa: BLE001
+        print(f"project link failed: {e}", file=sys.stderr)
+
+
+def chat_file(slug):
+    return library.path() / "projects" / slug / "chat.jsonl"
+
+
+def chat_append(slug, msg):
+    if not slug:
+        return
+    f = chat_file(slug)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(msg, ensure_ascii=False) + "\n")
+
+
+def chat_history(slug):
+    out = []
+    try:
+        for line in chat_file(slug).read_text(encoding="utf-8").splitlines():
+            try:
+                out.append(json.loads(line))
+            except ValueError:
+                pass
+    except OSError:
+        pass
+    return out
+
+
+def chat_watch(tid, slug):
+    """Collects one turn's events and saves the reply, so it is kept even if the page went away."""
+    n, done, texts, tools = 0, False, [], []
+    while not done:
+        evs, n, done = chat.events(tid, n)
+        for e in evs:
+            if e["type"] == "text":
+                texts.append(e["text"])
+            elif e["type"] == "tool":
+                tools.append(f"{e.get('name', '')} {e.get('summary', '')}".strip())
+            elif e["type"] == "error":
+                texts.append(f"\n\n{e['text']}")
+        if not done:
+            time.sleep(0.2)
+    if not slug:
+        return
+    try:
+        chat_append(slug, {"role": "assistant", "text": "".join(texts).strip(), "tools": tools, "at": now()})
+        sid = chat.session_of(tid)
+        if sid and project_or_none(slug):
+            projects.set_session(slug, sid)
+    except Exception as e:  # noqa: BLE001
+        print(f"chat save failed: {e}", file=sys.stderr)
+
+
+def chat_send(slug, text, context=None):
+    """-> turn id. KeyError for an unknown project."""
+    p = projects.show(slug) if slug else None
+    sid = p and p.get("chat_session")
+    head = []
+    if p and not sid:
+        head.append(f"Project {p['name']} ({p['kind']}), folder links: sources={p['sources']} refs={p['refs']} edits={p['edits']}, "
+                    f"library: {library.path()}")
+    if context:
+        head.append(str(context).strip())
+    tid = chat.start(("\n".join(head) + "\n\n" + text) if head else text, sid or None)
+    chat_append(slug, {"role": "user", "text": text, "at": now()})
+    threading.Thread(target=chat_watch, args=(tid, slug), daemon=True).start()
+    return tid
+
+
+def chat_new(slug):
+    p = projects.show(slug)
+    if p.get("chat_session"):
+        projects.set_session(slug, None)
+    f = chat_file(slug)
+    if f.exists() and f.stat().st_size:
+        os.replace(f, f.with_name(f"chat-{time.strftime('%Y%m%d-%H%M%S')}.jsonl"))
 
 
 # ---------------------------------------------------------------- server
@@ -2006,6 +2060,13 @@ def make_handler(token):
                 return
             if path == "/":
                 return self.send(200, themed(HTML.read_bytes()), "text/html; charset=utf-8", cookie=True)
+            if path in STATIC:
+                f = Path(__file__).with_name(path[1:])
+                return self.send(200, f.read_bytes(), STATIC[path]) if f.is_file() else self.send(404, {})
+            if path.startswith(("/project", "/chat", "/reference")):
+                q = {k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()}
+                if self.get_project_chat(path, q) is not False:
+                    return
             if path == "/post/accounts":   # Settings, Auto-post your videos: asked when the card opens and on return from a sign-in, never per poll
                 try:
                     return self.send(200, {"accounts": post.accounts()})
@@ -2021,11 +2082,10 @@ def make_handler(token):
                 bz = busy_with(d, listener())   # the listening Claude is making a video: the next one can get its own
                 d["busy"] = bz and {"id": bz["id"], "name": job_name(bz)}
                 d["profile"] = (home().parent / "profile.json").exists()   # set up before: a returning user
-                d["update"] = {**update_info(), "claude": d.get("claude_v")}   # the version the last Claude command ran
                 d["getting_started"] = getting_started(d)
                 import launcher   # a Claude of its own per video only where a terminal window can be opened
                 d["new_claude"] = bool(launcher.terminal(d["root"], ["claude"], platform.system()))
-                d["page"] = f'{live.page_version(HTML, HTML.with_name("ask.js"))}-{my_version()}'   # the tab reloads when this changes (an update too)
+                d["page"] = f'{live.page_version(HTML, HTML.with_name("ask.js"))}-{my_version()}'   # the tab reloads when this changes
                 lk = d.get("lookup") or {}
                 if lk.get("handle"):
                     lk["listing"] = listing(d["root"], lk["handle"])
@@ -2178,6 +2238,8 @@ def make_handler(token):
             path = urlsplit(self.path).path
             if path == "/script":
                 return self.script()
+            if path == "/dictate":
+                return self.dictate()
             if path in ("/upload", "/style/cover"):
                 with live.busy():   # no live-reload restart under an upload
                     return self.upload() if path == "/upload" else self.cover()
@@ -2187,6 +2249,8 @@ def make_handler(token):
             except ValueError:
                 return self.send(400, {"error": "not json"})
             if askhook.route(self, "POST", path, {}, body):
+                return
+            if path.startswith(("/project", "/chat")) and self.post_project_chat(path, body) is not False:
                 return
             if path == "/post/connect":   # one more account: Zernio's sign-in opens in a new tab, Settings re-lists on return
                 try:
@@ -2220,11 +2284,6 @@ def make_handler(token):
                 ok, msg = keys.verify(name, k)
                 note_check(name, k, ok, msg)
                 return self.send(200, {"ok": ok, "msg": msg})
-            if path == "/update/check":   # Settings: ask GitHub now instead of within the hour
-                if not _UPD["busy"] and time.time() - _UPD["at"] > 60:   # a minute between checks, however often it is pressed
-                    _UPD["at"] = 0.0
-                update_info()
-                return self.send(200, {})
             if path == "/later":
                 if body.get("names") == ["style"]:   # first run: "Skip, use the default style"
                     update(lambda d: d.__setitem__("style_skipped", True))
@@ -2570,10 +2629,6 @@ def make_handler(token):
                 args = {"handle": td["args"]["handle"], "take": take}
             elif kind == "video":
                 return self.videos(b, d)
-            elif kind == "update":   # Settings, Update: the window runs it itself (run_home), no Claude needed
-                if update_info()["fork"]:
-                    return self.send(409, {"error": "Your editor is your own copy (a fork). Ask Claude Code: update my editor."})
-                return self.send(200, {"id": start_modal("update")["id"]})
             elif kind == "setup":   # the first run's Start setup (JOB setup, install-all --report)
                 if any(j["type"] == "setup" and j["state"] in ("queued", "taken") for j in d["jobs"]):
                     return self.send(200, {"id": latest(d, "setup")["id"]})
@@ -2587,18 +2642,6 @@ def make_handler(token):
                 if not text:
                     return self.send(400, {"error": "Say what to change."})
                 args = {"style": b.get("style") or "mine", "path": str(sp) if sp else "", "text": text}
-            elif kind == "skill-change":   # Skills, "Improve with feedback": skill-improver turns the words into learned rules
-                from ai_editor import skillrules
-                text = re.sub(r"\s+", " ", str(b.get("text") or "")).strip()[:400]
-                n = str(b.get("skill") or "")
-                md = skillrules.find_skill(n) if skill_of({"skill": n}) else None
-                if not md:
-                    return self.send(400, {"error": "That skill came with a plugin, so it can't be changed here."})
-                if not text:
-                    return self.send(400, {"error": "Say what to change."})
-                args = {"skill": n, "path": str(md), "text": text}
-            elif kind == "skill-new":   # Skills, "Make a new skill": skill-maker, step by step with the user
-                args = {"text": re.sub(r"\s+", " ", str(b.get("text") or "")).strip()[:2000]}
             elif kind == "motion":   # New motion video: <library>/films/<name>/ with refs/ and refs.json, then a Claude makes it
                 name = re.sub(r"[^a-z0-9]+", "-", str(b.get("name") or "").lower()).strip("-")[:40].rstrip("-")
                 idea = re.sub(r"\s+", " ", str(b.get("idea") or "")).strip()[:300]
@@ -2633,9 +2676,107 @@ def make_handler(token):
             else:
                 return self.send(400, {"error": "unknown job"})
             j = update(lambda d: queue(d, kind, args))
-            if kind in ("style-change", "skill-change", "skill-new", "motion"):   # typed in a chat box: a Claude opens for it
+            attach(str(b.get("project") or ""), j["id"], edits=[args["film"]] if kind == "motion" else (),
+                   refs=[args["handle"]] if kind == "teardown" else ())
+            if kind in ("style-change", "motion"):   # typed in a chat box: a Claude opens for it
                 claude_unless_idle(j["id"])
             return self.send(200, {"id": j["id"], "handle": j["args"].get("handle")})
+
+        def get_project_chat(self, path, q):
+            """False when path is not one of these."""
+            if path == "/projects":
+                d = read()
+                return self.send(200, {"projects": [{**p, "status": project_status(p, d)} for p in projects.list_all()]})
+            if path == "/project":
+                p = project_or_none(q.get("slug"))
+                if not p:
+                    return self.send(404, {"error": "No such project."})
+                edits = []
+                for e in p["edits"]:
+                    try:
+                        if Path(e).is_dir():
+                            en = library.entry(Path(e))
+                            edits.append({**en, "phase": phase(en)})
+                    except (OSError, ValueError):
+                        pass
+                d = read()
+                return self.send(200, {"project": {**p, "status": project_status(p, d)}, "edits": edits,
+                                       "jobs": [j for j in d["jobs"] if j.get("project") == p["slug"]]})
+            if path == "/chat/events":
+                evs, nxt, fin = chat.events(q.get("turn", ""), int(q.get("since") or 0))
+                return self.send(200, {"events": evs, "next": nxt, "finished": fin})
+            if path == "/chat/stream":
+                return self.chat_stream(q.get("turn", ""), int(q.get("since") or 0))
+            if path == "/chat/history":
+                return self.send(200, {"messages": chat_history(q["slug"]) if project_or_none(q.get("slug")) else []})
+            if path == "/references":
+                return self.send(200, {"refs": reference.list_refs(re.sub(r"[^a-z0-9._-]", "", q.get("handle", "").lower()))})
+            if path == "/reference":
+                b = reference.breakdown(re.sub(r"[^a-z0-9._-]", "", q.get("handle", "").lower()), q.get("id", ""))
+                return self.send(200, b) if b else self.send(404, {"error": "No such reference."})
+            return False
+
+        def chat_stream(self, turn, since):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+            last = time.time()
+            while True:
+                evs, since, fin = chat.events(turn, since)
+                for e in evs:
+                    self.wfile.write(b"data: " + json.dumps(e, ensure_ascii=False).encode() + b"\n\n")
+                if evs:
+                    last = time.time()
+                if fin:
+                    return self.wfile.flush()
+                if time.time() - last > 15:
+                    self.wfile.write(b": ping\n\n")
+                    last = time.time()
+                self.wfile.flush()
+                time.sleep(0.1)
+
+        def post_project_chat(self, path, b):
+            """False when path is not one of these."""
+            slug = str(b.get("slug") or "")
+            try:
+                if path == "/projects":
+                    name = " ".join(str(b.get("name") or "").split())[:80]
+                    if not name:
+                        return self.send(400, {"error": "Give the project a name."})
+                    return self.send(200, projects.new(name, b.get("kind") or "edit", [s for s in b.get("sources") or [] if isinstance(s, str)]))
+                if path == "/project/link":
+                    return self.send(200, projects.link(slug, str(b.get("field")), b.get("value")))
+                if path == "/project/rename":
+                    return self.send(200, projects.rename(slug, " ".join(str(b.get("name") or "").split())[:80] or slug))
+                if path == "/project/archive":
+                    return self.send(200, projects.archive(slug, b.get("on", True) is not False))
+                if path == "/chat":
+                    text = str(b.get("text") or "").strip()
+                    if not text:
+                        return self.send(400, {"error": "Say something first."})
+                    return self.send(200, {"turn": chat_send(slug, text, b.get("context"))})
+                if path == "/chat/stop":
+                    return self.send(200, {"stopped": chat.stop(str(b.get("turn") or ""))})
+                if path == "/chat/new":
+                    chat_new(slug)
+                    return self.send(200, {})
+            except KeyError:
+                return self.send(404, {"error": "No such project."})
+            except (ValueError, OSError) as e:
+                return self.send(400, {"error": str(e)})
+            return False
+
+        def dictate(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            if n > MAX_AUDIO:
+                return self.send(400, {"error": "That recording is over 25 MB.", "code": "too_big"})
+            try:
+                lang = parse_qs(urlsplit(self.path).query).get("lang", [None])[0]
+                return self.send(200, dictate.transcribe(self.rfile.read(n), (self.headers.get("Content-Type") or "audio/webm").lower(), lang))
+            except dictate.DictateError as e:
+                return self.send(400, {"error": str(e), "code": e.code})
 
         def sample(self):
             """The sample take, downloaded once, made like any video with its decisions shipped."""
@@ -2722,6 +2863,7 @@ def make_handler(token):
                     args["sample"] = 1
                 ids.append(update(lambda d: queue(d, "video", args))["id"])
                 edits.append(str(edit))
+                attach(str(b.get("project") or ""), ids[-1], sources=[p["path"] for p in g], edits=[edit])
                 # the editor opens at once on the clip (round 0, "The cut / your clip"); Claude's cut lands there
                 subprocess.run([sys.executable, str(REVIEW), str(edit), "start", "--raw", "--video", g[0]["path"], "--stage", "cut"],
                                capture_output=True, timeout=60)
@@ -2991,7 +3133,6 @@ def serve(root=None, port=None, open_browser=True):
         return None, url
     token = stable_token()
     srv = bind(make_handler(token), port)
-    _SRV[:] = [srv]
     if port != 0:
         update(lambda d: d.__setitem__("port", srv.server_address[1]))
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={token}"
@@ -2999,6 +3140,11 @@ def serve(root=None, port=None, open_browser=True):
     update(drop_modal_runs)
     askhook.register(srv, url, "home", asks_for, asks_dir)
     threading.Thread(target=run_doctor, daemon=True).start()
+    try:   # one project per existing edit folder, once
+        projects.migrate()
+    except Exception as e:  # noqa: BLE001
+        print(f"projects.migrate failed: {e}", file=sys.stderr)
+    dictate.warm()
     try:   # an update adds a new plugin folder: point nextwork-editor at this one (the installed copy only)
         import launcher
         if may_refresh(launcher.PLUGIN):
@@ -3064,7 +3210,6 @@ def demo():
         "ok   python               3.12.1 (need 3.10+)\nFIX  renderer             missing\n     run: x\n"
         "--   gemini key           Recommended"), "at": now()}))
     globals()["run_listing"] = lambda *a: calls.append(a)
-    globals()["fetch_latest"] = lambda: ("99.0.0", ["Dark mode in the window"])   # never the network in a self-check
     os.environ.pop("CLAUDE_CODE_SESSION_ID", None)   # run from inside Claude Code: never that session
     real_claude_for, own = claude_for, []
     globals()["claude_for"] = own.append   # no Terminal opens here: the plain `wait` below takes each video (sessions part: the real one)
@@ -3114,6 +3259,23 @@ def demo():
         raise AssertionError("a connect link without a key")
     except urllib.error.HTTPError as e:
         assert e.code == 400
+    # Projects, the project chat's history, dictation and references
+    pj = post("/projects", {"name": "My Reel", "kind": "talking-head"})
+    assert pj["slug"] == "my-reel" and any(x["slug"] == "my-reel" and x["status"] for x in get("/projects")["projects"])
+    assert post("/project/link", {"slug": "my-reel", "field": "refs", "value": "someone"})["refs"] == ["someone"]
+    assert get("/project?slug=my-reel")["project"]["name"] == "My Reel" and get("/chat/history?slug=my-reel") == {"messages": []}
+    assert get("/chat/events?turn=none") == {"events": [], "next": 0, "finished": True}
+    for bad in (lambda: post("/projects", {"name": "x", "kind": "nope"}), lambda: get("/project?slug=nope"), lambda: get("/reference?handle=nope&id=1")):
+        try:
+            bad()
+            raise AssertionError("a bad project or reference was accepted")
+        except urllib.error.HTTPError as e:
+            assert e.code in (400, 404), e.code
+    try:
+        urllib.request.urlopen(urllib.request.Request(base + "/dictate?t=" + tok, b"", method="POST", headers={"Content-Type": "audio/webm"}))
+        raise AssertionError("an empty recording was transcribed")
+    except urllib.error.HTTPError as e:
+        assert e.code == 400 and json.loads(e.read())["code"], e.code
     # Claude's question (askhook.py): the hook posts it, the showing page polls it and answers, the hook clears it
     assert b'src="/ask.js"' in HTML.read_bytes() and b"askq" in urllib.request.urlopen(base + "/ask.js?t=" + tok).read()
     assert askhook.live() == []   # served, but no page has polled yet
@@ -3190,27 +3352,6 @@ def demo():
         assert e.code == 409
     finally:
         os.environ.pop("GEMINI_API_KEY")
-    post("/update/check", {})
-    for _ in range(50):
-        if get("/state")["update"]["latest"]:
-            break
-        time.sleep(0.02)
-    u = get("/state")["update"]
-    assert u["latest"] == "99.0.0" and u["newer"] and u["checked"] and u["notes"] == ["Dark mode in the window"], u
-    seen = []
-    globals()["fetch_latest"] = lambda: seen.append(1) or ("99.0.0", ["Dark mode in the window"])
-    for _ in range(5):   # pressed again and again within the minute: no new GitHub check
-        post("/update/check", {})
-    time.sleep(0.1)
-    assert not seen and get("/state")["update"]["checked"] == u["checked"], seen
-    assert get("/state")["update"]["dev"] is any((q / ".git").exists() for q in PLUGIN_JSON.resolve().parents), "a git checkout: update with git"
-    _UPD["at"] -= 61   # a minute later: one press checks again
-    post("/update/check", {})
-    for _ in range(50):
-        if seen:
-            break
-        time.sleep(0.02)
-    assert seen == [1], seen
     # the paste: a profile link names the platform; a bare name is a handle; a website is not a creator
     r = post("/lookup", {"text": "https://www.tiktok.com/@sample.creator"})
     assert r["kind"] == "creator" and r["handle"] == "sample.creator" and r["platform"] == "tiktok" and calls, r
@@ -3847,20 +3988,6 @@ def demo():
     except urllib.error.HTTPError as e:
         assert e.code == 400
     assert post("/style/forget", {"id": "@own-skilled", "text": "Fewer zooms"})["rules"] == [] and "Fewer zooms. Why" not in own.read_text(encoding="utf-8")
-    # Improve with feedback and Make a new skill: jobs for Claude (skill-improver, skill-maker); a plugin's skill is refused
-    j = post("/job", {"type": "skill-change", "skill": "own-cuts", "text": "never  zoom in the first second"})
-    jj = next(x for x in read()["jobs"] if x["id"] == j["id"])
-    assert job_line(jj, root) == f"JOB skill-change own-cuts path={own} text=never zoom in the first second", job_line(jj, root)
-    for bad in ({"skill": "my-edit-style", "text": "x"}, {"skill": "own-cuts", "text": " "}, {"skill": "../x", "text": "x"}):
-        try:
-            post("/job", {"type": "skill-change", **bad})
-            raise AssertionError(f"skill-change {bad}")
-        except urllib.error.HTTPError as e:
-            assert e.code == 400
-    j2 = post("/job", {"type": "skill-new", "text": "captions that pop"})
-    assert job_line(next(x for x in read()["jobs"] if x["id"] == j2["id"]), root) == "JOB skill-new text=captions that pop"
-    update(lambda d: d.__setitem__("jobs", [x for x in d["jobs"] if x["id"] not in (j["id"], j2["id"])]))
-    assert library.open_cmd("/a/b.md", "Darwin") == ["open", "-t", "/a/b.md"]
     shutil.rmtree(own.parent)
     (kd / "style.json").write_text(json.dumps({"own": True, "skill": "gone-skill"}), encoding="utf-8")
     kc = next(c for c in get("/library")["styles"] if c["id"] == "@own-skilled")
@@ -3887,7 +4014,11 @@ def demo():
         (tmp / "skills" / n_ / "SKILL.md").write_text(f"---\nname: {n_}\ndescription: {d_}\n---\n", encoding="utf-8")
     (tmp / "elsewhere" / "linked-cuts").mkdir(parents=True)
     (tmp / "elsewhere" / "linked-cuts" / "SKILL.md").write_text("---\ndescription: Cuts video.\n---\n", encoding="utf-8")
-    (tmp / "skills" / "linked-cuts").symlink_to(tmp / "elsewhere" / "linked-cuts")
+    try:
+        (tmp / "skills" / "linked-cuts").symlink_to(tmp / "elsewhere" / "linked-cuts")
+    except OSError:   # Windows without the symlink right: a directory junction is the same link
+        subprocess.run(["cmd", "/c", "mklink", "/J", str(tmp / "skills" / "linked-cuts"), str(tmp / "elsewhere" / "linked-cuts")],
+                       capture_output=True, check=True)
     sl = get("/skills")
     vsk, oth = {x["name"]: x for x in sl["skills"]}, {x["name"]: x for x in sl["other"]}
     assert "notion-editing" in oth and "notion-editing" not in vsk and oth["notion-editing"]["deletable"], sl
@@ -4088,7 +4219,6 @@ def demo():
     assert all("raw" in v for v in get("/recent")["videos"])
     assert get("/state")["page"] == f'{live.page_version(HTML, HTML.with_name("ask.js"))}-{my_version()}', "the tab's reload key"
     # hide or trash a listed clip, remove an edit: only what the page listed, to the Trash (faked here), never a folder
-    assert library.trash_cmd("/a b/x.mov", "Darwin")[-1] == "/a b/x.mov" and "item 1 of argv" in " ".join(library.trash_cmd("x", "Darwin"))
     assert library.trash_cmd("C:/x y.mp4", "Windows")[-1] == "C:/x y.mp4" and library.trash_cmd("/x", "Linux") == ["gio", "trash", "/x"]
     real_trash, binned = globals()["trash"], []
     globals()["trash"] = lambda p: (binned.append(Path(p).name), shutil.rmtree(p) if Path(p).is_dir() else Path(p).unlink()) and True
@@ -4277,47 +4407,6 @@ def demo():
     assert json.loads((tmp / "home" / "taste.json").read_text(encoding="utf-8")) == {} and get("/style?id=mine")["rules"] == []
     assert "No zooms" not in (tmp / "skills" / "my-style" / "SKILL.md").read_text(encoding="utf-8")
     assert "mine" in [c["id"] for c in get("/library")["styles"]]
-    # updates: the version on GitHub (faked here) against plugin.json; Update queues one JOB line
-    t0 = time.time()
-    while not get("/state")["update"]["latest"] and time.time() - t0 < 5:
-        time.sleep(0.05)
-    u = get("/state")["update"]
-    assert u["newer"] and u["latest"] == "99.0.0" and u["installed"] == json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))["version"], u
-    assert u["notes"] == ["Dark mode in the window"] and vtuple("2.10.0") > vtuple("2.9.1")
-    # Update runs in the window itself (no Claude): a fork is refused (the update skill merges it with the user); any
-    # other install runs update.py window, shows its steps, keeps the new version and restarts from its folder
-    real_info = update_info
-    globals()["update_info"] = lambda: {**real_info(), "fork": True}
-    try:
-        post("/job", {"type": "update"})
-        raise AssertionError("a fork must not update from the button")
-    except urllib.error.HTTPError as e:
-        assert e.code == 409
-    globals()["update_info"] = real_info
-    real_update, real_restart, restarted = UPDATE, globals()["restart_on"], []
-    fake = tmp / "fake_update.py"
-    fake.write_text("print('STEP Getting the list of new versions', flush=True)\nprint('STEP Updating ai-editor', flush=True)\n"
-                    f"print('VERSION 99.0.0')\nprint('PATH {(tmp / 'v99').as_posix()}')\nprint('Updated. Type /reload-plugins.')\n", encoding="utf-8")
-    globals().update(UPDATE=fake, restart_on=lambda p: restarted.append(p))
-    try:
-        update(lambda d: d["jobs"].append({"id": "update-old", "type": "update", "args": {}, "state": "taken", "owner": "sess-gone",
-                                           "at": now(), "steps": [], "result": {}}))
-        update(drop_modal_runs)   # a server start closes an Update a Claude session took and never finished
-        assert next(j for j in read()["jobs"] if j["id"] == "update-old")["state"] == "failed"
-        j = start_modal("update")
-        assert start_modal("update")["id"] == j["id"] or latest(read(), "update")["state"] == "done", "one at a time"
-        for _ in range(100):
-            if latest(read(), "update")["state"] == "done":
-                break
-            time.sleep(0.05)
-        j = latest(read(), "update")
-        assert j["state"] == "done" and j["owner"] == "home" and j["result"] == {"version": "99.0.0", "path": (tmp / "v99").as_posix()}, j
-        assert [s["text"] for s in j["steps"]] == ["Getting the list of new versions", "Updating ai-editor"] and restarted == [(tmp / "v99").as_posix()]
-        assert not any(x["type"] == "update" and x["state"] == "queued" for x in read()["jobs"]), "nothing queued for Claude"
-    finally:
-        globals().update(UPDATE=real_update, restart_on=real_restart)
-        update(lambda d: d.__setitem__("jobs", [j for j in d["jobs"] if j["type"] != "update"]))
-    assert restart_on(str(tmp / "no-such-version")) is False and restart_on(None) is False
     # clear working files: counted first, then deleted; the cut, the render and review.json stay
     (other / "chunks").mkdir()
     (other / "chunks" / "chunk-0.mkv").write_bytes(b"x" * 2000)

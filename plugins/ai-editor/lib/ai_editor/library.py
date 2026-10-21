@@ -8,7 +8,7 @@
     python3 library.py clean [--yes]        the working files that can go and their size; --yes deletes them
     python3 library.py demo                 self-check
 
-The folder: ~/Movies/AI Editor on macOS, ~/Videos/AI Editor on Windows and Linux. AI_EDITOR_LIBRARY
+The folder: ~/Videos/AI Editor. AI_EDITOR_LIBRARY
 overrides it, then `set` (saved in $AI_EDITOR_HOME/library.json with every recorded edit folder).
 Inside: videos/ (dropped files), edits/<name>/, clips/<name>/, product/<name>/, creator-teardowns/<handle>/.
 
@@ -54,8 +54,8 @@ def _save(d):
     os.replace(tmp, p)
 
 
-def default_path(os_name=None):
-    return Path.home() / ("Movies" if (os_name or platform.system()) == "Darwin" else "Videos") / "AI Editor"
+def default_path():
+    return Path.home() / "Videos" / "AI Editor"
 
 
 def path(make=True):
@@ -195,7 +195,7 @@ def home_dirs():
     if env is not None:
         return [Path(x) for x in env.split(os.pathsep) if x]
     h = Path.home()
-    return [h / "Movies", h / "Desktop", h / "Downloads"]
+    return [h / "Videos", h / "Desktop", h / "Downloads"]
 
 
 def recent(picked=(), scan_home=False, n=RECENT_N):
@@ -317,10 +317,6 @@ def disk():
 def trash_cmd(p, os_name=None):
     """Move to the Trash / Recycle Bin, never a permanent delete. The path is always its own argv item."""
     os_name = os_name or platform.system()
-    if os_name == "Darwin":
-        # the POSIX file is made outside Finder's tell block: inside it Finder fails with -1728 "Can't get POSIX file"
-        return ["osascript", "-e", "on run argv", "-e", "set f to POSIX file (item 1 of argv) as alias",
-                "-e", 'tell application "Finder" to delete f', "-e", "end run", str(p)]
     if os_name == "Windows":
         fn = "DeleteDirectory" if Path(p).is_dir() else "DeleteFile"
         return ["powershell", "-NoProfile", "-Command", "param($p) Add-Type -AssemblyName Microsoft.VisualBasic; "
@@ -331,8 +327,6 @@ def trash_cmd(p, os_name=None):
 def open_cmd(p, os_name=None):
     """A text file in the user's text editor (the Skills view's Open the file)."""
     os_name = os_name or platform.system()
-    if os_name == "Darwin":
-        return ["open", "-t", str(p)]
     if os_name == "Windows":
         return ["notepad", str(p)]
     return ["xdg-open", str(p)]
@@ -340,8 +334,6 @@ def open_cmd(p, os_name=None):
 
 def reveal_cmd(p, os_name=None):
     os_name = os_name or platform.system()
-    if os_name == "Darwin":
-        return ["open", "-R", str(p)] if Path(p).is_file() else ["open", str(p)]
     if os_name == "Windows":
         return ["explorer", f"/select,{p}"] if Path(p).is_file() else ["explorer", str(p)]
     return ["xdg-open", str(p if Path(p).is_dir() else Path(p).parent)]
@@ -353,8 +345,7 @@ def demo():
     tmp = Path(tempfile.mkdtemp(prefix="library_demo_"))
     os.environ["AI_EDITOR_HOME"] = str(tmp / "home")
     os.environ.pop("AI_EDITOR_LIBRARY", None)
-    assert default_path("Darwin") == Path.home() / "Movies" / "AI Editor"
-    assert default_path("Windows") == default_path("Linux") == Path.home() / "Videos" / "AI Editor"
+    assert default_path() == Path.home() / "Videos" / "AI Editor"
     os.environ["AI_EDITOR_LIBRARY"] = str(tmp / "lib")
     lib = path()
     assert lib == (tmp / "lib").resolve() and lib.is_dir()
@@ -422,7 +413,7 @@ def demo():
     assert m["duration"] == 2.0 and (m["w"], m["h"]) == (360, 640), m
     t = thumb(rs[0]["path"])
     assert t and t.stat().st_size > 500 and thumb(rs[0]["path"]) == t
-    assert reveal_cmd(mine, "Darwin") == ["open", str(mine)] and reveal_cmd(vid, "Windows")[0] == "explorer"
+    assert reveal_cmd(mine, "Linux") == ["xdg-open", str(mine)] and reveal_cmd(vid, "Windows")[0] == "explorer"
     assert disk()["library"] > 0
     # one draft name everywhere: draft 1, the preview, then the edit's first video is draft 1 again
     rr = [{"stage": "cut", "round": 0}, {"stage": "cut", "round": 1}, {"stage": "edit", "round": 1, "stills": True},

@@ -26,7 +26,7 @@ What got installed is recorded in ~/.ai-video-editor/env.json. AI_EDITOR_HOME mo
                               after one free test request proves it works
   python3 setup.py keys       test every saved key (one free request each)
   python3 setup.py certs      let Python check secure websites ("fix my certificates"): certifi into the venv,
-                              and on macOS python.org's Install Certificates.command, then a re-test
+                              then a re-test
   python3 setup.py crisper    install CrisperWhisper, free verbatim transcription (about 1 GB; non-commercial licence)
   python3 setup.py awskey     save AWS keys for Lambda renders (asks, hides what you type)
   python3 setup.py lambda     check the AWS keys and permissions for Lambda renders
@@ -59,7 +59,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
 from ai_editor import keys, models, net, profile  # noqa: E402
 
-OS = platform.system()  # Darwin, Windows, Linux
+OS = platform.system()  # Windows, Linux
 HOME = Path(os.environ.get("AI_EDITOR_HOME", Path.home() / ".ai-video-editor"))
 VENV = HOME / "venv"
 VPY = VENV / ("Scripts/python.exe" if OS == "Windows" else "bin/python")
@@ -75,7 +75,7 @@ NPM_LOCK = REMOTION_SRC / "package-lock.json"
 ENV = HOME / "env.json"           # what was installed, from which pins
 HOME_PY = PLUGIN / "lib" / "ai_editor" / "home.py"
 MODEL = os.environ.get("AI_EDITOR_WHISPER_MODEL", "small")
-PYTHON_MIN = (3, 10)   # current yt-dlp and numpy need it; macOS's built-in 3.9 gets a newer Python
+PYTHON_MIN = (3, 10)   # current yt-dlp and numpy need it
 NODE_MIN = 20          # Remotion 4
 FFMPEG_MIN = (4, 4)    # sfx.py mixes with amix normalize=0, added in FFmpeg 4.4
 # Optional extras, pinned; installed with the lock as constraints so they never move a pinned package.
@@ -88,26 +88,26 @@ NODESOURCE = ("sudo apt install -y ca-certificates curl gnupg && sudo mkdir -p /
               "https://deb.nodesource.com/node_22.x nodistro main\" | sudo tee /etc/apt/sources.list.d/nodesource.list "
               "&& sudo apt update && sudo apt install -y nodejs")
 PACMAN = "sudo pacman -S --needed --noconfirm "
-INSTALL = {  # tool -> (mac, windows, {linux package manager: command})
-    "python": ("brew install python", "winget install -e --id Python.Python.3.12",
+INSTALL = {  # tool -> (windows, {linux package manager: command})
+    "python": ("winget install -e --id Python.Python.3.12",
                {"apt": "sudo apt install -y python3 python3-venv", "dnf": "sudo dnf install -y python3",
                 "pacman": PACMAN + "python"}),
-    "ffmpeg": ("brew install ffmpeg", "winget install -e --id Gyan.FFmpeg",
+    "ffmpeg": ("winget install -e --id Gyan.FFmpeg",
                {"apt": "sudo apt install -y ffmpeg", "dnf": "sudo dnf install -y ffmpeg-free",
                 "pacman": PACMAN + "ffmpeg"}),
     # Debian and Ubuntu ship a Node older than 20, so apt gets NodeSource's; Fedora and Arch are current.
-    "node": ("brew install node", "winget install -e --id OpenJS.NodeJS.LTS",
+    "node": ("winget install -e --id OpenJS.NodeJS.LTS",
              {"apt": NODESOURCE, "dnf": "sudo dnf install -y nodejs", "pacman": PACMAN + "nodejs npm"}),
-    "git": ("xcode-select --install", "winget install -e --id Git.Git",
+    "git": ("winget install -e --id Git.Git",
             {"apt": "sudo apt install -y git", "dnf": "sudo dnf install -y git", "pacman": PACMAN + "git"}),
 }
 
 
 UPGRADE = {  # installed but older than the minimum
-    "ffmpeg": ("brew upgrade ffmpeg", "winget upgrade -e --id Gyan.FFmpeg",
+    "ffmpeg": ("winget upgrade -e --id Gyan.FFmpeg",
                {"apt": "sudo apt update && sudo apt install -y ffmpeg   (Ubuntu 22.04 or newer)",
                 "dnf": "sudo dnf upgrade -y ffmpeg-free", "pacman": "sudo pacman -Syu --noconfirm ffmpeg"}),
-    "node": ("brew upgrade node", "winget upgrade -e --id OpenJS.NodeJS.LTS", INSTALL["node"][2]),
+    "node": ("winget upgrade -e --id OpenJS.NodeJS.LTS", INSTALL["node"][1]),
 }
 
 
@@ -117,8 +117,8 @@ def linux_pm(which=shutil.which):
 
 
 def fix(tool, table=INSTALL, os_name=None, which=shutil.which):
-    mac, win, linux = table[tool]
-    return {"Darwin": mac, "Windows": win}.get(os_name or OS) or linux[linux_pm(which)]
+    win, linux = table[tool]
+    return win if (os_name or OS) == "Windows" else linux[linux_pm(which)]
 
 
 def run(cmd, **kw):
@@ -440,12 +440,6 @@ def free_bytes():
     return shutil.disk_usage(p).free
 
 
-def install_certificates_command():
-    """python.org's macOS fixer for the running Python, or None."""
-    p = Path(f"/Applications/Python {sys.version_info.major}.{sys.version_info.minor}/Install Certificates.command")
-    return p if OS == "Darwin" and p.exists() else None
-
-
 def certs_row(online=True):
     """(ok, detail, fix). CA certs in net.context() (no network); online, a 3 s HEAD to ElevenLabs as well,
     which only fails the row on a certificate error (offline is not this row's problem)."""
@@ -457,24 +451,17 @@ def certs_row(online=True):
             net.urlopen(urllib.request.Request("https://api.elevenlabs.io", method="HEAD"), 3).close()
         except Exception as e:   # an HTTP status or no network is fine here
             ok = not net.is_cert_error(e)
-    cmd = install_certificates_command()
-    fix_cmd = (f'open "{cmd}"' if cmd else
-               f'{"py" if OS == "Windows" else "python3"} "{Path(__file__).resolve()}" certs')
+    fix_cmd = f'{"py" if OS == "Windows" else "python3"} "{Path(__file__).resolve()}" certs'
     return ok, (f"{n} trusted certificates" if ok else "this Python can't check secure websites "
                 "(key checks and ElevenLabs, Gemini calls fail)"), fix_cmd
 
 
 def step_certs():
-    """certifi at its pin into the venv (net.py finds it there even from the system python3), python.org's
-    Install Certificates.command on macOS when this Python has no certificates of its own, then a re-test."""
+    """certifi at its pin into the venv (net.py finds it there even from the system python3), then a re-test."""
     if VPY.exists():
         pin = re.search(r"^certifi==(\S+)", LOCK.read_text(encoding="utf-8"), re.M).group(1)
         subprocess.run([str(VPY), "-m", "pip", "install", "-q", "--disable-pip-version-check", f"certifi=={pin}"],
                        check=True)
-    import ssl
-    cmd = install_certificates_command()
-    if cmd and ssl.create_default_context().cert_store_stats()["x509_ca"] == 0:
-        subprocess.run([str(cmd)], check=False)
     ok, detail, fix_cmd = certs_row()
     print(f"{'ok ' if ok else 'FIX'}  {'secure web':<20} {detail}")
     if not ok:
@@ -515,7 +502,7 @@ def doctor():
           f"optional, keeps every um and restart for free (non-commercial licence): {py_self} \"{here}\" crisper"))
     gh = shutil.which("gh")
     gh_ok = bool(gh) and run([gh, "auth", "status"]).returncode == 0
-    gh_fix = {"Darwin": "brew install gh", "Windows": "winget install --id GitHub.CLI"}.get(
+    gh_fix = {"Windows": "winget install --id GitHub.CLI"}.get(
         OS, "see github.com/cli/cli/blob/trunk/docs/install_linux.md")
     print(f"{'ok ' if gh_ok else '-- '}  {'github cli':<20} " + ("logged in: GitHub Actions renders" if gh_ok else
           f"optional, for free GitHub Actions renders. {'run: gh auth login --web' if gh else 'install: ' + gh_fix}"))
@@ -1233,7 +1220,7 @@ def bin_dirs(os_name=OS, path_env=None, home=None):
     if os_name == "Windows":   # on the PATH for every user, and theirs to write
         cands = [Path(os.environ.get("LOCALAPPDATA", home / "AppData/Local")) / "Microsoft" / "WindowsApps"]
     else:
-        cands = [home / ".local" / "bin", home / "bin", Path("/opt/homebrew/bin"), Path("/usr/local/bin")]
+        cands = [home / ".local" / "bin", home / "bin", Path("/usr/local/bin")]
     ok = [c for c in cands if c in on_path and c.is_dir() and os.access(c, os.W_OK)]
     return ok, cands[0]
 
@@ -1319,10 +1306,10 @@ def demo_launcher():
         # no user folder on the PATH: ~/.local/bin is made and one PATH line added, once; uninstall takes both away
         os.environ["SHELL"] = "/bin/zsh"
         (t / ".zprofile").write_text("export A=1\n", encoding="utf-8")
-        install_launcher("Darwin", "/usr/bin", t)
-        install_launcher("Darwin", "/usr/bin", t)
+        install_launcher("Linux", "/usr/bin", t)
+        install_launcher("Linux", "/usr/bin", t)
         assert (t / ".local/bin/nextwork-editor").exists() and (t / ".zprofile").read_text(encoding="utf-8").count(RC_LINE) == 1
-        uninstall_launcher("Darwin", "/usr/bin", t)
+        uninstall_launcher("Linux", "/usr/bin", t)
         assert not (t / ".local/bin/nextwork-editor").exists() and (t / ".zprofile").read_text(encoding="utf-8") == "export A=1\n"
         w = launcher_text("Windows", Path("C:/x/launcher.py"), "C:/py/python.exe")
         assert w.startswith("@echo off\r\n") and '"%PY%" "%L%" %*' in w and MARK in w
@@ -1361,7 +1348,7 @@ def demo():
     assert "did not build" in modal_error("modal.exception.RemoteError: Image build for im-12 failed. See build logs")
     assert modal_error("weird\n  last thing\n") == "Modal did not answer: last thing"
     assert major("v22.3.0") == 22 and major(None) == 0
-    assert fix("ffmpeg").split()[0] in ("brew", "winget", "sudo")
+    assert fix("ffmpeg").split()[0] in ("winget", "sudo")
     # Linux: the fix uses the package manager this computer has, not apt everywhere
     has = lambda *exes: (lambda e: e in exes)   # noqa: E731
     assert fix("ffmpeg", os_name="Linux", which=has("apt-get")) == "sudo apt install -y ffmpeg"
@@ -1372,7 +1359,6 @@ def demo():
     assert "signed-by=/etc/apt/keyrings/nodesource.gpg" in apt_node and "apt install -y nodejs" in apt_node, apt_node
     assert not re.search(r"\|\s*(sudo\s+(-E\s+)?)?(ba)?sh\b", apt_node), apt_node
     assert fix("ffmpeg", UPGRADE, os_name="Linux", which=has("dnf")).startswith("sudo dnf upgrade")
-    assert fix("python", os_name="Darwin", which=has("dnf")) == "brew install python"
     # Chrome row: a Flatpak-only Chromium is said plainly, with the fix, not left as a silent miss
     fp = browser_line(False, "ERROR: org.chromium.Chromium is installed as a Flatpak, which runs sandboxed ... sudo snap install chromium")
     assert fp.startswith("-- ") and "Flatpak" in fp and "snap install chromium" in fp and "ERROR" not in fp, fp
@@ -1495,18 +1481,18 @@ def demo_install_all():
         return "installed"
 
     def broken(tick):
-        sys.exit("npm missing. Install Node first: brew install node")
+        sys.exit("npm missing. Install Node first: winget install node")
     steps = [("a", "Doing A", half, 0.5, None), ("b", "Doing B", broken, 0.3, None),
              ("c", "Doing C", half, 0.2, "b"), ("d", "Doing D", half, 0.0, None)]
     assert install_all(steps=steps, status=lambda **k: said.append(k), tools=lambda: []) == 1
     assert said[:3] == [{"step": "Doing A", "progress": 0.0}, {"progress": 0.25, "detail": "half"},
                         {"step": "Doing B", "progress": 0.5}], said
-    assert said[-1] == {"failed": "npm missing. Install Node first: brew install node The c waits for the b."}, said[-1]
+    assert said[-1] == {"failed": "npm missing. Install Node first: winget install node The c waits for the b."}, said[-1]
     assert {"step": "Doing D", "progress": 1.0} in said and not any(k.get("step") == "Doing C" for k in said)
     said.clear()
     assert install_all(steps=steps[:1], status=lambda **k: said.append(k),
-                       tools=lambda: [("ffmpeg", False, "missing", "brew install ffmpeg")]) == 1
-    assert said[-1] == {"failed": "Install ffmpeg: brew install ffmpeg"}, said
+                       tools=lambda: [("ffmpeg", False, "missing", "winget install ffmpeg")]) == 1
+    assert said[-1] == {"failed": "Install ffmpeg: winget install ffmpeg"}, said
     said.clear()
     assert install_all(steps=steps[:1], status=lambda **k: said.append(k), tools=lambda: []) == 0
     assert said[-1] == {"progress": 1.0, "done": True}

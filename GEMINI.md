@@ -28,7 +28,6 @@ Read a skill's `SKILL.md` in full before doing its task.
 | `clips` | `plugins/ai-editor/skills/clips/` | "clip this video", "make shorts from my podcast", drops a long video or YouTube link |
 | `improve` | `plugins/ai-editor/skills/improve/` | maintainers: "improve the editor", "turn feedback into fixes", "process suggestions" |
 | `post` | `plugins/ai-editor/skills/post/` | "post it", "post to TikTok", "schedule the post", "connect my accounts" |
-| `update` | `plugins/ai-editor/skills/update/` | "update the editor", "get the latest version", "sync my fork" |
 | `creator-teardown` | `plugins/creator-teardown/skills/creator-teardown/` | "break down @handle", "tear down @handle" |
 
 Order: `start` asks a few questions once, then runs setup, creator-teardown, cut and style-edit in order.

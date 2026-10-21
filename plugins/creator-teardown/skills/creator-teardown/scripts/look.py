@@ -12,13 +12,12 @@
   summary <handle>   rewrite look.md from style.json and print it.
   demo               self-check on a synthetic clip with drawn captions. No network.
 
-OCR: Apple Vision through ocrmac on a Mac, RapidOCR (onnxruntime) elsewhere. Without
-either, captions are left to the fallback sheet pass and everything else still runs.
+OCR: RapidOCR (onnxruntime). Without
+it, captions are left to the fallback sheet pass and everything else still runs.
 Faces: OpenCV YuNet, the model ai-editor's face.py uses (one 230 KB download, cached).
 Every number here comes from code. gemini.py adds the words (font class, graphics style).
-LOOK_OCR=rapid forces RapidOCR on a Mac (to test the Windows / Linux path).
 
-Usage (the tool venv python: numpy, pillow, opencv, ocrmac or rapidocr):
+Usage (the tool venv python: numpy, pillow, opencv or rapidocr):
   ~/.ai-video-editor/venv/bin/python scripts/look.py measure <handle> [--fps 3]
   ~/.ai-video-editor/venv/bin/python scripts/look.py demo
 
@@ -97,19 +96,6 @@ def decode(path, w, h, fps=None, t0=None, dur=None, gray=False):
 
 def ocr_engine():
     """(name, fn(rgb, t) -> [(text, [x, y, w, h])] in fractions, top-left origin), or (None, None)."""
-    if sys.platform == "darwin" and os.environ.get("LOOK_OCR") != "rapid":
-        try:
-            from ocrmac import ocrmac
-            from PIL import Image
-
-            def vision(im, t=None):
-                out = ocrmac.OCR(Image.fromarray(im), recognition_level="accurate",
-                                 language_preference=["en-US"]).recognize()
-                # Vision's origin is bottom-left.
-                return [(t, [x, 1 - y - h, w, h]) for t, conf, (x, y, w, h) in out if conf >= 0.3]
-            return "vision", vision
-        except ImportError:
-            pass
     for mod in ("rapidocr_onnxruntime", "rapidocr"):
         try:
             eng = importlib.import_module(mod).RapidOCR()
@@ -1212,7 +1198,7 @@ def cmd_measure(a):
     if not vids:
         sys.exit(f"no videos in {outdir / 'video'}. Run visual.py download first.")
     if not ocr_engine()[1]:
-        print("no OCR engine (ocrmac or rapidocr): captions are left to the sheet pass", file=sys.stderr)
+        print("no OCR engine (rapidocr): captions are left to the sheet pass", file=sys.stderr)
     todo = [p for p in vids if a.force or not p.with_suffix(".look.json").exists()]
     for p in vids:
         if p not in todo:

@@ -38,7 +38,7 @@ product video). Notes save with the edit, never in the plugin:
                                      style's rules go into that skill's SKILL.md "## Learned rules" (skillrules.py)
     python3 review.py <folder> learn --propose '<json>'   the final approve's LEARN block: candidate rules
                                      [{"rule", "section", "set"?, "why"?, "replace"?}] onto the page's "Teach <style>"
-                                     panel (the skill-improver skill writes them)
+                                     panel
     python3 review.py <folder> learn --done ["summary"]   save the rules the user ticked (styleskill.learn; a skill
                                      style's rules go into its SKILL.md, skillrules.py) and
                                      show "Saved to <style>. Next video uses it."
@@ -114,6 +114,7 @@ from urllib.parse import parse_qs, quote, unquote, urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(1, str(Path(__file__).resolve().parent.parent))   # `from ai_editor import ...` (styleskill, taste)
 import askhook  # noqa: E402
+import dictate  # noqa: E402
 import assets  # noqa: E402
 import live  # noqa: E402
 
@@ -376,10 +377,9 @@ SNAP_NAMES = ".names"   # in a snapshot: the names of the files the edit had the
 
 
 def clone(src, dst):
-    """A copy that costs no disk on a Mac (APFS clone, cp -c) until one side changes; a plain copy elsewhere."""
+    """A plain copy over whatever is at dst."""
     dst.unlink(missing_ok=True)
-    if sys.platform != "darwin" or subprocess.run(["cp", "-c", str(src), str(dst)], capture_output=True).returncode:
-        shutil.copyfile(src, dst)
+    shutil.copyfile(src, dst)
 
 
 def snapshot(folder, stage, rnd):
@@ -1189,6 +1189,9 @@ def make_handler(folder, token):
                 return
             if path == "/":
                 return self.send(200, themed(HTML.read_bytes()), "text/html; charset=utf-8", cookie=True)
+            if path in ("/chat.js", "/ui.css"):   # shared page assets that live beside this module
+                f = HTML.with_name(path[1:])
+                return self.send(200, f.read_bytes(), "text/javascript; charset=utf-8" if path.endswith("js") else "text/css; charset=utf-8") if f.is_file() else self.send(404, {})
             if path == "/state":
                 d = load(rj)
                 d["theme"] = theme()
@@ -1270,11 +1273,20 @@ def make_handler(folder, token):
                 return self.send(403, {"error": "open the page with the URL review.py printed"})
             if not askhook.same_origin(self):   # a POST from another site's page, even with the cookie
                 return self.send(403, {"error": "not from this page"})
+            path = urlsplit(self.path).path
+            if path == "/dictate":   # chat.js's mic: raw audio in, {text, lang, secs} out
+                n = int(self.headers.get("Content-Length") or 0)
+                if n > 25 << 20:
+                    return self.send(413, {"error": "That recording is too long.", "code": "failed"})
+                try:
+                    lang = parse_qs(urlsplit(self.path).query).get("lang", [None])[0]
+                    return self.send(200, dictate.transcribe(self.rfile.read(n), self.headers.get("Content-Type") or "audio/webm", lang))
+                except dictate.DictateError as e:
+                    return self.send(400, {"error": str(e), "code": e.code})
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
             except ValueError:
                 return self.send(400, {"error": "not json"})
-            path = urlsplit(self.path).path
             if askhook.route(self, "POST", path, {}, body):
                 return
             if path == "/theme":   # the toggle: one choice for the window and every review page
@@ -1650,6 +1662,7 @@ def serve(folder, port=0, open_browser=True):
         f.write(url)   # private: the token in it lets a page in
     if os.name != "nt":
         os.chmod(last, 0o600)
+    dictate.warm()   # the transcription worker loads now, so the first dictation is quick
     askhook.register(srv, url, "review", asker(folder, askhook.session()), lambda sid: folder / "review", folder)
     if open_browser:
         show(url, folder)
@@ -2073,10 +2086,8 @@ def alive(pid):
 
 
 def on_battery():
-    """True when a laptop runs on its battery (macOS pmset, Linux power_supply). Unknown: False."""
+    """True when a laptop runs on its battery (Linux power_supply). Unknown: False."""
     try:
-        if sys.platform == "darwin":
-            return "Battery Power" in subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, timeout=5).stdout
         if sys.platform.startswith("linux"):
             mains = [p for p in Path("/sys/class/power_supply").glob("*") if (p / "type").is_file()
                      and (p / "type").read_text(encoding="utf-8").strip() == "Mains"]
@@ -2343,8 +2354,8 @@ def learn_prompt(folder, d):
              f"  python3 {Path(__file__).resolve()} {folder} learn --propose "
              f"'[{{\"rule\": \"...\", \"section\": \"cut|captions|visuals|sound|layout\", \"set\": \"captions.size_pct=4.5\"}}]'",
              "  (or a path to a .json file holding that list). \"set\" only when a taste setting maps (the taste "
-             "skill's table). Then run `wait` again: it returns with the rules the user ticked. The skill-improver "
-             "skill has the steps (one-offs stay with the video, sharpen an old rule rather than add a twin)."]
+             "skill's table). Then run `wait` again: it returns with the rules the user ticked. One-offs "
+             "stay with the video; sharpen an old rule rather than add a twin."]
     try:
         from ai_editor import skillrules
         tg = skillrules.target(folder)
