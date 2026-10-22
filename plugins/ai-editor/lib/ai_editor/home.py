@@ -2130,6 +2130,25 @@ PLAIN = ("The user is not a professional editor. Reply in short, plain words: wh
          "instead. Technical words are fine when they asked for a breakdown (cuts, zooms, colours, fonts, timings).")
 
 
+# Which skills a project's chat uses, by its kind: the room never does by hand what a skill does, and a Motion Studio
+# film stays on its own engine (the user's rule, 2026-10-22). Skills are named as Claude Code loads them (plugin:skill).
+ROOM_SKILLS = {
+    "edit": ("Do the work with the editor's skills (load each with the Skill tool before its first step), never by hand: "
+             "ai-editor:cut to cut talking footage, ai-editor:style-edit to style and render it, ai-editor:overlays to change "
+             "one moment of a rendered edit (it re-renders only the frames that changed), ai-editor:clips for shorts from a "
+             "long video, ai-editor:product-video for a video from a website, ai-editor:logo-pack for logos, ai-editor:motion "
+             "for animated clips over footage, ai-editor:post to post it. A one-off trim or join may use ffmpeg directly."),
+    "talking-head": ("Do the work with the editor's skills (load each with the Skill tool): ai-editor:cut for the cut, "
+                     "ai-editor:style-edit for the styled edit, ai-editor:overlays to change one moment of a rendered edit."),
+    "motion": ("This is a Motion Studio film. Use the ai-editor:motion-film skill (Skill tool) for every change, and only the "
+               "Motion Studio engine: the film's film.html, rendered by the engine's render.mjs. Never Remotion, HyperFrames, "
+               "the ai-editor:motion skill, ffmpeg drawing or a generated video in its place. A change to a made film goes "
+               "through that skill's notes step (the motion-reviser agent) and renders again only the seconds that changed "
+               "(render.mjs --range); say which seconds."),
+}
+TASTE = "When the user states a preference about their videos, save it with the ai-editor:taste skill."
+
+
 def chat_send(slug, text, context=None):
     """-> turn id. KeyError for an unknown project."""
     p = projects.show(slug) if slug else None
@@ -2147,7 +2166,7 @@ def chat_send(slug, text, context=None):
                         f"`python3 {Path(library.__file__).resolve()} finish <video> --project {slug}`: it copies the video "
                         f"to the user's finished folder ({library.finished_path(False)}). Tell the user it is in their finished "
                         f"folder: the page has a button that opens it.")
-        head.append(PLAIN)
+        head += [ROOM_SKILLS.get(p["kind"], ROOM_SKILLS["edit"]), TASTE, PLAIN]
     if context:
         head.append(str(context).strip())
     tid = chat.start(text, sid or None, context="\n".join(head) or None)
@@ -3728,6 +3747,10 @@ def demo():
         chat.start = _start
     assert f"finish <video> --project {ep}" in seen[0] and str(project_dir(ep)) in seen[0], seen
     assert PLAIN in seen[0], "the chat is told to answer in plain words, without paths"
+    assert ROOM_SKILLS["edit"] in seen[0] and "ai-editor:overlays" in seen[0] and TASTE in seen[0], "the room names its skills"
+    assert all(k in ROOM_SKILLS for k in projects.KINDS), "every kind of project names its skills"
+    assert "ai-editor:motion-film" in ROOM_SKILLS["motion"] and "render.mjs --range" in ROOM_SKILLS["motion"] \
+        and "Never Remotion" in ROOM_SKILLS["motion"], "a film stays on its engine and renders only what changed"
     made = project_dir(ep) / "final.mp4"
     shutil.copyfile(vid, made)
     pv = get(f"/project?slug={ep}")["videos"]

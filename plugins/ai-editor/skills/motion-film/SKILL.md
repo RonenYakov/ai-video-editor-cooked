@@ -23,6 +23,15 @@ idea + refs + brand -> refs.py measure -> BRIEF.md -> assets, grids
   -> draft -> notes [review page] -> motion-reviser (opus, medium) -> final render -> mux
 ```
 
+**The engine, always.** Every Motion Studio film is drawn by `FILM/film.html` and rendered by `$ENGINE/render.mjs`,
+never by Remotion, HyperFrames, the `motion` skill's clips, ffmpeg drawing or a generated (Higgsfield) video. A
+generated image or shot is only an asset inside `film.html`, and only when the user asked for it.
+
+**Re-render only what changed.** `render.mjs` keeps each render in 1-second pieces (`out/seg-<format>/`) and renders
+again only the pieces whose frames changed. After notes pass `--range <a-b>` with the seconds they named; never
+`--full` unless the user asks or the joined video looks wrong. Say which seconds were rendered again
+(`out/render-<format>.json` `rendered_at`), never "re-rendered the video".
+
 Main-session gates (the frames, draft notes) stay here: a subagent cannot ask the user anything. Nothing skips
 ahead: `render.mjs` refuses any render of a home-page film (`.gate`) until the user approved this beat sheet's stills
 (`beats.approved.json`, written by the review page; never write it yourself). Never claim a render worked without
@@ -54,7 +63,7 @@ Engine missing (no `$ENGINE/render.mjs`) or `setup.py doctor` shows `motion engi
 python3 "${CLAUDE_PLUGIN_ROOT}/lib/ai_editor/profile.py" show
 ```
 
-Read the taste rules too (`taste.py show`, style-edit step 0) and follow them.
+Read the taste rules too (`taste.py show`, style-edit step 0) and follow them. A missing ref field: leave it.
 
 ## 1. References
 
@@ -164,13 +173,14 @@ python3 "$R" "$FILM" wait
 
 `serve` and `wait` in the background. Each round of notes (a time and a text) goes to the `motion-reviser` agent
 (`${CLAUDE_PLUGIN_ROOT}/agents/motion-reviser.md`, opus, effort "medium" on the launch) with `FILM`, `ENGINE` and the
-notes verbatim. It fixes, re-probes and re-renders the draft and returns a short JSON. Check the new draft exists,
+notes verbatim. It fixes, re-probes and re-renders only the changed seconds of the draft. Check the new draft exists,
 then `python3 "$R" "$FILM" round --video <new draft> --stage edit --note "<what changed>"` and wait again.
 A note that changes the beat sheet (a beat added, removed or reordered) goes back through step 4 first.
 
 ## 7. Final
 
-On APPROVE, per format the user wants (`film.config.json` `formats`):
+On APPROVE, per format the user wants (`film.config.json` `formats`). Notes after a final: fix, then the same two
+commands with `--range` on render; only the changed seconds render again.
 
 ```bash
 node "$ENGINE/render.mjs" "$FILM" --format 9:16
@@ -182,18 +192,8 @@ before saying it is done. Output stays in `FILM/out/` inside the library. Report
 formats; report nothing you did not measure. Mux normalizes to -14 LUFS. Then `home.py status motion --done` with
 `--result '{"film": "<FILM>", "video": "<final path>"}'`.
 
-## If a script stops
-
-| message | do |
-|---|---|
-| `Cannot find` / no `render.mjs` in ENGINE | `setup.py motion-engine`, then the same command |
-| `no Chrome Headless Shell` | `setup.py remotion`, then again |
-| probe fails: undeclared jump, dead stretch, loop seam | the builder fixes it; declare only cuts meant, in `film.config.json` `cuts` |
-| `no render found` (sheets.mjs) | render the draft first: `render.mjs "$FILM" --draft` |
-| `no beats in ...beats.sheet.json` | write the sheet as in step 4 |
-| a ref field missing | leave it; the beat falls back to the engine's springs |
-
 ## Files
 
+- A script stopped: `${CLAUDE_SKILL_DIR}/references/if-a-script-stops.md` (each message and what to do).
 - `scripts/refs.py` (add, measure, demo); `${CLAUDE_PLUGIN_ROOT}/motion-engine/` (render, probe, preview, tools).
 - `${CLAUDE_PLUGIN_ROOT}/agents/motion-builder.md` (opus, xhigh), `motion-reviser.md` (opus, medium).

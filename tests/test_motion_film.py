@@ -4,7 +4,7 @@
     python tests/test_motion_film.py            every check; needs node, ffmpeg and the engine's playwright-core
                                                 (plugins/ai-editor/motion-engine: npm install, or setup.py motion-engine)
 
-Checks: a film renders; probe passes a smooth film, fails an undeclared jump, passes it once declared; a grade
+Checks: a film renders; a re-render renders only the pieces that changed (or --range names), and joins them exactly; probe passes a smooth film, fails an undeclared jump, passes it once declared; a grade
 moves saturation the way it says; still.mjs draws one frame per beat; ease() matches GSAP's formulas; a reference
 measured by refs.py feeds a render's grade; the builder and reviser agents pin their model and effort.
 """
@@ -103,6 +103,32 @@ def run_checks(tmp):
     def renders():
         render(film(tmp, "renders"))
     check("a film renders a draft", renders)
+
+    def pieces():   # half-second pieces: only the changed ones render again, and the joined video stays whole
+        d = film(tmp, "pieces", duration=2, segment=0.5)
+        rep = lambda: json.loads((d / "out" / "render-9x16-draft.json").read_text(encoding="utf-8"))
+        frames = lambda: int(subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v", "-show_entries",
+                                             "stream=nb_read_frames", "-of", "csv=p=0", str(render_out)], capture_output=True, text=True).stdout)
+        render_out = render(d)
+        assert (rep()["rendered"], rep()["pieces"], frames()) == (4, 4, 60), (rep(), frames())
+        render(d)
+        assert rep()["rendered"] == 0, f"nothing changed, yet {rep()}"
+        (d / "film.html").write_text(FILM % 1.5, encoding="utf-8")   # only 1.5 s on looks different
+        render(d)
+        assert (rep()["rendered"], rep()["rendered_at"], frames()) == (1, "1.5-2s", 60), (rep(), frames())
+        render(d, "--range", "0.2-0.4")
+        assert rep()["rendered_at"] == "0-0.5s", rep()
+        render(d, "--full")
+        assert rep()["rendered"] == 4, rep()
+        whole = Path(tmp) / "whole.mp4"   # the joined pieces match one straight render of the changed film
+        shutil.copy(render_out, whole)
+        (d / "film.config.json").write_text(json.dumps({**json.loads((d / "film.config.json").read_text(encoding="utf-8")), "segment": 2}), encoding="utf-8")
+        render(d)
+        r = subprocess.run(["ffmpeg", "-i", str(whole), "-i", str(render_out), "-lavfi", "psnr", "-f", "null", "-"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        m = re.search(r"average:(inf|[\d.]+)", r.stderr)
+        assert m and (m[1] == "inf" or float(m[1]) > 40), r.stderr[-400:]
+    check("pieces: a re-render renders only what changed, --range forces, --full renders all", pieces)
 
     def gate():   # a cooked. film (.gate) renders nothing until review.py recorded Approve on this exact beat sheet
         d = film(tmp, "gated")

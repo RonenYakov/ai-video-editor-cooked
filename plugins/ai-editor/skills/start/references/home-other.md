@@ -26,8 +26,9 @@ and need no job.
 
 ### `JOB motion <name> format=<f> film=<FILM> refs=<FILM>/refs.json root=<library> idea=<one line>`
 
-The user pressed "New motion video". The film folder, its `refs/` and `refs.json` already exist. Run the
-motion-film skill from its step 1 with that `FILM`. Report each step with `status motion --step "..."`, and at
+The user pressed "New motion video". The film folder, its `refs/` and `refs.json` already exist. Load the
+`ai-editor:motion-film` skill with the Skill tool and run it from its step 1 with that `FILM`, on the Motion Studio
+engine only (that skill's rule): never Remotion, HyperFrames or the `motion` skill for a film. Report each step with `status motion --step "..."`, and at
 the end `status motion --result '{"film": "<FILM>", "video": "<final path>"}' --done`.
 
 ### Connect Modal and Test render (no job for Claude)

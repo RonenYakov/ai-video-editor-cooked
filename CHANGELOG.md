@@ -4,6 +4,9 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- Motion Studio re-renders only what changed. A film renders in 1-second pieces; after a note, a quick low-size pass finds the seconds whose frames changed and only those render again, then the pieces are joined without re-encoding. On the 9 s test film, a change in the last 3 seconds rendered in 1.5 min instead of 3.8, and the untouched 6 seconds stayed bit for bit the same. Claude says which seconds it rendered again.
+- Motion Studio films always use the Motion Studio engine: the skill, both film agents, the motion job and the project chat now say so, never Remotion, HyperFrames or a generated video in its place.
+- Each project's chat is told which skills to use for its kind (cut, style-edit, overlays, clips and the rest for Edit a video and Talking head; motion-film for Motion Studio), and to save a stated preference with the taste skill, so it no longer does by hand what a skill does.
 - The video review page matches Home: beside the project's name, its kind (Edit a video, Talking head or Motion Studio) in its colour, a pill saying whose turn it is (Your turn, Claude is on it, Done), and the Approve and Submit buttons in the kind's colour. A vertical video's player is vertical from the start, not wide until the video loads.
 - A Motion Studio film's video review starts clean after you approve its frames: it shows the video (not the frames again), under the project's name, waiting for your approval. Before, the frames' approval counted as the video's, so the page offered Undo approve and the project stayed Working.
 - The Motion Studio frames page is redesigned. Each frame shows whole at 9:16, big, with "What you see" and "How it moves" under it. The project's name, the Motion Studio colour and a Your turn pill sit at the top, and the brief shows beside the frames, so you approve both at once.

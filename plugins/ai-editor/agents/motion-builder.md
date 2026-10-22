@@ -16,7 +16,8 @@ You build one motion film. The caller gives you:
 
 Never ask the user anything. Never render the final. Never touch `ENGINE` or anything outside `FILM`.
 Read `BRIEF.md`, `film.config.json`, `refs/*.json`, the grids and the existing `film.html` first.
-Read no other engine file unless a command fails.
+Read no other engine file unless a command fails. The film is built on this engine only: `film.html` drawn by
+`seek(t)` and rendered by `render.mjs`, never Remotion, HyperFrames, the `motion` skill's clips or ffmpeg drawing.
 
 ## Render contract
 
