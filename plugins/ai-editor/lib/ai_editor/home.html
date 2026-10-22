@@ -535,6 +535,7 @@ body.rh main.hmain{padding:28px 40px 32px}
 .st-in input{flex:1;min-width:0;border:0;outline:0;font:13px var(--mono);background:none;color:var(--ink)}
 .st-in button{border:0;background:none;color:var(--t3);font-size:13px;padding:0 12px}
 .st-mask{display:flex;align-items:center;background:var(--bg);color:var(--t2);letter-spacing:.04em}
+.st-use{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:18px;color:var(--t2)}.st-use .spill{flex-shrink:0}
 .st-acts{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;font-size:13px}
 .st-acts a,.st-perm a{color:var(--ink);font-size:13px}
 .st-ink{color:var(--ink)!important;font-weight:600}
@@ -2607,8 +2608,11 @@ function stKey(k){
   else body=`<div class="fld"><div class="in2 mask">•••• •••• ${esc(st.last4||'••••')}</div>${st.env?'':`<button class="b2" onclick="ui.keys['${k.id}']={edit:1};render()">Replace</button>`}</div>
     ${c&&!c.ok?`<div class="msg bad">${CROSS}<span>${esc(c.msg[0].toUpperCase()+c.msg.slice(1))}</span></div>`:''}
     <div class="lks"><button class="ul" ${u.busy?'disabled':''} onclick="stCheck('${k.id}')">${c?'Check again':'Check it'}</button>${st.env?'<span class="q2">Change it where the variable is set.</span>':ui.strm===k.id?`<span class="q2">Remove this key? ${k.id==='zernio'?'Posting stops until you add one again.':'Format analysis stops using it too.'}</span><button class="ul" style="font-weight:600" onclick="stRemove('${k.id}')">Remove</button><button class="ul q" onclick="ui.strm=null;render()">Keep it</button>`:`<button class="ul q" onclick="ui.strm='${k.id}';render()">Remove</button>`}</div>`;
-  return `<div class="sk"><div class="tp"><span class="lt" style="background:${KLT[k.id]||'var(--soft)'}">${logo(k.id,18)}</span><div style="min-width:0;flex:1"><div class="nm">${k.name}</div><div class="ds">${KDS[k.id]||k.tag}</div></div><span class="ss ${cls}">${state}</span></div>${body}</div>`;
+  return `<div class="sk"><div class="tp"><span class="lt" style="background:${KLT[k.id]||'var(--soft)'}">${logo(k.id,18)}</span><div style="min-width:0;flex:1"><div class="nm">${k.name}</div><div class="ds">${KDS[k.id]||k.tag}</div></div><span class="ss ${cls}">${state}</span></div>${body}${stUse(st.usage)}</div>`;
 }
+// what the paid uses cost so far (usage.py: worked out from the audio length at the list price, an upper estimate)
+const usd=v=>v<0.01?'under $0.01':'$'+v.toFixed(2);
+const stUse=u=>!u||!u.uses?'':`<div class="st-use"><span class="spill st-work">Paid</span><span>Used ${u.uses} time${u.uses===1?'':'s'}, about ${usd(u.usd)} so far. Last: ${esc(u.last.what)}, ${(u.last.seconds/60).toFixed(1)} min of audio, about ${usd(u.last.usd)}.</span></div>`;
 // ---- Settings: posting through the user's own Zernio (post.py). Any number of accounts per platform: each sign-in adds one.
 const ZK={id:'zernio',name:'Zernio',tag:'posts your videos',cost:'',url:'https://zernio.link/maximus-soares'};
 const PCON=[['instagram','Instagram'],['tiktok','TikTok'],['youtube','YouTube'],['facebook','Facebook'],['linkedin','LinkedIn'],['twitter','X'],['threads','Threads']];

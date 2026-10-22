@@ -90,6 +90,7 @@ import dictate  # noqa: E402
 import keys  # noqa: E402
 import post  # noqa: E402
 import library  # noqa: E402
+import usage  # noqa: E402
 import links  # noqa: E402
 import live  # noqa: E402
 import presets  # noqa: E402
@@ -1425,6 +1426,8 @@ def key_rows(d=None):
         out[n] = {"set": bool(k), "env": bool(k) and not str(where).endswith(".env"),
                   "last4": k[-4:] if k and len(k) >= 12 else None,
                   "check": {x: c[x] for x in ("ok", "msg", "at")} if k and c.get("last4") == k[-4:] else None}
+        if n == "elevenlabs":
+            out[n]["usage"] = usage.summary(n)   # what each paid use cost (usage.py)
     return out
 
 
@@ -3488,6 +3491,10 @@ def demo():
     assert st["keys"]["gemini"]["last4"] == "ssss" and st["keys"]["gemini"]["check"]["ok"] and "keychecks" not in st
     keys.save("elevenlabs", "sk_" + "e" * 30)
     assert get("/state")["keys"]["elevenlabs"]["check"] is None   # saved elsewhere: never checked here
+    assert get("/state")["keys"]["elevenlabs"]["usage"]["uses"] == 0
+    usage.record("elevenlabs", "take.mov", 192, usage.scribe_cost(192))   # one paid transcription: Settings says what it cost
+    eu = get("/state")["keys"]["elevenlabs"]["usage"]
+    assert eu["uses"] == 1 and eu["last"]["what"] == "take.mov" and eu["usd"] == usage.scribe_cost(192), eu
     keys._get = lambda *a: (401, "bad")
     try:
         r = post("/key/check", {"name": "gemini"})

@@ -56,7 +56,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
-from ai_editor import keys, models, net, progress  # noqa: E402
+from ai_editor import keys, models, net, progress, usage  # noqa: E402
 
 HOME = models.HOME
 # Whisper tidies speech by default. A prompt full of hesitations makes it keep
@@ -356,8 +356,20 @@ def demo_cache():
     HOME = old
 
 
+def demo_meter():
+    import wave
+    with tempfile.TemporaryDirectory() as t:
+        f = Path(t) / "a.wav"
+        with wave.open(str(f), "wb") as w:   # 3 minutes of 16 kHz silence: what extract_audio writes
+            w.setnchannels(1), w.setsampwidth(2), w.setframerate(16000), w.writeframes(b"\0\0" * 16000 * 180)
+        secs, usd = scribe_meter(f, [])
+        assert round(secs) == 180 and usd == usage.scribe_cost(180) == 0.011, (secs, usd)
+        assert scribe_meter(f, ["Jev"])[1] == usage.scribe_cost(180, keyterms=True) > usd, "keyterms cost more"
+
+
 def demo():
     demo_cache()
+    demo_meter()
     t = keyterms_from("# Intro\nToday I built it with Claude Code and GPT-4o. The API costs $20.\n"
                       "Then I asked Claude again. It's 3x faster than Jev's, in 2 s.")
     assert t == ["Intro", "Claude", "Code", "GPT-4o", "API", "20", "3x", "Jev"], t
@@ -443,10 +455,26 @@ def transcribe(a, engine, terms):
         extract_audio(a.media, wav)
         print(f"engine {engine}", flush=True)
         if terms and engine != "crisper":
-            print(f"keyterms   {len(terms)}" + (" (+20% on this Scribe request)" if engine == "scribe" else "")
+            print(f"keyterms   {len(terms)}" + (" (+$0.05 an hour on this Scribe request)" if engine == "scribe" else "")
                   + ": " + ", ".join(terms[:8]), flush=True)
         run = {"whisper": run_whisper, "crisper": run_crisper}.get(engine)
-        return run(wav, a.lang, terms) if run else run_scribe(wav, find_key(), a.lang, terms)
+        if run:
+            return run(wav, a.lang, terms)
+        secs, usd = scribe_meter(wav, terms)   # paid: say what this use costs, on the job and in Settings
+        print(f"ElevenLabs: {usage.line(secs, usd)}", flush=True)
+        if a.out:
+            progress.step("Writing down every word", detail=f"ElevenLabs, {usage.line(secs, usd)}", job="video", key=Path(a.out).parent)
+        words = run_scribe(wav, find_key(), a.lang, terms)
+        usage.record("elevenlabs", Path(a.media).name, secs, usd)
+        return words
+
+
+def scribe_meter(wav, terms):
+    """(seconds of audio, USD) for one Scribe request on this wav."""
+    import wave
+    with wave.open(str(wav)) as w:
+        secs = w.getnframes() / float(w.getframerate() or 1)
+    return secs, usage.scribe_cost(secs, keyterms=bool(terms))
 
 
 def write(out, words):

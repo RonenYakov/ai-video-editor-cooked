@@ -4,6 +4,7 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- Each paid transcription (ElevenLabs, talking head) says what it cost: the minutes of audio and about how much, on the job while it runs and in Settings beside the key, with the total so far. Worked out at the list price, so it is an upper estimate.
 - A warmer, friendlier look, light by default (dark stays on the switch). Colour now means two things only. Each kind of project has its colour: blue for Edit a video, coral for Talking head, violet for Motion Studio. Each project's state has its colour and a word: amber Working, pink Your turn, green Done, red Stopped.
 - Home is "What are we making today?": three big doors, then the projects waiting for you, then your recent projects. Analysing a format no longer takes over Home. It opens from Getting started or from Styles.
 - The project chat folds Claude's tool calls into one line in plain words ("Running a command · 3 steps"). Click it to see each call. Claude answers in plain words, without file paths unless you ask.
