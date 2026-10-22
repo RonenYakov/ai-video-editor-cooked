@@ -1911,15 +1911,15 @@ const OKDOT=`<b class="okd">${'<svg width="12" height="12" viewBox="0 0 24 24" f
 // the sidebar's Getting started block: gone once all three are done
 function gsBlock(){
   if(gsDone())return '';
-  const g=GS(),rows=[['setup','Set up'],['style','Analyse a format'],['video','Make your first video']],cur=Math.max(0,rows.findIndex(([k])=>!g[k]));
+  const g=GS(),rows=[['setup','Set up'],['style','Analyse a format (optional)'],['video','Make your first video']],cur=Math.max(0,rows.findIndex(([k])=>!g[k]&&k!=='style'));   // the optional step is never the one you are on
   const sj=latest('setup'),pct=sj&&sj.state==='taken'?readyPct():null,frac=(rows.filter(([k])=>g[k]).length+(cur===0&&pct!=null?pct/100:0))/3;
   const nd=rows.filter(([k])=>g[k]).length,early=!g.setup&&!g.style&&pct!=null;   // setup running: step 2 can start now
   // the sample sits inside the card: tried (it does not count as your first video), being made, or the offer
   const sv=(L?L.videos:[]).find(v=>v.sample),busy=(ui.sample||{}).busy;
   const smp=g.video?'':g.sample?`<div class="gr done smp">${OKDOT}<span>Tried the sample</span></div>`:sv?`<div class="gr smp"><i></i><span>Trying the sample</span></div>`
     :`<button class="sb-smp" ${busy?'disabled':''} onclick="event.stopPropagation();trySample()">No footage handy? <u>${busy?'Getting the sample video...':'Try it with a sample video'}</u></button>`;
-  return `<div class="sb-gs" role="button" tabindex="0" onclick="${g.setup&&!g.style?'obAnalyseNow()':'goHome()'}" onkeydown="if(event.key==='Enter'&&event.target===this)this.click()"><div class="tp"><b>Getting started</b><span>${nd} of 3 done</span></div>
-    ${rows.map(([k,l],i)=>`<div class="gr ${g[k]?'done':i===cur?'cur':''}">${g[k]?OKDOT:'<i></i>'}<span>${l}</span>${i===cur&&k==='setup'&&pct!=null?`<em>${pct}%</em>`:''}${k==='style'&&early?`<button class="ul q" onclick="event.stopPropagation();obAnalyseNow()">Start</button>`:''}</div>`).join('')}
+  return `<div class="sb-gs" role="button" tabindex="0" onclick="goHome()" onkeydown="if(event.key==='Enter'&&event.target===this)this.click()"><div class="tp"><b>Getting started</b><span>${nd} of 3 done</span></div>
+    ${rows.map(([k,l],i)=>`<div class="gr ${g[k]?'done':i===cur?'cur':''}">${g[k]?OKDOT:'<i></i>'}<span>${l}</span>${i===cur&&k==='setup'&&pct!=null?`<em>${pct}%</em>`:''}${k==='style'&&!g[k]&&(early||g.setup)?`<button class="ul q" onclick="event.stopPropagation();obAnalyseNow()">Start</button>`:''}</div>`).join('')}
     <div class="trk"><i style="width:${Math.round(frac*100)}%"></i></div>${smp}</div>`;
 }
 function obAnalyseNow(){ui.obOn=true;ui.ob=null;rgo('home')}   // step 2 while setup keeps going
@@ -2652,9 +2652,9 @@ function stFolder(){
 // the theme: the same choice as the sidebar button and every review page (POST /theme, ui.json)
 function stTheme(t){applyTheme(t);themeAt=Date.now();post('/theme',{theme:t});S.theme=t;render()}
 function stLook(){
-  const cur=document.documentElement.dataset.theme||'system';
-  const sw={light:'<i style="background:#FAFAF9"></i>',dark:'<i style="background:#161413"></i>',system:'<i style="background:linear-gradient(135deg,#FAFAF9 50%,#161413 50%)"></i>'};
-  return `<div class="scd" style="flex-direction:row;align-items:center;justify-content:space-between;padding:16px 20px"><b style="font-size:17px;line-height:22px">Theme</b><div class="seg3">${['light','dark','system'].map(t=>`<button class="${cur===t?'on':''}" onclick="stTheme('${t}')">${sw[t]}${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>`;
+  const cur=isDark()?'dark':'light';   // light unless dark is picked: the OS setting no longer switches it
+  const sw={light:'<i style="background:#FFFDFA"></i>',dark:'<i style="background:#141110"></i>'};
+  return `<div class="scd" style="flex-direction:row;align-items:center;justify-content:space-between;padding:16px 20px"><b style="font-size:17px;line-height:22px">Theme</b><div class="seg3">${['light','dark'].map(t=>`<button class="${cur===t?'on':''}" onclick="stTheme('${t}')">${sw[t]}${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>`;
 }
 function vSettings(){
   return `<div class="pgc"><div class="ph"><h1>Settings</h1><p>Keys, where your videos live, and the look.</p></div><div class="sgrid">
