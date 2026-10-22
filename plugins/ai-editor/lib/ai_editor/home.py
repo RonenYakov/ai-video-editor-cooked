@@ -1528,6 +1528,50 @@ def start_modal(kind):
     return j
 
 
+def motion_args(d, b):
+    """New motion video: the film folder (refs/, refs.json) and the job args from a /job body. -> (args, None) or (None, (code, message))."""
+    name = re.sub(r"[^a-z0-9]+", "-", str(b.get("name") or "").lower()).strip("-")[:40].rstrip("-")
+    idea = re.sub(r"\s+", " ", str(b.get("idea") or "")).strip()[:300]
+    if not name:
+        return None, (400, "Give the film a name.")
+    if not idea and not any(isinstance(x, dict) and str(x.get("source") or "").strip() for x in b.get("refs") or []):   # references can stand in for the idea
+        return None, (400, "Add a reference or say the idea in one line.")
+    root = Path(d["root"]).resolve()
+    film = root / "films" / name
+    if film.exists():
+        return None, (409, f"A film called {name} already exists. Pick another name.")
+    uploads, refs = root / "references", []
+    (film / "refs").mkdir(parents=True)
+    for x in [x for x in b.get("refs") or [] if isinstance(x, dict)][:20]:
+        src, take = str(x.get("source") or "").strip(), re.sub(r"\s+", " ", str(x.get("take") or "")).strip()[:300]
+        if src.lower().startswith(("http://", "https://")):
+            keep = src
+        elif re.fullmatch(r"@?[a-z0-9._-]+", src.lower()) and (root / "creator-teardowns" / src.lower().lstrip("@")).is_dir():
+            keep = "@" + src.lower().lstrip("@")   # an analysed creator
+        else:   # a file the page uploaded to references/ (never any other file on the disk): copied into this film
+            f = Path(src).resolve()
+            if f.parent != uploads or not f.is_file() or not f.name.lower().endswith(MOTION_REF_EXT):
+                continue
+            keep = str(film / "refs" / f"ref{len(refs) + 1}-{f.name}")
+            shutil.copyfile(f, keep)
+        role = str(x.get("role") or "").lower()
+        refs.append({"id": f"ref{len(refs) + 1}", "source": keep, "take": take or "the whole look",
+                     **({"role": role} if role in ("brand", "style", "both") else {})})
+    if not idea and not refs:   # every reference was a file we do not take
+        shutil.rmtree(film)
+        return None, (400, "Add a reference or say the idea in one line.")
+    (film / "refs.json").write_text(json.dumps(refs, indent=1), encoding="utf-8")
+    args = {"name": name, "idea": idea, "format": b.get("format") if b.get("format") in ("9:16", "1:1", "16:9") else "9:16",
+            "film": str(film), "refs": str(film / "refs.json")}
+    if str(b.get("lang") or "").lower() in ("he", "en"):
+        args["lang"] = str(b["lang"]).lower()
+    note = str(b.get("note") or "").strip()[:4000]   # the project's optional brief: a file, so the job line stays one line
+    if note:
+        (film / "note.md").write_text(note + "\n", encoding="utf-8")
+        args["note"] = str(film / "note.md")
+    return args, None
+
+
 # ---------------------------------------------------------------- queueing jobs
 def queue(d, kind, args):
     j = {"id": f"{kind}-{sum(x['type'] == kind for x in d['jobs']) + 1}", "type": kind, "args": args,
@@ -1593,7 +1637,7 @@ def job_line_base(j, root):
             (f" chain={a['chain']}" if a.get("chain") else "") + (" sample=1" if a.get("sample") else "") + \
             (f" assets={Path(a['edit']) / 'assets.json'}" if a.get("edit") and (Path(a["edit"]) / "assets.json").exists() else "") + f" root={root}"
     if j["type"] == "motion":
-        return f"JOB motion {a['name']} format={a['format']} film={a['film']} refs={a['refs']} root={root} idea={a['idea']}"
+        return f"JOB motion {a['name']} format={a['format']} film={a['film']} refs={a['refs']}" + (f" note={a['note']}" if a.get("note") else "") + f" root={root} idea={a['idea']}"
     if j["type"] == "style-change":
         return f"JOB style-change {'my-style' if a['style'] == 'mine' else a['style']}" + \
             (f" style={a['path']}" if a.get("path") else "") + f" text={a['text']}"
@@ -1882,9 +1926,37 @@ def cmd_status(a):
     if j is None:
         print(f"no {a.job} job on the page" + (" for this Claude session" if askhook.session() else ""))
         return 1   # progress.py reads the exit code: nothing was written
+    if a.done and a.job == "motion" and j:   # the film's final render now exists: it joins the Finished folder
+        deliver_all([j["result"].get("film") or j["args"].get("film")])
     if a.job == "setup" and (a.step or a.done or a.failed):   # a step finished: the tool rows tick as it goes
         run_doctor()
     print(f"{j['id']}: {j['state']}" + (f", {a.step}" if a.step else ""))
+
+
+def deliver_all(dirs):
+    """library.deliver each folder (done edits only); a copy that fails (disk full, folder gone) waits for the sweep."""
+    n = 0
+    for x in dirs:
+        try:
+            n += bool(x and library.deliver(Path(x)))
+        except (OSError, ValueError, TimeoutError):
+            pass
+    return n
+
+
+_SWEPT = [0.0]
+
+
+def sweep_finished(every=20):
+    """The poll's safety net: done edits not copied yet (approved while the server was down, a film finished by another
+    Claude) are delivered. At most one scan per `every` seconds; the scan reads each review.json only."""
+    if time.time() - _SWEPT[0] >= every:
+        _SWEPT[0] = time.time()
+        deliver_all(library.undelivered())
+
+
+def finished_state():
+    return {"path": str(library.finished_path(False)), "count": library.finished_count()}
 
 
 # ---------------------------------------------------------------- projects and chat
@@ -1988,14 +2060,42 @@ def chat_watch(tid, slug):
         print(f"chat save failed: {e}", file=sys.stderr)
 
 
+def start_film(p, text):
+    """A motion project with references and no film yet: its first message starts the film (the message is the idea).
+    -> a finished turn id carrying the reply, or None when this is an ordinary chat message."""
+    if p["edits"] or not p["refs"] or any(j["type"] == "motion" and j.get("project") == p["slug"] and j["state"] in ("queued", "taken")
+                                          for j in read()["jobs"]):
+        return None
+    name, taken = p["slug"], {x.name for x in (Path(read()["root"]) / "films").glob("*")}
+    for n in range(2, 99):
+        if name not in taken:
+            break
+        name = f"{p['slug']}-{n}"
+    args, err = motion_args(read(), {"name": name, "idea": text, "note": p.get("note"), "refs": [{"source": r} for r in p["refs"]]})
+    if err:
+        return None
+    j = update(lambda d: queue(d, "motion", args))
+    attach(p["slug"], j["id"], edits=[args["film"]])
+    claude_unless_idle(j["id"])
+    n = len(json.loads(Path(args["refs"]).read_text(encoding="utf-8")))
+    reply = f"Started your film from {n} reference{'s' * (n != 1)}. I will tell you when it is ready."
+    chat_append(p["slug"], {"role": "user", "text": text, "at": now()})
+    chat_append(p["slug"], {"role": "assistant", "text": reply, "tools": [], "at": now()})
+    return chat.say(reply)
+
+
 def chat_send(slug, text, context=None):
     """-> turn id. KeyError for an unknown project."""
     p = projects.show(slug) if slug else None
     sid = p and p.get("chat_session")
+    if p and p["kind"] == "motion":
+        started = start_film(p, text)
+        if started:
+            return started
     head = []
     if p:   # passed as context, not pasted in: chat.start uses it for a first message and for a session it had to
         head.append(f"Project {p['name']} ({p['kind']}), folder links: sources={p['sources']} refs={p['refs']} edits={p['edits']}, "
-                    f"library: {library.path()}")
+                    f"library: {library.path()}" + (f", note={p['note']!r}" if p.get("note") else ""))
     if context:
         head.append(str(context).strip())
     tid = chat.start(text, sid or None, context="\n".join(head) or None)
@@ -2079,6 +2179,8 @@ def make_handler(token):
                     return self.send(200, {"accounts": [], "msg": str(e)})
             if path == "/state":
                 d = read()
+                sweep_finished()
+                d["finished"] = finished_state()
                 d["listening"], d["keys"], d["theme"] = listening(), key_rows(d), theme()
                 d["modal"] = modal_state()
                 d.pop("keychecks", None)
@@ -2307,6 +2409,18 @@ def make_handler(token):
                 return self.send(200, added(probe(body.get("path") or "")))
             if path == "/job":
                 return self.job(body)
+            if path == "/finished/open":   # the Finished folder in Finder / Explorer
+                subprocess.Popen(library.reveal_cmd(library.finished_path()), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return self.send(200, finished_state())
+            if path == "/finished/set":   # a different Finished folder: copies already made stay where they are
+                try:
+                    if not isinstance(body.get("path"), str) or not body["path"].strip():
+                        raise ValueError
+                    library.set_finished(body["path"])
+                except (OSError, ValueError):
+                    return self.send(400, {"error": "That folder can't be used."})
+                _SWEPT[0] = 0
+                return self.send(200, finished_state())
             if path == "/reveal":   # Show in Finder / Explorer: the library, one of its videos, or the custom folder
                 p = custom.path().resolve() if body.get("custom") else Path(str(body.get("dir") or read()["root"])).resolve()
                 if p not in (Path(read()["root"]).resolve(), custom.path(False).resolve()) and p not in library.edit_dirs():
@@ -2646,36 +2760,9 @@ def make_handler(token):
                     return self.send(400, {"error": "Say what to change."})
                 args = {"style": b.get("style") or "mine", "path": str(sp) if sp else "", "text": text}
             elif kind == "motion":   # New motion video: <library>/films/<name>/ with refs/ and refs.json, then a Claude makes it
-                name = re.sub(r"[^a-z0-9]+", "-", str(b.get("name") or "").lower()).strip("-")[:40].rstrip("-")
-                idea = re.sub(r"\s+", " ", str(b.get("idea") or "")).strip()[:300]
-                if not name:
-                    return self.send(400, {"error": "Give the film a name."})
-                if not idea:
-                    return self.send(400, {"error": "Say the idea in one line."})
-                root = Path(d["root"]).resolve()
-                film = root / "films" / name
-                if film.exists():
-                    return self.send(409, {"error": f"A film called {name} already exists. Pick another name."})
-                uploads, refs = root / "references", []
-                (film / "refs").mkdir(parents=True)
-                for x in [x for x in b.get("refs") or [] if isinstance(x, dict)][:20]:
-                    src, take = str(x.get("source") or "").strip(), re.sub(r"\s+", " ", str(x.get("take") or "")).strip()[:300]
-                    if src.lower().startswith(("http://", "https://")):
-                        keep = src
-                    else:   # a file the page uploaded to references/ (never any other file on the disk): copied into this film
-                        f = Path(src).resolve()
-                        if f.parent != uploads or not f.is_file() or not f.name.lower().endswith(MOTION_REF_EXT):
-                            continue
-                        keep = str(film / "refs" / f"ref{len(refs) + 1}-{f.name}")
-                        shutil.copyfile(f, keep)
-                    role = str(x.get("role") or "").lower()
-                    refs.append({"id": f"ref{len(refs) + 1}", "source": keep, "take": take or "the whole look",
-                                 **({"role": role} if role in ("brand", "style", "both") else {})})
-                (film / "refs.json").write_text(json.dumps(refs, indent=1), encoding="utf-8")
-                args = {"name": name, "idea": idea, "format": b.get("format") if b.get("format") in ("9:16", "1:1", "16:9") else "9:16",
-                        "film": str(film), "refs": str(film / "refs.json")}
-                if str(b.get("lang") or "").lower() in ("he", "en"):
-                    args["lang"] = str(b["lang"]).lower()
+                args, err = motion_args(d, b)
+                if err:
+                    return self.send(err[0], {"error": err[1]})
             else:
                 return self.send(400, {"error": "unknown job"})
             j = update(lambda d: queue(d, kind, args))
@@ -2751,6 +2838,10 @@ def make_handler(token):
                     return self.send(200, projects.new(name, b.get("kind") or "edit", [s for s in b.get("sources") or [] if isinstance(s, str)]))
                 if path == "/project/link":
                     return self.send(200, projects.link(slug, str(b.get("field")), b.get("value")))
+                if path == "/project/unlink":
+                    return self.send(200, projects.unlink(slug, str(b.get("field")), b.get("value")))
+                if path == "/project/note":
+                    return self.send(200, projects.set_note(slug, str(b.get("text") or "")))
                 if path == "/project/rename":
                     return self.send(200, projects.rename(slug, " ".join(str(b.get("name") or "").split())[:80] or slug))
                 if path == "/project/archive":
@@ -3185,6 +3276,7 @@ def demo():
     import atexit
     atexit.register(lambda: [p.terminate() for p in _spawned])   # a failed check leaves no review server behind
     os.environ["AI_EDITOR_HOME"] = str(tmp / "home")
+    os.environ["AI_EDITOR_FINISHED"] = str(tmp / "finished")
     # head_start (the early transcription when a clip is added) runs to the end: transcribe --pre, no NameError
     import run as _run
     ran, real_run, real_vp = [], subprocess.run, _run.venv_python
@@ -3516,6 +3608,50 @@ def demo():
         except urllib.error.HTTPError as e:
             assert e.code in (400, 409)
     assert not (root.resolve() / "films" / "ok-name").exists()
+    # references stand in for the idea: refs and no idea is queued, no refs (or only files we do not take) and no idea is not
+    mr2 = post("/job", {"type": "motion", "name": "Refs Only", "idea": "", "refs": [{"source": "https://example.com/look"}]})
+    assert mr2["id"] == "motion-2" and out(cmd_wait, 0.01).endswith("root=" + str(root.resolve()) + " idea="), mr2
+    for bad in ({"name": "No Refs", "idea": ""}, {"name": "Bad Refs", "idea": "", "refs": [{"source": str(vid)}]}):
+        try:
+            post("/job", {"type": "motion", **bad})
+            raise AssertionError(f"a motion video with nothing to go on was queued: {bad}")
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
+    assert not (root.resolve() / "films" / "no-refs").exists() and not (root.resolve() / "films" / "bad-refs").exists()
+    # a motion project: its first chat message starts the film (one job), the next one is an ordinary chat message
+    mp = post("/projects", {"name": "Teaser Room", "kind": "motion"})["slug"]
+    assert post("/project/note", {"slug": mp, "text": " keep it calm "})["note"] == "keep it calm"
+    assert post("/project/link", {"slug": mp, "field": "refs", "value": mref["path"]})["refs"] == [str(Path(mref["path"]).resolve())]
+    post("/project/link", {"slug": mp, "field": "refs", "value": "https://example.com/look"})
+    post("/project/link", {"slug": mp, "field": "refs", "value": "https://example.com/other"})
+    turn = post("/chat", {"slug": mp, "text": "a calm product teaser"})["turn"]
+    ev = get(f"/chat/events?turn={turn}")
+    assert ev["finished"] and ev["events"][0] == {"type": "text", "text": "Started your film from 3 references. I will tell you when it is ready."}, ev
+    mj = [j for j in read()["jobs"] if j["type"] == "motion" and j.get("project") == mp]
+    assert len(mj) == 1 and mj[0]["args"]["idea"] == "a calm product teaser" and mj[0]["args"]["name"] == "teaser-room", mj
+    assert Path(mj[0]["args"]["note"]).read_text(encoding="utf-8").strip() == "keep it calm"
+    assert json.loads(Path(mj[0]["args"]["refs"]).read_text(encoding="utf-8"))[1]["source"] == "https://example.com/look"
+    assert out(cmd_wait, 0.01).count(" note=") == 1
+    assert [m["role"] for m in get(f"/chat/history?slug={mp}")["messages"]] == ["user", "assistant"]
+    assert get(f"/project?slug={mp}")["project"]["edits"] == [mj[0]["args"]["film"]]
+    n_jobs = len(read()["jobs"])
+    chat_watch_calls = []
+    _start, chat.start = chat.start, lambda text, sid=None, context=None: chat_watch_calls.append((text, context)) or "no-turn"
+    try:
+        post("/chat", {"slug": mp, "text": "make the logo bigger"})
+    finally:
+        chat.start = _start
+    assert len(read()["jobs"]) == n_jobs and chat_watch_calls and "note='keep it calm'" in chat_watch_calls[0][1], "a second message is an ordinary chat turn"
+    # a motion project without references just chats; unlink takes a ref off
+    mq = post("/projects", {"name": "Empty Room", "kind": "motion"})["slug"]
+    chat.start, calls = (lambda text, sid=None, context=None: calls.append(text) or "no-turn"), []
+    try:
+        post("/chat", {"slug": mq, "text": "hi"})
+    finally:
+        chat.start = _start
+    assert calls == ["hi"] and len(read()["jobs"]) == n_jobs
+    assert post("/project/unlink", {"slug": mp, "field": "refs", "value": "https://example.com/other"})["refs"][-1] == "https://example.com/look"
+    assert post("/project/note", {"slug": mp, "text": ""})["note"] == ""
     own.clear()
     # Stop on one analysing card stops that creator only
     post("/job", {"type": "teardown", "handle": "one", "platform": "youtube"}); out(cmd_wait, 0.01)
@@ -4432,6 +4568,34 @@ def demo():
         raise AssertionError("revealed a folder outside the library")
     except urllib.error.HTTPError as e:
         assert e.code == 400
+    # the Finished folder: in the state, opened, changed; the poll's sweep copies an edit that went done while the server was down
+    fin = tmp / "finished"
+    assert get("/state")["finished"] == {"path": str(fin), "count": 0}, get("/state")["finished"]
+    opened, real_popen = [], subprocess.Popen
+    subprocess.Popen = lambda cmd, **k: opened.append(cmd)
+    try:
+        assert post("/finished/open", {})["path"] == str(fin) and fin.is_dir() and opened == [library.reveal_cmd(fin)], opened
+    finally:
+        subprocess.Popen = real_popen
+    late = Path(read()["root"]) / "edits" / "late"
+    (late / "review").mkdir(parents=True)
+    shutil.copy(vid, late / "render.mp4")
+    (late / "review.json").write_text(json.dumps({"name": "late", "stage": "edit", "round": 1, "sent": True, "events": [{"type": "approve"}]}), encoding="utf-8")
+    _SWEPT[0] = 0
+    st = get("/state")["finished"]
+    assert st["count"] == 1 and len(list(fin.glob("late *.mp4"))) == 1, st
+    _SWEPT[0] = 0
+    assert get("/state")["finished"]["count"] == 1, "swept once"
+    del os.environ["AI_EDITOR_FINISHED"]
+    assert post("/finished/set", {"path": str(tmp / "elsewhere")}) == {"path": str((tmp / "elsewhere").resolve()), "count": 0}
+    assert library._index()["finished"] == str((tmp / "elsewhere").resolve())
+    for bad in ({}, {"path": " "}, {"path": 5}):
+        try:
+            post("/finished/set", bad)
+            raise AssertionError("set the Finished folder to " + repr(bad))
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
+    os.environ["AI_EDITOR_FINISHED"] = str(fin)
     for pr in _spawned:
         pr.terminate()
         pr.wait()

@@ -5,6 +5,8 @@
     python3 projects.py list [--all]       newest first, JSON (--all adds archived)
     python3 projects.py show SLUG
     python3 projects.py link SLUG FIELD VALUE     FIELD: sources, refs, edits (append) or style (set)
+    python3 projects.py unlink SLUG FIELD VALUE   take one source, ref or edit off again
+    python3 projects.py note SLUG [TEXT]          the optional brief (no text clears it)
     python3 projects.py rename SLUG NAME
     python3 projects.py archive SLUG [--off]
     python3 projects.py migrate            one project per existing edit folder or motion film not yet linked
@@ -53,7 +55,7 @@ def _write(p):
 
 def show(slug):
     try:
-        return json.loads(_file(slug).read_text(encoding="utf-8"))
+        return {"note": "", **json.loads(_file(slug).read_text(encoding="utf-8"))}   # old projects have no note
     except OSError:
         raise KeyError(slug) from None
 
@@ -71,7 +73,7 @@ def new(name, kind, sources=None):
         slug, n = f"{base}-{n}", n + 1
     now = _now()
     return _write({"slug": slug, "name": name, "kind": kind, "created": now, "updated": now,
-                   "sources": [_abs(s) for s in dict.fromkeys(sources or [])], "refs": [], "style": None,
+                   "sources": [_abs(s) for s in dict.fromkeys(sources or [])], "refs": [], "style": None, "note": "",
                    "edits": [], "chat_session": None, "archived": False})
 
 
@@ -87,16 +89,38 @@ def list_all(include_archived=False):
     return sorted(out, key=lambda p: p.get("updated", ""), reverse=True)
 
 
+def _ref(value):
+    """A reference is a handle or a link, kept as written, or a file the user added (absolute)."""
+    v = str(value).strip()
+    return _abs(v) if v and not v.lower().startswith(("http://", "https://")) and Path(os.path.expanduser(v)).exists() else v
+
+
 def link(slug, field, value):
     p = show(slug)
     if field == "style":
         p["style"] = value
     elif field in LISTS:
-        v = _abs(value) if field != "refs" else str(value)
+        v = _abs(value) if field != "refs" else _ref(value)
         if v not in p[field]:
             p[field].append(v)
     else:
         raise ValueError(f"field must be one of {LISTS + ('style',)}")
+    return _write(p)
+
+
+def unlink(slug, field, value):
+    """Take one source, ref or edit off again (the files stay). A value that is not there is not an error."""
+    p = show(slug)
+    if field not in LISTS:
+        raise ValueError(f"field must be one of {LISTS}")
+    gone = {str(value), _ref(value) if field == "refs" else _abs(value)}
+    p[field] = [x for x in p[field] if x not in gone]
+    return _write(p)
+
+
+def set_note(slug, text):
+    p = show(slug)
+    p["note"] = str(text or "").strip()[:4000]
     return _write(p)
 
 
@@ -173,6 +197,28 @@ def demo():
         link("my-talk", "refs", "https://example.com")
         link("my-talk", "refs", "https://example.com")
         assert show("my-talk")["refs"] == ["https://example.com"], "a reference is not added twice"
+        assert show("my-talk")["note"] == "", "a new project has an empty note"
+        pic = Path(td) / "ref.png"
+        pic.write_bytes(b"x")
+        link("my-talk", "refs", pic)
+        link("my-talk", "refs", str(pic))
+        link("my-talk", "refs", "someone")
+        assert show("my-talk")["refs"] == ["https://example.com", str(pic.resolve()), "someone"], "a file is kept absolute, a handle as typed"
+        unlink("my-talk", "refs", "someone")
+        unlink("my-talk", "refs", pic)
+        unlink("my-talk", "refs", "never-linked")
+        assert show("my-talk")["refs"] == ["https://example.com"], "unlink takes one off, an unknown one is ignored"
+        try:
+            unlink("my-talk", "style", "x")
+            raise AssertionError("only the lists can be unlinked")
+        except ValueError:
+            pass
+        assert set_note("my-talk", "  make it punchy ")["note"] == "make it punchy"
+        assert show("my-talk")["note"] == "make it punchy" and set_note("my-talk", "")["note"] == "", "an empty note clears it"
+        old = json.loads(_file("my-talk").read_text(encoding="utf-8"))
+        del old["note"]
+        _file("my-talk").write_text(json.dumps(old), encoding="utf-8")
+        assert show("my-talk")["note"] == "" and "note" not in json.loads(_file("my-talk").read_text(encoding="utf-8")), "an old project reads as empty"
         link("my-talk", "edits", Path(td) / "edits" / "my-talk")
         assert for_edit(Path(td) / "edits" / "my-talk") == "my-talk"
         link("my-talk", "style", "@someone")
@@ -234,6 +280,12 @@ def main(argv=None):
     s = sub.add_parser("archive")
     s.add_argument("slug")
     s.add_argument("--off", action="store_true")
+    s = sub.add_parser("unlink")
+    for a in ("slug", "field", "value"):
+        s.add_argument(a)
+    s = sub.add_parser("note")
+    s.add_argument("slug")
+    s.add_argument("text", nargs="?", default="")
     sub.add_parser("migrate")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
@@ -242,6 +294,7 @@ def main(argv=None):
     try:
         out = {"new": lambda: new(a.name, a.kind, a.source), "list": lambda: list_all(a.all),
                "show": lambda: show(a.slug), "link": lambda: link(a.slug, a.field, a.value),
+               "unlink": lambda: unlink(a.slug, a.field, a.value), "note": lambda: set_note(a.slug, a.text),
                "rename": lambda: rename(a.slug, a.name), "archive": lambda: archive(a.slug, not a.off),
                "migrate": lambda: {"created": migrate()}}[a.cmd]()
     except (KeyError, ValueError) as e:

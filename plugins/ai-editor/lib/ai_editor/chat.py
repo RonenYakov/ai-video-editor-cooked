@@ -168,6 +168,16 @@ def start(text, session_id=None, context=None):
     return tid
 
 
+def say(text):
+    """A turn that is already finished and holds one reply: for a message the app answers itself, no claude run."""
+    tid = uuid.uuid4().hex
+    with _lock:
+        _turns[tid] = {"events": [{"type": "text", "text": text}, {"type": "done", "session": None, "cost": None}],
+                       "finished": True, "session": None, "resume": None, "proc": None, "stopped": False,
+                       "streamed": False, "ended": time.time(), "reset": False, "context": None}
+    return tid
+
+
 def events(turn_id, since=0):
     with _lock:
         t = _turns.get(turn_id)

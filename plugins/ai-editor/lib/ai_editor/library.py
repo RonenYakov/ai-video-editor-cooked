@@ -8,6 +8,7 @@
     python3 library.py clean [--yes]        the working files that can go and their size; --yes deletes them
     python3 library.py demo                 self-check
 
+Every finished video is also copied (deliver) to ~/Videos/cooked Finished: AI_EDITOR_FINISHED, then "finished" in library.json.
 The folder: ~/Videos/AI Editor. AI_EDITOR_LIBRARY
 overrides it, then `set` (saved in $AI_EDITOR_HOME/library.json with every recorded edit folder).
 Inside: videos/ (dropped files), edits/<name>/, clips/<name>/, product/<name>/, creator-teardowns/<handle>/.
@@ -70,6 +71,91 @@ def set_path(p):
     p.mkdir(parents=True, exist_ok=True)
     _save({**_index(), "path": str(p)})
     return p
+
+
+def finished_path(make=True):
+    """Where every finished video is copied: AI_EDITOR_FINISHED, then `set_finished`, then ~/Videos/cooked Finished."""
+    p = Path(os.path.expanduser(os.environ.get("AI_EDITOR_FINISHED", "").strip() or _index().get("finished")
+                                or Path.home() / "Videos" / "cooked Finished"))
+    if make:
+        p.mkdir(parents=True, exist_ok=True)
+    return p.resolve() if p.exists() else p
+
+
+def set_finished(p):
+    p = Path(os.path.expanduser(str(p).strip())).resolve()
+    p.mkdir(parents=True, exist_ok=True)
+    _save({**_index(), "finished": str(p)})
+    return p
+
+
+def is_done(r):
+    """status() done, or a final cut approved (its stage stays "cut", so status() says making)."""
+    last = ((r or {}).get("events") or [{}])[-1]
+    return status(r) == "done" or bool(r and r.get("final") and r.get("sent") and last.get("type") == "approve")
+
+
+def finished_video(d, r):
+    """The finished file of an edit folder: a film's out/final-*.mp4, a final cut's cut.mp4, else render.mp4 (the review's
+    own video as the last resort). A film's draft is never it."""
+    d = Path(d)
+    if d.parent.name == "films":
+        fs = [f for f in (d / "out").glob("final-*.mp4") if f.is_file() and f.stat().st_size]
+        return max(fs, key=lambda f: f.stat().st_mtime) if fs else None
+    for p in ([d / "cut.mp4"] if r.get("final") else []) + [d / "render.mp4", Path(r.get("video") or "-")]:
+        if p.is_file() and p.stat().st_size:
+            return p
+    return None
+
+
+def deliver(edit_dir):
+    """Copy (never move: the review page plays the original) an edit's finished video to finished_path() as
+    "<project or edit name> <YYYY-MM-DD>.mp4", " (2)" on a clash, and record it in review.json "delivered" with the source
+    mtime: a second call does nothing unless the video changed (then a new file; the old one stays). Returns the delivered
+    file, or None when the edit is not done or has no finished video yet."""
+    d = Path(edit_dir)
+    r = _review(d)
+    src = r and is_done(r) and finished_video(d, r)
+    if not src:
+        return None
+    mt, got = src.stat().st_mtime_ns, r.get("delivered") or {}
+    if got.get("mtime") == mt and got.get("to"):
+        return Path(got["to"])
+    name = r.get("label") or r.get("name") or d.name
+    try:
+        import projects   # late: projects imports this module
+        slug = projects.for_edit(d)
+        name = (slug and projects.show(slug).get("name")) or name
+    except Exception:
+        pass
+    name = " ".join("".join(c for c in name if c not in '\\/:*?"<>|\n\r\t').split()).strip(". ") or d.name
+    base = f"{name} {time.strftime('%Y-%m-%d')}"
+    out, n = finished_path(), 1
+    while (out / f"{base}.mp4" if n == 1 else out / f"{base} ({n}).mp4").exists():
+        n += 1
+    dest = out / (f"{base}.mp4" if n == 1 else f"{base} ({n}).mp4")
+    tmp = dest.with_name(dest.name + ".part")
+    shutil.copy2(src, tmp)
+    os.replace(tmp, dest)
+    import review   # late: review imports this module
+    review.update(d / "review.json", lambda x: x.update(delivered={"to": str(dest), "mtime": mt}))
+    return dest
+
+
+def undelivered():
+    """Edit folders that are done and not delivered (or whose video changed since): the poll's safety net."""
+    out = []
+    for d in edit_dirs():
+        r = _review(d)
+        v = r and is_done(r) and finished_video(d, r)
+        if v and (r.get("delivered") or {}).get("mtime") != v.stat().st_mtime_ns:
+            out.append(d)
+    return out
+
+
+def finished_count():
+    p = finished_path(False)
+    return sum(1 for f in p.glob("*.mp4") if f.is_file()) if p.is_dir() else 0
 
 
 def record(d):
@@ -420,6 +506,47 @@ def demo():
           {"stage": "edit", "round": 2, "stills": True}, {"stage": "edit", "round": 3}]
     assert [draft_name(r, rr) for r in rr] == ["your clip", "draft 1", "preview 1", "preview 2", "draft 1"]
     assert draft_name(rr[2], rr[:3]) == "the preview"
+    # the finished folder: env, then library.json, then the default; one copy per finished video
+    os.environ.pop("AI_EDITOR_FINISHED", None)
+    assert finished_path(False) == Path.home() / "Videos" / "cooked Finished"
+    fin = set_finished(tmp / "fin")
+    assert finished_path() == fin == (tmp / "fin").resolve() and _index()["path"] == str(lib)
+    os.environ["AI_EDITOR_FINISHED"] = str(tmp / "envfin")
+    assert finished_path(False) == tmp / "envfin"
+    os.environ.pop("AI_EDITOR_FINISHED")
+    assert deliver(mine) is None and not is_done(_review(mine)), "not finished: nothing to deliver"
+    review_json = lambda d, **k: (d / "review.json").write_text(json.dumps({"name": d.name, "stage": "edit", "round": 2, "sent": True,
+                                  "events": [{"type": "approve"}], **k}), encoding="utf-8")
+    review_json(mine)
+    assert is_done(_review(mine)) and undelivered() == [mine.resolve()]
+    day = time.strftime("%Y-%m-%d")
+    a = deliver(mine)
+    assert a == fin / f"mine {day}.mp4" and a.is_file() and (mine / "render.mp4").is_file(), "copied, not moved"
+    assert deliver(mine) == a and finished_count() == 1 and not undelivered(), "idempotent"
+    assert _review(mine)["delivered"]["to"] == str(a)
+    time.sleep(0.01)
+    os.utime(mine / "render.mp4", None)   # a re-render
+    assert undelivered() == [mine.resolve()]
+    b = deliver(mine)
+    assert b == fin / f"mine {day} (2).mp4" and a.is_file() and finished_count() == 2, "a changed video is a new file"
+    two = lib / "edits" / "two"   # same name, a clash; a final cut delivers cut.mp4; a name with slashes is safe
+    two.mkdir()
+    shutil.copyfile(vid, two / "cut.mp4")
+    review_json(two, name="mine", stage="cut", final=True)
+    assert is_done(_review(two)) and deliver(two) == fin / f"mine {day} (3).mp4"
+    odd = lib / "edits" / "odd"
+    odd.mkdir()
+    shutil.copyfile(vid, odd / "render.mp4")
+    review_json(odd, label="a/b: c")
+    assert deliver(odd).name == f"ab c {day}.mp4"
+    film = lib / "films" / "f1"   # a motion film: only out/final-*.mp4, never the draft
+    (film / "out").mkdir(parents=True)
+    shutil.copyfile(vid, film / "out" / "silent-9x16-draft.mp4")
+    review_json(film)
+    record(film)
+    assert deliver(film) is None
+    shutil.copyfile(vid, film / "out" / "final-9x16.mp4")
+    assert deliver(film) == fin / f"f1 {day}.mp4"
     shutil.rmtree(tmp, ignore_errors=True)
     print("library demo ok")
 

@@ -1,5 +1,5 @@
 // Claude chat panel for a project, plus the mic (local dictation) used by it and by any textarea.
-//   CookedChat.mount(el,{slug,context}) -> {send(text),focus(),destroy()}
+//   CookedChat.mount(el,{slug,context,placeholder}) -> {send(text),focus(),destroy()}
 //   CookedChat.dictateButton(textarea)  -> the mic button, placed after the textarea
 // Uses the page's colour tokens (--panel --ink --t2 --t3 --line --soft ...), same as ask.js. Requests ride the page cookie.
 (()=>{
@@ -157,7 +157,7 @@ function mount(el,opts){
   <button type="button" class="cc-ic" data-mic aria-label="Dictate" title="Dictate (click to start and stop)">${MIC}</button>
   <button type="button" class="cc-ic cc-send" data-send aria-label="Send" title="Send">${SEND}</button></div><div class="cc-note" role="status"></div></div></div>`;
   const $=s=>el.querySelector(s),msgs=$('.cc-msgs'),ta=$('.cc-ta'),sendB=$('[data-send]'),newB=$('[data-new]'),micB=$('[data-mic]'),noteEl=$('.cc-note');
-  const note=noteFn(noteEl);
+  const note=noteFn(noteEl);if(opts.placeholder)ta.placeholder=opts.placeholder;
   let turn=null,es=null,poll=null,seen=0,cur=null,curText='',typing=null,stick=true,gone=false,raf=0,first=true;
   const mic=dictate(ta,micB,note,{box:$('.cc-rec'),time:$('[data-time]'),lv:$('.cc-lv')});
   msgs.addEventListener('scroll',()=>{stick=msgs.scrollHeight-msgs.scrollTop-msgs.clientHeight<48});

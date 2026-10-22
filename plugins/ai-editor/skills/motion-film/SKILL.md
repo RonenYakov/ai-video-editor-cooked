@@ -29,7 +29,10 @@ Nothing skips ahead. Never claim a render worked without checking the file exist
 ## 0. Start
 
 From the home page the job line is
-`JOB motion <name> format=<9:16|1:1|16:9> film=<FILM> refs=<FILM>/refs.json root=<library> idea=<one line>`.
+`JOB motion <name> format=<9:16|1:1|16:9> film=<FILM> refs=<FILM>/refs.json [note=<file>] root=<library> idea=<one line>`.
+The idea may be empty or one short line: the user starts from references plus a chat message, never a brief. Take the
+intent from the refs and their `take` notes (and `note=`, the project's optional brief, when set); what the message says wins. Never ask for a
+brief or a script. Ask at most one question, and only if two refs pull different ways (two looks, two brands).
 The page opens this skill straight on `take job <id>`: read `${CLAUDE_PLUGIN_ROOT}/skills/start/references/home.md` and
 `home-other.md` there (waiting, status, questions, the motion job) and nothing else from start. Run `home.py wait --job <id>`
 and report with `home.py status motion --step "..."`. From chat ("new motion film", "make a motion video"): ask the idea, format and length in one
@@ -84,7 +87,8 @@ two compete). `render.mjs` applies it; `--nograde` skips it.
 
 Fill `FILM/BRIEF.md`: idea, script, brand (named from the profile), format, length, audio source, and for each
 reference its `take` word for word, what to avoid, and for a brand site what the business does (`site_ref`). Show it back. **Gate: the user approves the brief before any code.**
-Ask what is missing in the question box; do not invent a script or a claim.
+Write every field you can from the refs, the idea line and the profile; do not ask for the rest and do not invent a
+script or a claim: leave it out or mark it as your choice for the user to change at the gate.
 
 ## 3. Assets and grids
 

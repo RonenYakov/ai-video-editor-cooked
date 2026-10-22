@@ -2158,12 +2158,13 @@ function npmModal(){
 const kindCard=k=>`<article class="kcard"><span class="kic">${ic(k.ico,22,1.7)}</span><h2>${k.name}</h2><p>${k.line}</p>
   <button class="btn-primary" onclick="openNewProject('${k.id}')" ${GS().setup?'':'disabled title="Finish setup first, then you can start a project."'}>${ic(k.ico,16,2)}${k.btn}</button></article>`;
 const pjRow=p=>`<button class="pjr" onclick="openProject(${J(p.slug)})"><span class="kic s">${ic(kindOf(p.kind).ico,18,1.7)}</span><span class="pjn"><b>${esc(p.name)}</b><small>${esc(p.status||kindOf(p.kind).name)}</small></span><span class="muted">${ago(tsOf(p.updated||p.created))}</span></button>`;
+const finBtn=()=>{const n=S&&S.finished&&S.finished.count;return `<button class="btn-secondary" id="fin-btn" onclick="openFinished()" title="Open the folder with your finished videos">${ic('videos',16,2)}Finished videos${n?` (${n})`:''}</button>`};
 function vHome(){
   if(firstRun())return obView();
   const vids=L.videos;
   if(vids.length===1&&!gsDone())return `<div class="pgc">${firstVideoHome(vids[0])}</div>`;
   return `<div class="pgc">
-  <div class="ph"><h1>What are we making?</h1><p>Pick one. You can also drop a video anywhere on this page to begin.</p></div>
+  <div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px"><div class="ph"><h1>What are we making?</h1><p>Pick one. You can also drop a video anywhere on this page to begin.</p></div>${finBtn()}</div>
   <div class="kinds">${KINDS.map(kindCard).join('')}</div>
   <div class="sec2"><div class="sh"><b>Recent projects</b></div>${PJ.length?`<div class="pjlist">${PJ.slice(0,4).map(pjRow).join('')}</div>`:'<div class="none">No projects yet. Start one above.</div>'}</div>
   <div class="hlinks"><button class="hlink" onclick="ui.fold.videos=null;rgo('videos')">All your videos (${vids.length})</button></div></div>`;
@@ -2258,8 +2259,16 @@ function vProject(){
   if(!ui.pslug)return vHome();
   const d=ui.pj,P=d&&d.project,back=`<button class="back" style="text-decoration:none;font-size:14px" onclick="goHome()">${ic('back',14,2)}Home</button>`;
   if(!P)return `<div class="pgc"><div class="ph">${back}</div><div class="none">${d&&d.missing?'That project is gone. It may have been archived.':'Loading the project...'}</div></div>`;
-  const E=d.edits||[],jobs=(S.jobs||[]).filter(j=>pjJobProject(j)===P.slug),pl=pjPlan(P,E,jobs),steps=pjSteps(P,E,pl),K=kindOf(P.kind);
+  const E=d.edits||[],jobs=(S.jobs||[]).filter(j=>pjJobProject(j)===P.slug),pl=pjPlan(P,E,jobs),K=kindOf(P.kind);
   const bad=!pl.run.length?jobs.filter(j=>j.state==='failed'&&Date.now()/1000-(j.finished||0)<600).pop():null;
+  const ren=ui.pren;
+  const head=`<div class="pj-head">${back}
+    <div class="pj-title">${ren?`<input id="pj-name" value="${esc(ren.val)}" aria-label="Project name" onkeydown="if(event.key==='Enter')pjRenameSave();if(event.key==='Escape'){ui.pren=null;render()}">`:`<h1>${esc(P.name)}</h1>`}<span class="ktag">${ic(K.ico,14,1.8)}${K.name}</span></div>
+    <div class="muted">${esc(P.status||'')}</div>
+    <div class="pj-acts">${ren?`<button class="btn-primary s" onclick="pjRenameSave()">${ic('check',14,2.4)}Save name</button><button class="btn-secondary s" onclick="ui.pren=null;render()">${ic('x',14,2.2)}Cancel</button>`
+      :`<button class="btn-secondary s" onclick="pjRename()">${ic('pencil',14,2)}Rename</button><button class="btn-danger s" onclick="pjArchive()">${ic('trash',14,2)}Archive</button>`}</div></div>`;
+  if(isRoom(P))return `<div class="pgc room"><div class="pj">${head}${roomMats(P,E,pl,bad)}</div></div>`;
+  const steps=pjSteps(P,E,pl);
   const lis=steps.map((s,i)=>{
     const st=pl.finished||i<pl.cur?'done':i===pl.cur?'cur':'later';
     const acts=(s.acts||[]).map(a=>st==='later'&&!a.always?{...a,dis:1,why:a.why||`Finish "${pl.names[pl.cur]}" first.`}:a).map(a=>pjBtn(a,st==='cur')).join('');
@@ -2267,13 +2276,60 @@ function vProject(){
       <p class="hint">${esc(s.hint)}</p>${s.files?`<div class="files">${s.files}</div>`:''}
       ${st==='cur'?pl.run.map(j=>jobCard(j)).join('')+(bad?`<div class="msg bad">${CROSS}<span>${esc(bad.error||'That stopped. Ask Claude to try again.')}</span></div>`:''):''}
       ${acts||s.extra?`<div class="acts">${acts}${s.extra||''}</div>`:''}</div></li>`}).join('');
-  const ren=ui.pren;
-  return `<div class="pgc"><div class="pj"><div class="pj-head">${back}
-    <div class="pj-title">${ren?`<input id="pj-name" value="${esc(ren.val)}" aria-label="Project name" onkeydown="if(event.key==='Enter')pjRenameSave();if(event.key==='Escape'){ui.pren=null;render()}">`:`<h1>${esc(P.name)}</h1>`}<span class="ktag">${ic(K.ico,14,1.8)}${K.name}</span></div>
-    <div class="muted">${esc(P.status||'')}</div>
-    <div class="pj-acts">${ren?`<button class="btn-primary s" onclick="pjRenameSave()">${ic('check',14,2.4)}Save name</button><button class="btn-secondary s" onclick="ui.pren=null;render()">${ic('x',14,2.2)}Cancel</button>`
-      :`<button class="btn-secondary s" onclick="pjRename()">${ic('pencil',14,2)}Rename</button><button class="btn-danger s" onclick="pjArchive()">${ic('trash',14,2)}Archive</button>`}</div></div>
+  return `<div class="pgc"><div class="pj">${head}
     <ol class="stp" aria-label="Steps">${lis}</ol></div></div>`;
+}
+// ---- the room (Edit and Motion): the chat in the middle, one Materials panel beside it, no step ladder.
+// The chat is the same #chatdock the other kinds use, laid out inline (body.room), so a repaint never touches it.
+const isRoom=P=>!!P&&P.kind!=='talking-head';
+const matSec=(t,tag,body,o={})=>`<section class="mat ${o.cls||''}"><div class="mh"><b>${t}</b>${tag?`<span class="mopt">${tag}</span>`:''}${o.head||''}</div>${o.hint?`<p class="hint">${esc(o.hint)}</p>`:''}${body}</section>`;
+const rmBtn=(f,v)=>`<button class="ax" aria-label="Remove" title="Remove" onclick="pjUnlink(${J(f)},${J(v)})">${CROSS}</button>`;
+const isHandle=r=>!isLink(String(r))&&!/^([\\/]|[A-Za-z]:[\\/])/.test(String(r));
+function roomMats(P,E,pl,bad){
+  const K=P.kind,src=P.sources||[],refs=P.refs||[],e=pl.e,tag=K==='motion'?'':'Optional';
+  const foot=matSec('Footage','',`<div class="files">${src.map(p=>`<div class="fr">${ic('videos',16)}<span class="nm" title="${esc(p)}">${esc(base(p))}</span>${rmBtn('sources',p)}</div>`).join('')}${upRows()}</div>
+    <div class="acts"><label class="btn-secondary s">${ic('up',14,2)}${src.length?'Add another video':'Choose videos'}<input type="file" multiple accept="video/*,.mov,.mkv,.mp4" class="hide" onchange="const f=[...this.files];this.value='';projAdd(f)"></label></div>`,{hint:'The videos Claude works on. You can also drop them anywhere on this page.'});
+  const rows=refs.map(r=>isHandle(r)?`<div class="rmw"><div class="refmount" id="rm-${esc(String(r).replace(/^@/,''))}" data-keep data-h="${esc(String(r).replace(/^@/,''))}"></div>${rmBtn('refs',r)}</div>`
+    :`<div class="fr">${ic(isLink(String(r))&&/^https?:/i.test(r)?'link':'file',16)}<span class="nm" title="${esc(r)}">${esc(/^https?:/i.test(r)?shortLink(r):base(r))}</span>${rmBtn('refs',r)}</div>`).join('');
+  const rup=(ui.rup||[]).map(u=>`<div class="fr ${u.bad?'bad':''}">${ic('up',16)}<span class="nm">${esc(u.name)}</span><span class="muted">${esc(u.bad||`Adding... ${u.pct}%`)}</span></div>`).join('');
+  const rf=matSec('References',tag,`<div class="files">${rows}${rup}</div>
+    <div class="acts"><input id="rm-link" type="url" placeholder="Paste a link" aria-label="Paste a reference link" onkeydown="if(event.key==='Enter')pjRefLink(this)"><button class="btn-secondary s" onclick="pjRefLink($('#rm-link'))">Add</button>
+    <label class="btn-secondary s">${ic('up',14,2)}Video or picture<input type="file" multiple accept="video/*,image/*" class="hide" onchange="const f=[...this.files];this.value='';refAdd(f)"></label>${creatorPick(P)}</div>`,
+    {hint:K==='motion'?'Add references, then tell Claude what you want in a line.':'A video, picture, link or creator to copy the look from.',cls:K==='motion'?'first':''});
+  const dr=(nv.noteDraft||{})[P.slug],note=dr!==undefined?dr:(P.note||'');
+  const brief=`<section class="mat"><div class="mh"><button class="fold" aria-expanded="${!!ui.briefOpen}" onclick="ui.briefOpen=!ui.briefOpen;render()"><b>Brief</b></button><span class="mopt">Optional</span></div>${ui.briefOpen||note?`<textarea id="rm-note" rows="4" placeholder="Anything Claude should know: audience, tone, length." aria-label="Brief" oninput="(nv.noteDraft=nv.noteDraft||{})[${J(P.slug)}]=this.value" onblur="pjNote()">${esc(note)}</textarea>`:''}</section>`;
+  const res=matSec('Results','',`<div class="files">${(E||[]).map(x=>`<div class="fr">${x.thumb?`<i class="th" style="background-image:url('${esc(x.thumb)}')"></i>`:ic('videos',16)}<span class="nm" title="${esc(x.name)}">${esc(x.name)}</span><span class="muted">${vStat(x).txt}</span><a class="btn-secondary s" href="/review?dir=${encodeURIComponent(x.dir)}">Open review</a></div>`).join('')||'<div class="muted">Nothing yet. Your edits show up here.</div>'}</div>
+    <div class="acts"><button class="btn-secondary s" onclick="openFinished()">${ic('videos',14,2)}Open finished folder</button></div>`);
+  const status=pl.run.map(j=>jobCard(j)).join('')+(bad?`<div class="msg bad">${CROSS}<span>${esc(bad.error||'That stopped. Ask Claude to try again.')}</span></div>`:'');
+  return `<div class="mats" aria-label="Materials"><h2 class="mt">Materials</h2>${status}${K==='motion'?rf+brief+res:foot+rf+brief+res}</div>`;
+}
+async function openFinished(){const r=await post('/finished/open',{});if(!r._ok)toast(r.error||'The finished folder could not open.')}
+async function pjUnlink(field,value){const r=await post('/project/unlink',{slug:ui.pslug,field,value});if(!r._ok)toast(r.error||'That did not remove.');await loadProject();await loadProjects();render()}
+async function pjRefAdd(value){const r=await post('/project/link',{slug:ui.pslug,field:'refs',value});if(!r._ok){toast(r.error||'That did not add.');return false}return true}
+async function pjRefLink(el){
+  const u=((el||{}).value||'').trim();if(!u)return;
+  if(!/^https?:\/\/\S+$/i.test(u))return toast('Paste a full link, starting with https://.');
+  if(await pjRefAdd(u))el.value='';await loadProject();await loadProjects();render();
+}
+async function refAdd(files){
+  const slug=ui.pslug,items=[...files].map(f=>({name:f.name,f,pct:0,bad:FILM_RE.test(f.name)?null:'Not a video or picture.'}));
+  ui.rup=(ui.rup||[]).concat(items);render();
+  for(const u of items){
+    if(u.bad){toast(u.name+': '+u.bad);continue}
+    const j=await new Promise(res=>{const x=new XMLHttpRequest();x.open('POST','/upload?ref=1&name='+encodeURIComponent(u.f.name));
+      x.upload.onprogress=e=>{if(e.lengthComputable){u.pct=Math.round(e.loaded/e.total*100);render()}};
+      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}res(j)};x.onerror=()=>res({msg:'The copy stopped. Try again.'});x.send(u.f)});
+    if(j.ok){if(!await pjRefAdd(j.path))u.bad='That did not add.'}else{u.bad=j.msg||'That did not add.';toast(u.name+': '+u.bad)}
+  }
+  ui.rup=(ui.rup||[]).filter(u=>!items.includes(u));
+  if(ui.pslug===slug){await loadProject();await loadProjects()}render();
+}
+async function pjNote(){
+  const el=$('#rm-note'),slug=ui.pslug,P=ui.pj&&ui.pj.project;if(!el||!P)return;
+  const text=el.value;if(text===(P.note||'')){if(nv.noteDraft)delete nv.noteDraft[slug];return}
+  const r=await post('/project/note',{slug,text});
+  if(!r._ok)return toast(r.error||'The brief did not save. It is kept here; try again.');
+  if(nv.noteDraft)delete nv.noteDraft[slug];await loadProject();render();
 }
 function pjRename(){ui.pren={val:ui.pj.project.name};render();setTimeout(()=>{const e=$('#pj-name');if(e){e.focus();e.select()}},0)}
 async function pjRenameSave(){const v=(($('#pj-name')||{}).value||'').trim();ui.pren=null;if(v&&v!==ui.pj.project.name){await post('/project/rename',{slug:ui.pslug,name:v});await loadProject();await loadProjects()}render()}
@@ -2310,14 +2366,15 @@ function mountChat(host,opts){
   host.innerHTML='';
   try{return CookedChat.mount(host,opts)||{}}catch(e){host.innerHTML=quiet('The chat could not start. Reload the page to try again.');return {}}
 }
+const ROOMPH={edit:'Tell Claude what to do with your footage',motion:'Say what you want. One line is enough.'};
 function syncDock(){
   const want=rv==='project'&&ui.pslug&&ui.pj&&ui.pj.project?ui.pslug:'',host=$('#chatbody');
-  document.body.classList.toggle('inproj',!!want);
-  if(!want){if(CHAT||CHATK){try{CHAT&&CHAT.destroy&&CHAT.destroy()}catch(e){}CHAT=null;CHATK='';host.innerHTML=''}document.body.classList.remove('dockopen');return}
+  document.body.classList.toggle('inproj',!!want);document.body.classList.toggle('room',!!want&&isRoom(ui.pj.project));
+  if(!want){document.body.classList.remove('room');if(CHAT||CHATK){try{CHAT&&CHAT.destroy&&CHAT.destroy()}catch(e){}CHAT=null;CHATK='';host.innerHTML=''}document.body.classList.remove('dockopen');return}
   if(CHATK===want)return;
   if(!window.CookedChat||!CookedChat.mount){if(!host.firstChild)host.innerHTML=quiet('Chat is not available in this build yet.');return}
   try{CHAT&&CHAT.destroy&&CHAT.destroy()}catch(e){}
-  CHAT=mountChat(host,{slug:want});CHATK=want;
+  CHAT=mountChat(host,{slug:want,placeholder:ROOMPH[ui.pj.project.kind]});CHATK=want;
 }
 function dockOpen(on){document.body.classList.toggle('dockopen',!!on)}
 function dockFocus(){dockOpen(true);setTimeout(()=>{try{CHAT&&CHAT.focus&&CHAT.focus()}catch(e){}},60)}
@@ -2637,7 +2694,7 @@ function rrender(){
     el.ondragstart=e=>{e.dataTransfer.setData('text/plain',el.dataset.i)};el.ondragover=e=>e.preventDefault();
     el.ondrop=e=>{e.preventDefault();e.stopPropagation();const a=+e.dataTransfer.getData('text/plain'),b=+el.dataset.i;if(isNaN(a)||a===b)return;const [x]=nv.sel.splice(a,1);nv.sel.splice(b,0,x);render()}});
 }
-window.addEventListener('drop',e=>{if(inApp()&&!ui.create&&!ui.npm&&e.dataTransfer.files.length){const fs=[...e.dataTransfer.files],sc=fs.filter(f=>SCRIPT_EXT.test(f.name)),im=fs.filter(isImg),vs=fs.filter(f=>!SCRIPT_EXT.test(f.name)&&!isImg(f));if(rv==='project'){if(vs.length)projAdd(vs);return}if(rv==='home'&&vs.length){openNewProject('talking-head',vs);return}if(rv!=='new')rgo('new');if(sc.length)scriptFile(sc[0]);if(im.length)addImages(im);if(vs.length)chooseFiles(vs)}});   // a script file dropped anywhere is the script, an image goes to Add images or links
+window.addEventListener('drop',e=>{if(inApp()&&!ui.create&&!ui.npm&&e.dataTransfer.files.length){const fs=[...e.dataTransfer.files],sc=fs.filter(f=>SCRIPT_EXT.test(f.name)),im=fs.filter(isImg),vs=fs.filter(f=>!SCRIPT_EXT.test(f.name)&&!isImg(f));if(rv==='project'){const P=ui.pj&&ui.pj.project;if(P&&P.kind==='motion')refAdd([...vs,...im]);else{if(vs.length)projAdd(vs);if(im.length&&isRoom(P))refAdd(im)}return}if(rv==='home'&&vs.length){openNewProject('talking-head',vs);return}if(rv!=='new')rgo('new');if(sc.length)scriptFile(sc[0]);if(im.length)addImages(im);if(vs.length)chooseFiles(vs)}});   // a script file dropped anywhere is the script, an image goes to Add images or links
 // while files are dragged over the window: one overlay, so it is clear where they go
 let dragN=0;const hasFiles=e=>[...((e.dataTransfer||{}).types||[])].includes('Files');
 // The overlay lives only while files are being dragged over the window: every dragover renews a short timer,
@@ -2736,11 +2793,11 @@ async function load(){
 }
 let PV=null,keepY=null;
 const canReload=()=>{const a=document.activeElement;return !(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.value)&&!nv.up.some(u=>!u.bad)&&!ui.edit};
-function keepView(){const keep={rv,sp:ui.sp,ps:ui.pslug,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join,draft:nv.draft,script:nv.script,scriptName:nv.scriptName,clips:nv.clips,filter:nv.filter,assets:nv.assets}}
+function keepView(){const keep={rv,sp:ui.sp,ps:ui.pslug,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join,draft:nv.draft,script:nv.script,scriptName:nv.scriptName,clips:nv.clips,filter:nv.filter,assets:nv.assets,noteDraft:nv.noteDraft},bo:ui.briefOpen}
 try{sessionStorage.setItem('ave-home-keep',JSON.stringify(keep));return}catch(e){}
 // over the quota, almost always a pasted image: keep the words and the links, drop the picture data
 try{keep.nv.assets=(nv.assets||[]).map(a=>a.kind==='image'?Object.assign({},a,{data:''}):a);sessionStorage.setItem('ave-home-keep',JSON.stringify(keep))}catch(e){}}
-try{const k=JSON.parse(sessionStorage.getItem('ave-home-keep')||'null');sessionStorage.removeItem('ave-home-keep');if(k){rv=k.rv;ui.sp=k.sp;ui.pslug=k.ps;Object.assign(nv,k.nv);keepY=k.y}}catch(e){}
+try{const k=JSON.parse(sessionStorage.getItem('ave-home-keep')||'null');sessionStorage.removeItem('ave-home-keep');if(k){rv=k.rv;ui.sp=k.sp;ui.pslug=k.ps;Object.assign(nv,k.nv);ui.briefOpen=k.bo;keepY=k.y}}catch(e){}
 window.addEventListener('pagehide',keepView);window.addEventListener('beforeunload',keepView);
 window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
 load().then(loadRecent);loadProjects();setInterval(load,1500);setInterval(loadLib,4000);setInterval(loadProjects,4000);

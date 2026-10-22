@@ -4,6 +4,9 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- Every approved video is copied to one folder outside the library (`~/Videos/cooked Finished` by default, changeable), named after its project and date. A Finished videos button on Home opens it.
+- Edit a video and Motion Studio projects open as a room: the chat in the middle, with Footage, References, an optional Brief and Results beside it. No steps to follow. Talking head keeps its steps.
+- Motion Studio starts from references: add them, send one line in the chat, and the film starts. No brief needed.
 - A video's versions are one Version dropdown beside Watch and Compare, so long names no longer squeeze the player bar.
 - A finished reel gets a Trial reels tab: Claude's spare hooks and versions, a type menu per version (pick several, or let Claude decide), Add a version, Ask Claude, and Make. Trial reels list under their own heading in the Version dropdown.
 

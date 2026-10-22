@@ -1434,6 +1434,8 @@ def make_handler(folder, token):
                     return self.send(409, {"error": "Claude is applying your transcript changes."})
                 if body["type"] == "send" and load(rj).get("stills"):   # notes on the stills: that render is not the one
                     drop_spec(folder)
+                if body["type"] == "approve":   # the finished video (a no-op until the edit is done): copy it to the Finished folder
+                    deliver(folder)
                 return self.send(200, {})
             self.send(404, {})
 
@@ -2169,9 +2171,19 @@ def making_style(folder):
     return "your blended style" if src else None   # not known yet (no style.json in the edit): the page names none
 
 
+def deliver(folder):
+    """library.deliver, never failing the approve: home.py's sweep retries."""
+    try:
+        import library
+        library.deliver(folder)
+    except Exception as e:
+        print(f"could not copy the finished video: {e}", file=sys.stderr)
+
+
 def cmd_final(folder):
     """The cut is the finished video ("just the cut"): Approve says so and the page waits for no edit."""
     update(folder / "review.json", lambda d: d.update(final=True))
+    deliver(folder)   # already approved: it is done now
     print("the cut is final: no styled edit follows")
 
 
@@ -2686,6 +2698,7 @@ def demo():
     import tempfile
     tmp = Path(tempfile.mkdtemp(prefix="review_demo_"))
     os.environ["AI_EDITOR_HOME"] = str(tmp / "home")   # start records the folder in the library index there
+    os.environ["AI_EDITOR_FINISHED"] = str(tmp / "finished")   # approve copies the finished video there
     demo_timings(tmp)
     # the skills on a video: ran (the last one now while it is made), then the style's and chained ones still to run
     ve = tmp / "edits" / "sk"
@@ -3332,8 +3345,11 @@ def demo():
     assert "learn" not in load(rf / "review.json"), "the cut's approve is not the end: nothing to learn yet"
     # the final approve with no notes all session: the panel says so, LEARN asks nothing
     update(rf / "review.json", lambda d: d.update(final=True, sent=False, comments=[]))
+    assert "delivered" not in load(rf / "review.json"), "the cut's approve is not the finished video"
     p2("/event", {"type": "approve"})
     assert load(rf / "review.json")["learn"]["state"] == "none"
+    got = load(rf / "review.json")["delivered"]["to"]   # the final approve copies the finished video out
+    assert Path(got).parent == (tmp / "finished").resolve() and Path(got).stat().st_size > 0, got
     o = io.StringIO()
     with contextlib.redirect_stdout(o):
         cmd_wait(rf, poll=0.01)
