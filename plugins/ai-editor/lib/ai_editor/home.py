@@ -2033,16 +2033,21 @@ def chat_history(slug):
     return out
 
 
+CHAT_LIVE = {}   # slug -> the turn still running: a page that reloads mid-reply follows it again (/chat/history "running")
+
+
 def chat_watch(tid, slug):
     """Collects one turn's events and saves the reply, so it is kept even if the page went away."""
-    n, done, texts, tools = 0, False, [], []
+    n, done, texts, tools, gap = 0, False, [], [], False
     while not done:
         evs, n, done = chat.events(tid, n)
         for e in evs:
             if e["type"] == "text":
-                texts.append(e["text"])
+                texts.append(("\n\n" if gap and texts else "") + e["text"])   # text after a tool is a new paragraph
+                gap = False
             elif e["type"] == "tool":
                 tools.append(f"{e.get('name', '')} {e.get('summary', '')}".strip())
+                gap = True
             elif e["type"] == "error":
                 texts.append(f"\n\n{e['text']}")
         if not done:
@@ -2051,6 +2056,8 @@ def chat_watch(tid, slug):
         return
     try:
         chat_append(slug, {"role": "assistant", "text": "".join(texts).strip(), "tools": tools, "at": now()})
+        if CHAT_LIVE.get(slug) == tid:   # after the reply is saved: a page loading now gets it from the history
+            CHAT_LIVE.pop(slug, None)
         sid = chat.session_of(tid)
         if project_or_none(slug):
             if sid:
@@ -2117,6 +2124,8 @@ def chat_send(slug, text, context=None):
         head.append(str(context).strip())
     tid = chat.start(text, sid or None, context="\n".join(head) or None)
     chat_append(slug, {"role": "user", "text": text, "at": now()})
+    if slug:
+        CHAT_LIVE[slug] = tid
     threading.Thread(target=chat_watch, args=(tid, slug), daemon=True).start()
     return tid
 
@@ -2815,7 +2824,9 @@ def make_handler(token):
             if path == "/chat/stream":
                 return self.chat_stream(q.get("turn", ""), int(q.get("since") or 0))
             if path == "/chat/history":
-                return self.send(200, {"messages": chat_history(q["slug"]) if project_or_none(q.get("slug")) else []})
+                ok = project_or_none(q.get("slug"))
+                return self.send(200, {"messages": chat_history(q["slug"]) if ok else [],
+                                       "running": ok and CHAT_LIVE.get(q["slug"]) or None})
             if path == "/references":
                 return self.send(200, {"refs": reference.list_refs(re.sub(r"[^a-z0-9._-]", "", q.get("handle", "").lower()))})
             if path == "/reference":
@@ -3380,7 +3391,7 @@ def demo():
     pj = post("/projects", {"name": "My Reel", "kind": "talking-head"})
     assert pj["slug"] == "my-reel" and any(x["slug"] == "my-reel" and x["status"] for x in get("/projects")["projects"])
     assert post("/project/link", {"slug": "my-reel", "field": "refs", "value": "someone"})["refs"] == ["someone"]
-    assert get("/project?slug=my-reel")["project"]["name"] == "My Reel" and get("/chat/history?slug=my-reel") == {"messages": []}
+    assert get("/project?slug=my-reel")["project"]["name"] == "My Reel" and get("/chat/history?slug=my-reel") == {"messages": [], "running": None}
     assert get("/chat/events?turn=none") == {"events": [], "next": 0, "finished": True}
     for bad in (lambda: post("/projects", {"name": "x", "kind": "nope"}), lambda: get("/project?slug=nope"), lambda: get("/reference?handle=nope&id=1")):
         try:
@@ -3697,6 +3708,23 @@ def demo():
     except urllib.error.HTTPError as e:
         assert e.code == 400
     Path(got["to"]).unlink()   # the finished-folder checks below start from an empty folder
+    # a page reloaded mid-reply: the history says which turn still runs; the saved reply keeps text after a tool apart
+    gate, _start, _events = threading.Event(), chat.start, chat.events
+    chat.start = lambda text, sid=None, context=None: "t-live"
+    chat.events = lambda tid, n: ([{"type": "text", "text": "Checking."}, {"type": "tool", "name": "Bash", "summary": "ffprobe"},
+                                   {"type": "text", "text": "Done."}], n + 3, True) if gate.is_set() else ([], n, False)
+    try:
+        post("/chat", {"slug": ep, "text": "and again"})
+        assert get(f"/chat/history?slug={ep}")["running"] == "t-live"
+        gate.set()
+        for _ in range(100):
+            if get(f"/chat/history?slug={ep}")["running"] is None:
+                break
+            time.sleep(0.05)
+        h = get(f"/chat/history?slug={ep}")
+        assert h["running"] is None and h["messages"][-1]["text"] == "Checking.\n\nDone.", h["messages"][-1]
+    finally:
+        chat.start, chat.events = _start, _events
     own.clear()
     # Stop on one analysing card stops that creator only
     post("/job", {"type": "teardown", "handle": "one", "platform": "youtube"}); out(cmd_wait, 0.01)

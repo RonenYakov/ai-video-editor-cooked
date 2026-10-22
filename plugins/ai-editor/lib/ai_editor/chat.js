@@ -216,7 +216,8 @@ function mount(el,opts){
   (async()=>{
     try{const r=await fetch('/chat/history?slug='+encodeURIComponent(slug));if(r.ok){const j=await r.json();
       for(const m of j.messages||[]){if(m.role==='user')user(m.text||'');else{(m.tools||[]).forEach(s=>tool(s));if(m.text)asst(m.text)}}
-      first=!(j.messages||[]).length}}catch(e){}
+      first=!(j.messages||[]).length;
+      if(j.running&&!turn&&!gone){turn=j.running;showTyping(true);running(true);listen(turn)}}}catch(e){}   // reloaded mid-reply: follow it again from its first event
     empty();stick=true;msgs.scrollTop=msgs.scrollHeight;
   })();
   return {send,focus:()=>ta.focus(),destroy(){gone=true;mic.destroy();finish();el.innerHTML=''}};

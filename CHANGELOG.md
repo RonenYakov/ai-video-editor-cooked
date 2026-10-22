@@ -4,6 +4,7 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- Refreshing the page while Claude is replying keeps the reply: the chat picks the running turn back up and shows it finishing.
 - Motion Studio films render nothing, draft or final, until you approve the frames: one still per beat, with the brief, on the review page. A changed beat sheet needs approving again.
 - Spending limits: at most 2 paid generations (Higgsfield or ElevenLabs) per message you send, then Claude asks. Job windows and the project chat see only the Higgsfield tools a video uses, which keeps the rest of its ~150 tools out of the context. Voiceovers only when asked.
 - The project chat runs in auto mode: routine work goes through, risky actions are still blocked. Accounts without auto mode get the narrower rules.

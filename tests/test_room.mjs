@@ -64,3 +64,8 @@ assert.ok(html.includes('<aside id="chatdock"') && html.indexOf('<aside id="chat
 // an unsent brief survives a refresh
 assert.ok(/keepView\(\)\{[^\n]*noteDraft:nv\.noteDraft/.test(html), 'keepView saves the brief draft')
 console.log('room ok')
+
+// reloaded mid-reply: the chat follows the turn the server says still runs, from its first event
+const cj = readFileSync(new URL('../plugins/ai-editor/lib/ai_editor/chat.js', import.meta.url), 'utf8')
+assert.ok(/if\(j\.running&&!turn&&!gone\)\{turn=j\.running;showTyping\(true\);running\(true\);listen\(turn\)\}/.test(cj), 'chat.js must reattach to a running turn')
+console.log('room reload ok')
