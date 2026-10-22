@@ -4,6 +4,7 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- A video the project chat makes lands in the project's Results with Play and Save to finished, and the chat copies it to the finished folder itself. The chat may now write files and make folders in the library, and its step lines are no longer squashed.
 - Every approved video is copied to one folder outside the library (`~/Videos/cooked Finished` by default, changeable), named after its project and date. A Finished videos button on Home opens it.
 - Edit a video and Motion Studio projects open as a room: the chat in the middle, with Footage, References, an optional Brief and Results beside it. No steps to follow. Talking head keeps its steps.
 - Motion Studio starts from references: add them, send one line in the chat, and the film starts. No brief needed.

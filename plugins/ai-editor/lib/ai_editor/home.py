@@ -2084,6 +2084,18 @@ def start_film(p, text):
     return chat.say(reply)
 
 
+def project_dir(slug):
+    return projects._root() / slug
+
+
+def project_videos(slug):
+    """The videos the project chat made in the project folder (not its sources), newest first."""
+    d = project_dir(slug)
+    vs = [f for f in d.rglob("*") if f.is_file() and f.suffix.lower() in links.VIDEO_EXT] if d.is_dir() else []
+    return [{"name": f.name, "path": str(f), "media": "/media?p=" + quote(str(f))}
+            for f in sorted(vs, key=lambda f: f.stat().st_mtime, reverse=True)[:20]]
+
+
 def chat_send(slug, text, context=None):
     """-> turn id. KeyError for an unknown project."""
     p = projects.show(slug) if slug else None
@@ -2096,6 +2108,10 @@ def chat_send(slug, text, context=None):
     if p:   # passed as context, not pasted in: chat.start uses it for a first message and for a session it had to
         head.append(f"Project {p['name']} ({p['kind']}), folder links: sources={p['sources']} refs={p['refs']} edits={p['edits']}, "
                     f"library: {library.path()}" + (f", note={p['note']!r}" if p.get("note") else ""))
+        if p["kind"] != "talking-head":   # the free room: no review page, so the chat itself hands the video over
+            head.append(f"Save every video you make for this project in {project_dir(slug)} (it exists). When one is finished, run "
+                        f"`python3 {Path(library.__file__).resolve()} finish <video> --project {slug}`: it copies the video "
+                        f"to the user's finished folder ({library.finished_path(False)}). Tell the user that folder.")
     if context:
         head.append(str(context).strip())
     tid = chat.start(text, sid or None, context="\n".join(head) or None)
@@ -2264,7 +2280,7 @@ def make_handler(token):
                 return self.send(200, t.read_bytes(), "image/jpeg", cache="private, max-age=86400") if t else self.send(404, {})
             if path == "/media":   # a library video's file, to watch or download
                 f = Path(q.get("p", [""])[0]).resolve()
-                if not any(d in f.parents for d in library.edit_dirs()) or not f.is_file() or f.suffix.lower() not in links.VIDEO_EXT:
+                if not any(d in f.parents for d in [*library.edit_dirs(), projects._root().resolve()]) or not f.is_file() or f.suffix.lower() not in links.VIDEO_EXT:
                     return self.send(404, {})
                 self.send_response(200)
                 self.send_header("Content-Type", "video/mp4")
@@ -2790,7 +2806,7 @@ def make_handler(token):
                     except (OSError, ValueError):
                         pass
                 d = read()
-                return self.send(200, {"project": {**p, "status": project_status(p, d)}, "edits": edits,
+                return self.send(200, {"project": {**p, "status": project_status(p, d)}, "edits": edits, "videos": project_videos(p["slug"]),
                                        "jobs": [j for j in d["jobs"] if j.get("project") == p["slug"]]})
             if path == "/chat/events":
                 evs, nxt, fin = chat.events(q.get("turn", ""), int(q.get("since") or 0))
@@ -2842,6 +2858,11 @@ def make_handler(token):
                     return self.send(200, projects.unlink(slug, str(b.get("field")), b.get("value")))
                 if path == "/project/note":
                     return self.send(200, projects.set_note(slug, str(b.get("text") or "")))
+                if path == "/project/finish":   # Results' "Save to finished": a video the chat made in the project folder
+                    f = Path(str(b.get("path") or "")).resolve()
+                    if project_dir(slug).resolve() not in f.parents:
+                        raise ValueError("That video is not in this project.")
+                    return self.send(200, {"to": str(library.finish(f, slug)), "count": library.finished_count()})
                 if path == "/project/rename":
                     return self.send(200, projects.rename(slug, " ".join(str(b.get("name") or "").split())[:80] or slug))
                 if path == "/project/archive":
@@ -3652,6 +3673,29 @@ def demo():
     assert calls == ["hi"] and len(read()["jobs"]) == n_jobs
     assert post("/project/unlink", {"slug": mp, "field": "refs", "value": "https://example.com/other"})["refs"][-1] == "https://example.com/look"
     assert post("/project/note", {"slug": mp, "text": ""})["note"] == ""
+    # the free room: a video the Edit chat made in the project folder shows in Results, plays, and goes to the finished folder
+    ep = post("/projects", {"name": "Five second test", "kind": "edit"})["slug"]
+    seen, _start = [], chat.start
+    chat.start = lambda text, sid=None, context=None: seen.append(context) or "no-turn"
+    try:
+        post("/chat", {"slug": ep, "text": "trim it to 5 seconds"})
+    finally:
+        chat.start = _start
+    assert f"finish <video> --project {ep}" in seen[0] and str(project_dir(ep)) in seen[0], seen
+    made = project_dir(ep) / "final.mp4"
+    shutil.copyfile(vid, made)
+    pv = get(f"/project?slug={ep}")["videos"]
+    assert [v["name"] for v in pv] == ["final.mp4"], pv
+    assert urllib.request.urlopen(base + pv[0]["media"] + "&t=" + tok).read() == vid.read_bytes()
+    fin_before = library.finished_count()
+    got = post("/project/finish", {"slug": ep, "path": str(made)})
+    assert Path(got["to"]).name.startswith("Five second test ") and got["count"] == fin_before + 1, got
+    try:
+        post("/project/finish", {"slug": ep, "path": str(vid)})
+        raise AssertionError("finish took a file outside the project")
+    except urllib.error.HTTPError as e:
+        assert e.code == 400
+    Path(got["to"]).unlink()   # the finished-folder checks below start from an empty folder
     own.clear()
     # Stop on one analysing card stops that creator only
     post("/job", {"type": "teardown", "handle": "one", "platform": "youtube"}); out(cmd_wait, 0.01)

@@ -27,7 +27,8 @@ const keys = Object.keys(env)
 const run = new Function(...keys, src + '; return {vProject, vHome, setUi: u => Object.assign(ui, u)}')(...keys.map(k => env[k]))
 const page = (kind, extra = {}) => {
   env.ui.pslug = 'p1'
-  env.ui.pj = {project: {slug: 'p1', name: 'My project', kind, sources: ['/v/a.mp4'], refs: ['https://x.co/r', '/tmp/pic.png'], status: '', ...extra}, edits: [{name: 'cut one', dir: '/lib/e1'}]}
+  env.ui.pj = {project: {slug: 'p1', name: 'My project', kind, sources: ['/v/a.mp4'], refs: ['https://x.co/r', '/tmp/pic.png'], status: '', ...extra}, edits: [{name: 'cut one', dir: '/lib/e1'}],
+    videos: [{name: 'final.mp4', path: '/lib/projects/p1/final.mp4', media: '/media?p=%2Flib%2Fprojects%2Fp1%2Ffinal.mp4'}]}
   return run.vProject()
 }
 
@@ -38,6 +39,8 @@ for (const kind of ['edit', 'motion']) {
   for (const w of ['References', 'Brief', 'Results', 'Open finished folder', 'Open review']) assert.ok(h.includes(w), kind + ' room lacks ' + w)
   assert.ok(h.includes("pjUnlink(&quot;refs&quot;,&quot;https://x.co/r&quot;)"), kind + ' refs must be removable')
   assert.ok(!h.includes('Write the brief'), kind + ' must not ask for a brief first')
+  // a video the chat made in the project folder: listed in Results, playable, and saved to the finished folder on a click
+  assert.ok(h.includes('final.mp4') && h.includes('href="/media?p=%2Flib%2Fprojects%2Fp1%2Ffinal.mp4"') && h.includes('pjFinish(&quot;/lib/projects/p1/final.mp4&quot;)'), kind + ' Results lacks the chat-made video')
 }
 const edit = page('edit'), motion = page('motion')
 assert.ok(edit.includes('Footage') && edit.includes('Optional'), 'edit has Footage and an Optional label')

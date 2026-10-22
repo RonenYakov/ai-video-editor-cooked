@@ -14,6 +14,7 @@ const css=`.cc,.cc-x{--c-panel:var(--panel,#fff);--c-ink:var(--ink,#0C0A09);--c-
 .cc-btn:hover,.cc-btn:focus-visible{border-color:var(--c-ink);color:var(--c-ink);outline:none}
 .cc-btn:disabled{opacity:.4;cursor:default;border-color:var(--c-line);color:var(--c-body)}
 .cc-msgs{flex:1;min-height:0;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:16px;scroll-behavior:auto}
+.cc-msgs>*{flex-shrink:0}
 .cc-empty{margin:auto;max-width:300px;text-align:center;color:var(--c-mute);font-size:14px;line-height:21px}
 .cc-u{align-self:flex-end;max-width:85%;padding:9px 14px;border-radius:14px;background:var(--c-soft);white-space:pre-wrap;overflow-wrap:anywhere}
 .cc-a{align-self:flex-start;max-width:100%;overflow-wrap:anywhere}

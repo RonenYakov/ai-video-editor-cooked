@@ -30,11 +30,16 @@ _turns = {}
 _lock = threading.Lock()
 
 
+# A -p run cannot ask: anything outside the allow rules is refused, and the project chat is a free room. It may also
+# write files in its working folder (the library, acceptEdits) and make folders there.
+CHAT_PERMS = ["--permission-mode", "acceptEdits", "--allowedTools", "Bash(mkdir *)"]
+
+
 def argv(session_id=None):
     """claude -p (prompt on stdin) with launcher.plan()'s plugin dirs and permission settings."""
     import launcher   # late: launcher imports home, which imports this module
     base = launcher.plan(claude=shutil.which("claude"), prompt="")[:-1]   # drop the (empty) positional prompt
-    cmd = base[:1] + ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"] + base[1:]
+    cmd = base[:1] + ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"] + CHAT_PERMS + base[1:]
     return cmd + (["--resume", session_id] if session_id else [])
 
 
@@ -270,6 +275,8 @@ def run_fake(script, sid=None, context=None):
 
 def demo():
     """Self-check: a --resume id Claude Code no longer has recovers instead of bricking the project's chat,
+    a = argv("sid-1")   # the chat may write files and make folders: a -p run cannot ask for either
+    assert a[a.index("--permission-mode") + 1] == "acceptEdits" and "Bash(mkdir *)" in a and a[-2:] == ["--resume", "sid-1"], a
     and no other failure costs a session. No claude, no network: fakes stand in for it."""
     evs = run_fake(FAKE, "gone")
     tid = evs.tid

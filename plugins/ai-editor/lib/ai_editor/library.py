@@ -4,6 +4,7 @@
     python3 library.py path                 print the library folder (made if missing)
     python3 library.py set <folder>         move it: new videos land there, older ones stay listed
     python3 library.py record <edit dir>    list an edit folder made somewhere else (review.py start does this)
+    python3 library.py finish <video> [--project <slug>]   copy a video made in the project chat to the finished folder
     python3 library.py list                 every video, newest first, as JSON
     python3 library.py clean [--yes]        the working files that can go and their size; --yes deletes them
     python3 library.py demo                 self-check
@@ -128,17 +129,52 @@ def deliver(edit_dir):
         name = (slug and projects.show(slug).get("name")) or name
     except Exception:
         pass
-    name = " ".join("".join(c for c in name if c not in '\\/:*?"<>|\n\r\t').split()).strip(". ") or d.name
-    base = f"{name} {time.strftime('%Y-%m-%d')}"
+    dest = copy_finished(src, name, d.name)
+    import review   # late: review imports this module
+    review.update(d / "review.json", lambda x: x.update(delivered={"to": str(dest), "mtime": mt}))
+    return dest
+
+
+def copy_finished(src, name, fallback="video"):
+    """Copy src to finished_path() as "<name> <YYYY-MM-DD><ext>", " (2)" on a clash. -> the new file."""
+    src = Path(src)
+    name = " ".join("".join(c for c in str(name) if c not in '\\/:*?"<>|\n\r\t').split()).strip(". ") or fallback
+    base, ext = f"{name} {time.strftime('%Y-%m-%d')}", src.suffix.lower() or ".mp4"
     out, n = finished_path(), 1
-    while (out / f"{base}.mp4" if n == 1 else out / f"{base} ({n}).mp4").exists():
+    while (out / f"{base}{ext}" if n == 1 else out / f"{base} ({n}){ext}").exists():
         n += 1
-    dest = out / (f"{base}.mp4" if n == 1 else f"{base} ({n}).mp4")
+    dest = out / (f"{base}{ext}" if n == 1 else f"{base} ({n}){ext}")
     tmp = dest.with_name(dest.name + ".part")
     shutil.copy2(src, tmp)
     os.replace(tmp, dest)
-    import review   # late: review imports this module
-    review.update(d / "review.json", lambda x: x.update(delivered={"to": str(dest), "mtime": mt}))
+    return dest
+
+
+def finish(video, slug=None):
+    """A finished video made outside the review page (the project chat): copy it to the finished folder, named after
+    its project. The same file twice (same size and mtime) is copied once. -> the copy."""
+    v = Path(video).resolve()
+    if not v.is_file() or v.suffix.lower() not in VIDEO_EXT:
+        raise ValueError(f"not a video file: {v}")
+    name = v.stem
+    if slug:
+        import projects   # late: projects imports this module
+        name = projects.show(slug)["name"]
+    seen = home() / "finished.json"
+    try:
+        log = json.loads(seen.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        log = {}
+    key, st = str(v), v.stat()
+    got = log.get(key) or {}
+    if got.get("mtime") == st.st_mtime_ns and got.get("size") == st.st_size and Path(got.get("to") or "").is_file():
+        return Path(got["to"])
+    dest = copy_finished(v, name, v.stem)
+    log[key] = {"to": str(dest), "mtime": st.st_mtime_ns, "size": st.st_size}
+    seen.parent.mkdir(parents=True, exist_ok=True)
+    tmp = seen.with_suffix(".tmp")
+    tmp.write_text(json.dumps(log, indent=1), encoding="utf-8")
+    os.replace(tmp, seen)
     return dest
 
 
@@ -547,6 +583,22 @@ def demo():
     assert deliver(film) is None
     shutil.copyfile(vid, film / "out" / "final-9x16.mp4")
     assert deliver(film) == fin / f"f1 {day}.mp4"
+    chat = lib / "projects" / "p1" / "final.mp4"   # a video the project chat made: finish copies it once, by project name
+    chat.parent.mkdir(parents=True)
+    shutil.copyfile(vid, chat)
+    import projects
+    pj = projects.new("Five second test", "edit")["slug"]
+    c1 = finish(chat, pj)
+    assert c1 == fin / f"Five second test {day}.mp4" and c1.read_bytes() == chat.read_bytes() and chat.is_file(), c1
+    assert finish(chat, pj) == c1, "the same file twice: one copy"
+    os.utime(chat, ns=(time.time_ns(), time.time_ns() + 10 ** 9))
+    assert finish(chat, pj) == fin / f"Five second test {day} (2).mp4", "re-made: a new copy"
+    for bad in (lib / "nope.mp4", tmp / "notes.txt"):
+        try:
+            finish(bad)
+            raise AssertionError(f"finish took {bad}")
+        except ValueError:
+            pass
     shutil.rmtree(tmp, ignore_errors=True)
     print("library demo ok")
 
@@ -561,6 +613,8 @@ def main():
         return print(set_path(a[1]))
     if a[:1] == ["record"] and len(a) == 2:
         return record(a[1])
+    if a[:1] == ["finish"] and len(a) in (2, 4) and (len(a) == 2 or a[2] == "--project"):
+        return print(finish(a[1], a[3] if len(a) == 4 else None))
     if a[:1] == ["list"]:
         return print(json.dumps(entries(), indent=1))
     if a[:1] == ["clean"]:
