@@ -2736,8 +2736,12 @@ async function load(){
 }
 let PV=null,keepY=null;
 const canReload=()=>{const a=document.activeElement;return !(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.value)&&!nv.up.some(u=>!u.bad)&&!ui.edit};
-function keepView(){try{sessionStorage.setItem('ave-home-keep',JSON.stringify({rv,sp:ui.sp,ps:ui.pslug,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join}}))}catch(e){}}
+function keepView(){const keep={rv,sp:ui.sp,ps:ui.pslug,y:scrollY,nv:{sel:nv.sel,style:nv.style,aspect:nv.aspect,aspectSet:nv.aspectSet,join:nv.join,draft:nv.draft,script:nv.script,scriptName:nv.scriptName,clips:nv.clips,filter:nv.filter,assets:nv.assets}}
+try{sessionStorage.setItem('ave-home-keep',JSON.stringify(keep));return}catch(e){}
+// over the quota, almost always a pasted image: keep the words and the links, drop the picture data
+try{keep.nv.assets=(nv.assets||[]).map(a=>a.kind==='image'?Object.assign({},a,{data:''}):a);sessionStorage.setItem('ave-home-keep',JSON.stringify(keep))}catch(e){}}
 try{const k=JSON.parse(sessionStorage.getItem('ave-home-keep')||'null');sessionStorage.removeItem('ave-home-keep');if(k){rv=k.rv;ui.sp=k.sp;ui.pslug=k.ps;Object.assign(nv,k.nv);keepY=k.y}}catch(e){}
+window.addEventListener('pagehide',keepView);window.addEventListener('beforeunload',keepView);
 window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
 load().then(loadRecent);loadProjects();setInterval(load,1500);setInterval(loadLib,4000);setInterval(loadProjects,4000);
 </script>

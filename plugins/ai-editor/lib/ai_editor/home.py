@@ -1993,12 +1993,12 @@ def chat_send(slug, text, context=None):
     p = projects.show(slug) if slug else None
     sid = p and p.get("chat_session")
     head = []
-    if p and not sid:
+    if p:   # passed as context, not pasted in: chat.start uses it for a first message and for a session it had to
         head.append(f"Project {p['name']} ({p['kind']}), folder links: sources={p['sources']} refs={p['refs']} edits={p['edits']}, "
                     f"library: {library.path()}")
     if context:
         head.append(str(context).strip())
-    tid = chat.start(("\n".join(head) + "\n\n" + text) if head else text, sid or None)
+    tid = chat.start(text, sid or None, context="\n".join(head) or None)
     chat_append(slug, {"role": "user", "text": text, "at": now()})
     threading.Thread(target=chat_watch, args=(tid, slug), daemon=True).start()
     return tid

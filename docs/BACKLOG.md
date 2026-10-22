@@ -51,8 +51,9 @@ Sources:
 - `reference.py` and `dictate.py` have no `demo`, so nothing in CI runs them. Found while fixing the stale
   chat session and the stale launcher version: every module behind the chat, projects and references
   surface was untested, which is how both bugs shipped. `chat.py`, `projects.py` and `toolhook.py` now have one
-  and are in `tests/demos.sh`. Done: both have a `demo` that covers their own failure modes (a
-  reference whose source has gone, a dictation with no audio device), both listed in `demos.sh`.
+  and are in `tests/demos.sh`; these two still have none. Done when each has a `demo` covering its
+  own failure modes (a reference whose source has gone, a dictation with no audio device), and both
+  are listed in `demos.sh`.
 
 Carried over (still untested live):
 - Links: OneDrive personal share links go through the `api.onedrive.com/v1.0/shares` download

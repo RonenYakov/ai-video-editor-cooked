@@ -116,16 +116,31 @@ def _nothing_yet(turn):
     return not any(e["type"] in ("session", "text", "tool", "done") for e in turn["events"])
 
 
+GONE = ("no conversation found", "session not found", "no such session", "could not find session")
+
+
+def _session_gone(err):
+    """True when stderr says the id is the problem. Any other failure (an expired login, a bad --settings or
+    --mcp-config, a missing plugin dir) must not cost the user a session id that is still good."""
+    e = (err or "").lower()
+    return any(m in e for m in GONE)
+
+
 def _run(turn, text):
     try:
         code, err = _attempt(turn, text)
         # A stale --resume id (the session was pruned, or came from another config dir) fails before any event
         # arrives. Drop it and run once more fresh: otherwise every later message in the project fails the same
         # way and its chat is lost for good. turn["reset"] tells the caller to forget the id it passed in.
-        if turn["resume"] and code not in (0, None) and not turn["stopped"] and _nothing_yet(turn):
+        if turn["resume"] and code not in (0, None) and not turn["stopped"] and _nothing_yet(turn) and _session_gone(err):
             turn["resume"] = turn["session"] = None
             turn["reset"] = True
-            code, err = _attempt(turn, text)
+            if turn["context"]:   # a fresh session knows nothing: say which project and folders again
+                text = f"{turn['context'].rstrip()}\n\n{text}"
+            with _lock:   # a Stop between the two attempts: never launch the second one
+                go = not turn["stopped"]
+            if go:
+                code, err = _attempt(turn, text)
         done = any(e["type"] == "done" for e in turn["events"])
         if turn["stopped"]:
             _add(turn, [{"type": "done", "session": turn["session"], "cost": None}] if not done else [])
@@ -144,7 +159,7 @@ def start(text, session_id=None, context=None):
         text = f"{context.rstrip()}\n\n{text}"
     tid = uuid.uuid4().hex
     turn = {"events": [], "finished": False, "session": session_id, "resume": session_id, "proc": None,
-            "stopped": False, "streamed": False, "ended": 0, "reset": False}
+            "stopped": False, "streamed": False, "ended": 0, "reset": False, "context": context}
     with _lock:
         for k in [k for k, v in _turns.items() if v["finished"] and time.time() - v["ended"] > KEEP_S]:
             del _turns[k]
@@ -198,25 +213,56 @@ print(json.dumps({"type": "result", "subtype": "success", "session_id": "fresh-s
 """
 
 
-def demo():
-    """Self-check: a --resume id Claude Code no longer has recovers instead of bricking the project's chat.
-    No claude, no network: a fake stands in for it, failing on --resume the way the real one does."""
+FAKE_ECHO = """import json, sys
+if "--resume" in sys.argv:
+    sys.stderr.write("No conversation found with session ID: gone\\n")
+    sys.exit(1)
+prompt = sys.stdin.read()
+print(json.dumps({"type": "system", "subtype": "init", "session_id": "fresh-sid"}), flush=True)
+print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": prompt}]}}), flush=True)
+print(json.dumps({"type": "result", "subtype": "success", "session_id": "fresh-sid", "total_cost_usd": 0}), flush=True)
+"""
+
+FAKE_DEAD = """import sys
+sys.stdin.read()
+sys.stderr.write("Invalid API key - please run /login\\n")
+sys.exit(1)
+"""
+
+
+class _Evs(list):
+    """A turn's events, carrying the turn id so a check can ask about the turn too."""
+    tid = None
+
+
+def run_fake(script, sid=None, context=None):
+    """Run one turn against a stand-in for claude. -> its events, with .tid for the turn id."""
     global argv
     import tempfile
     real = argv
     with tempfile.TemporaryDirectory() as td:
-        fake = Path(td) / "fake_claude.py"
-        fake.write_text(FAKE, encoding="utf-8")
-        argv = lambda sid=None: [sys.executable, "-I", str(fake)] + (["--resume", sid] if sid else [])   # noqa: E731
+        f = Path(td) / "fake_claude.py"
+        f.write_text(script, encoding="utf-8")
+        argv = lambda s=None: [sys.executable, "-I", str(f)] + (["--resume", s] if s else [])   # noqa: E731
         try:
-            tid = start("hello", "gone")
+            tid = start("hello", sid, context=context)
             for _ in range(300):
                 if events(tid)[2]:
                     break
                 time.sleep(0.05)
-            evs = events(tid)[0]
+            out = events(tid)[0]
         finally:
             argv = real
+    out = _Evs(out)
+    out.tid = tid
+    return out
+
+
+def demo():
+    """Self-check: a --resume id Claude Code no longer has recovers instead of bricking the project's chat,
+    and no other failure costs a session. No claude, no network: fakes stand in for it."""
+    evs = run_fake(FAKE, "gone")
+    tid = evs.tid
     kinds = [e["type"] for e in evs]
     assert "error" not in kinds, evs                      # before the retry this was the only event
     assert session_of(tid) == "fresh-sid", evs            # the new session, not the stale one
@@ -225,6 +271,16 @@ def demo():
 
     t = {"events": [{"type": "text", "text": "hi"}], "resume": "x", "stopped": False}
     assert not _nothing_yet(t) and _nothing_yet({"events": []})
+    assert _session_gone("No conversation found with session ID: gone") and not _session_gone("Invalid API key")
+
+    # the context reaches the fresh session, so it still knows which project it is in
+    seen = run_fake(FAKE_ECHO, "gone", context="Project My Talk (talking-head)")
+    assert "Project My Talk" in "".join(e.get("text", "") for e in seen), seen
+
+    # any other failure must leave a good session id alone: no reset, nothing erased
+    out = run_fake(FAKE_DEAD, "still-good")
+    assert [e["type"] for e in out] == ["error"], out
+    assert session_reset(out.tid) is False, "an unrelated failure must not cost a valid session"
     print("chat ok")
     return 0
 

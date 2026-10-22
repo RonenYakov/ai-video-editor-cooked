@@ -183,7 +183,14 @@ def demo():
         except ValueError:
             pass
 
-        assert [q["slug"] for q in list_all()] == ["my-talk", "my-talk-2"], "newest first by updated"
+        # _now() is second resolution, so two projects made in one run tie: age one by hand or the
+        # order comes from the filesystem and the sort is never tested
+        # age the one that sorts FIRST by name, so "newest first" and any name or filesystem order differ
+        g = _file("my-talk")
+        aged = json.loads(g.read_text(encoding="utf-8"))
+        aged["updated"] = "2000-01-01T00:00:00+00:00"
+        g.write_text(json.dumps(aged), encoding="utf-8")
+        assert [q["slug"] for q in list_all()] == ["my-talk-2", "my-talk"], "newest first by updated"
         archive("my-talk-2")
         assert [q["slug"] for q in list_all()] == ["my-talk"]
         assert len(list_all(True)) == 2

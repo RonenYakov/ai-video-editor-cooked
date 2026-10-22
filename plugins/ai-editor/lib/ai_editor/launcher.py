@@ -153,14 +153,21 @@ def user_mcp_servers():
     return out
 
 
-def mcp_config(keep=MCP_KEEP, servers=None, home=None):
-    """The --mcp-config file holding only the kept servers the user actually has, or None when they have none."""
+def mcp_config(keep=MCP_KEEP, servers=None, home=None, write=True):
+    """The --mcp-config file holding only the kept servers the user actually has, or None when they have none.
+    write=False gives the path without touching the disk, for a --dry-run. One file is shared by every job, and
+    plan() runs on every chat message, so it is written through a temp name and only when it would change: a
+    claude starting at the same moment must never read half a file."""
     have = {n: d for n, d in (user_mcp_servers() if servers is None else servers).items() if n in keep}
     if not have:
         return None
     f = Path(home or profile.HOME) / "mcp-allow.json"
-    f.parent.mkdir(parents=True, exist_ok=True)
-    f.write_text(json.dumps({"mcpServers": have}, indent=1), encoding="utf-8")
+    want = json.dumps({"mcpServers": have}, indent=1)
+    if write and (not f.exists() or f.read_text(encoding="utf-8") != want):
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(want, encoding="utf-8")
+        os.replace(tmp, f)
     return f
 
 
@@ -187,7 +194,7 @@ def lang_dir(lang):
     return out if any((out / ".claude" / "skills" / n).exists() for n in names) else None
 
 
-def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, lang=None):
+def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, lang=None, dry=False):
     """The Claude Code command. A plugin installed through /plugin for the user lives under ~/.claude/plugins and
     loads by itself; one installed for a project only, and a checkout of this repo, load for this session with
     --plugin-dir (a checkout's plugins/ folder, so creator-teardown comes too). scoped(): the user's settings are not
@@ -197,7 +204,7 @@ def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, 
     cmd = [claude]
     if scoped():
         cmd += ["--strict-mcp-config", "--setting-sources", "project,local"]
-        mc = mcp_config()
+        mc = mcp_config(write=not dry)
         if mc:
             cmd += ["--mcp-config", str(mc)]
         d = lang_dir(lang)
@@ -310,7 +317,7 @@ def main(argv=None):
             return 0
         print("Opening your editor...\n  Window only: Claude is not started. Keep this terminal open while you use it.", flush=True)
         return subprocess.call(serve)
-    cmd = plan(os_name)
+    cmd = plan(os_name, dry=dry)
     if dry:
         print(f"cd {show([str(lib)], os_name)}\n{show(cmd, os_name)}")
         return 0
@@ -335,6 +342,7 @@ def demo():
     tmp = Path(tempfile.mkdtemp(prefix="launcher_demo_"))
     os.environ["AI_EDITOR_HOME"] = str(tmp / "home")
     os.environ["AI_EDITOR_LIBRARY"] = str(tmp / "My Videos")
+    real_phome, profile.HOME = profile.HOME, tmp / "home"   # read at import: nothing here touches the real one
     for os_name in ("Linux", "Windows"):
         cmd = plan(os_name, plugin=Path("/repo/plugins/ai-editor"), claude="claude")
         assert cmd[:4] == ["claude", "--strict-mcp-config", "--setting-sources", "project,local"] and cmd[-1] == PROMPT, cmd
@@ -375,19 +383,22 @@ def demo():
     assert not (tmp / "My Videos").exists(), "a dry run makes nothing"
     # Higgsfield reaches every job window; the user's other servers do not. Both the config read and the
     # home written to are faked, so the check does not depend on what this computer has installed.
-    real_servers, real_home = user_mcp_servers, profile.HOME
+    real_servers = user_mcp_servers
     try:
-        profile.HOME = tmp / "home"
         user_mcp_servers = lambda: {"higgsfiled": {"type": "http", "url": "https://h"}, "notion": {}, "Vercel": {}}  # noqa: E731
         f = mcp_config()
         assert list(json.loads(f.read_text(encoding="utf-8"))["mcpServers"]) == ["higgsfiled"], f.read_text(encoding="utf-8")
         cmd = plan("Linux", plugin=Path("/repo/plugins/ai-editor"), claude="claude")
         assert cmd[cmd.index("--mcp-config") + 1] == str(f), cmd
+        (tmp / "home" / "mcp-allow.json").unlink(missing_ok=True)
+        dryc = plan("Linux", plugin=Path("/repo/plugins/ai-editor"), claude="claude", dry=True)
+        assert "--mcp-config" in dryc, dryc          # the printed command still shows the real flag
+        assert not (tmp / "home" / "mcp-allow.json").exists(), "a dry run must write nothing"
         user_mcp_servers = lambda: {"notion": {}}  # noqa: E731
         assert mcp_config() is None, "nothing kept: no file"
         assert "--mcp-config" not in plan("Linux", plugin=Path("/repo/plugins/ai-editor"), claude="claude")
     finally:
-        user_mcp_servers, profile.HOME = real_servers, real_home
+        user_mcp_servers = real_servers
     print("mcp      ok: job windows keep Higgsfield and drop the rest")
     # a Claude of its own for a new video: the window it would open, per OS (recorded, never run)
     for os_name in ("Windows", "Linux"):
@@ -473,6 +484,7 @@ def demo():
             print("handoff  ok: a launcher.py in an old version folder hands off to the newest")
     finally:
         open_claude, (home.running, webbrowser.open), shutil.which = real_open, real, real_which
+        profile.HOME = real_phome
     shutil.rmtree(tmp, ignore_errors=True)
     print("launcher demo ok")
 

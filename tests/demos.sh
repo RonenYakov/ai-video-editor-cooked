@@ -38,5 +38,7 @@ echo "== tests/test_alerts.mjs"
 node tests/test_alerts.mjs || failed+=("tests/test_alerts.mjs")
 echo "== tests/test_record.mjs"
 node tests/test_record.mjs || failed+=("tests/test_record.mjs")
+echo "== tests/test_home_keep.mjs"
+node tests/test_home_keep.mjs || failed+=("tests/test_home_keep.mjs")
 if ((${#failed[@]})); then printf 'FAILED: %s\n' "${failed[@]}"; exit 1; fi
 echo "all demos ok"
