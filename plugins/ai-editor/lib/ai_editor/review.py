@@ -1699,9 +1699,13 @@ def cmd_start(a, folder):
     d.update(folder=str(folder), stage=a.stage, round=0 if raw else d.get("round", 0) + 1 if d.get("stage") == a.stage else 1,
              video=str(Path(a.video).resolve()), note=a.note or "", sent=False, alts=[],
              transcript=str(Path(a.transcript).resolve()) if a.transcript else None,
-             plan=str(Path(a.plan).resolve()) if a.plan else None, vertical=probe(a.video), label=a.name,
+             plan=str(Path(a.plan).resolve()) if a.plan else None, vertical=probe(a.video),
+             label=a.name or (film_title(folder) if (folder / "beats.sheet.json").exists() else None),   # a film keeps its project's name
              stills=bool(getattr(a, "stills", False)))
     d.pop("stopped", None)
+    if d.pop("beats", None):   # a film's sheet was approved: the page shows this video now, not the frames. The sheet's
+        d["sheet_log"] = {"events": d["events"], "comments": d["comments"]}   # approve and notes are kept apart, so the
+        d["events"], d["comments"] = [], []   # video starts unapproved (beats.approved.json still holds the sheet's)
     d.pop("raw", None)
     again = raw and d.get("raw")   # round 0 again (the page opened it; Claude swaps in joined.mp4): one send event
     if raw:   # with Claude from the start: notes queue for the cut, as after a send
@@ -3646,6 +3650,13 @@ def demo():
     with contextlib.redirect_stdout(o):
         cmd_wait(bf, poll=0.01)
     assert "APPROVE" in o.getvalue() and "[beat 2]" in o.getvalue() and "[whole sheet]" in o.getvalue(), o.getvalue()
+    with contextlib.redirect_stdout(io.StringIO()):   # the film's video goes up for review under the film's name, not none
+        cmd_start(ns(video=str(vid), stage="edit", transcript=None, plan=None, note=None, name=None), bf)
+    assert load(bf / "review.json")["label"] == "beatfilm", load(bf / "review.json")["label"]
+    assert "beats" not in load(bf / "review.json"), "the page leaves the frames for the video"
+    vr = load(bf / "review.json")
+    assert vr["events"] == [] and vr["comments"] == [] and vr["sheet_log"]["events"][-1]["type"] == "approve", \
+        "the sheet's approve is not the video's: the video starts unapproved"
     srv4.shutdown()
     srv4.server_close()
     srv3.shutdown()

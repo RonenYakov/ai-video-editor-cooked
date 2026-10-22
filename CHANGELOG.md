@@ -4,6 +4,7 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- A Motion Studio film's video review starts clean after you approve its frames: it shows the video (not the frames again), under the project's name, waiting for your approval. Before, the frames' approval counted as the video's, so the page offered Undo approve and the project stayed Working.
 - The Motion Studio frames page is redesigned. Each frame shows whole at 9:16, big, with "What you see" and "How it moves" under it. The project's name, the Motion Studio colour and a Your turn pill sit at the top, and the brief shows beside the frames, so you approve both at once.
 - Each paid transcription (ElevenLabs, talking head) says what it cost: the minutes of audio and about how much, on the job while it runs and in Settings beside the key, with the total so far. Worked out at the list price, so it is an upper estimate.
 - A warmer, friendlier look, light by default (dark stays on the switch). Colour now means two things only. Each kind of project has its colour: blue for Edit a video, coral for Talking head, violet for Motion Studio. Each project's state has its colour and a word: amber Working, pink Your turn, green Done, red Stopped.
