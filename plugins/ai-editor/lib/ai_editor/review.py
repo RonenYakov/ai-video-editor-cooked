@@ -1727,6 +1727,15 @@ def cmd_start(a, folder):
     print(f"{rj}: {stage_name(d['stage'], d.get('stills'))}, round {d['round']}")
 
 
+def film_title(folder):
+    """The name of the project this film belongs to (projects.json links it as an edit), else the folder's name."""
+    try:
+        import projects
+        return next((p["name"] for p in projects.list_all() if str(Path(folder)) in map(str, p.get("edits", []))), folder.name)
+    except Exception:   # no library, no projects: the folder's name will do
+        return folder.name
+
+
 def cmd_beats(folder):
     """The beat sheet before the film is built: the stills mode with a sheet (<folder>/beats.sheet.json) in place of a
     video. Same review.json, same send and approve events; a note carries "beat": id, or none for the whole sheet."""
@@ -1738,9 +1747,13 @@ def cmd_beats(folder):
                  f"\"refs\": [{{id, source, take, still}}]}}")
     rj = folder / "review.json"
     d = load(rj) if rj.exists() and load(rj).get("beats") else {"comments": [], "events": []}
+    try:   # the brief is approved with the stills (motion-film step 2): shown on the page beside them
+        brief = (folder / "BRIEF.md").read_text(encoding="utf-8")[:8000]
+    except OSError:
+        brief = None
     d.update(folder=str(folder), name=folder.name, stage="edit", round=d.get("round", 0) + 1, video=None, note="", sent=False,
-             alts=[], transcript=None, plan=None, vertical=False, label=folder.name, stills=True, beats=sheet, src=None, snap=None,
-             changed=[], back_to=None, data=None)
+             alts=[], transcript=None, plan=None, vertical=False, label=film_title(folder), stills=True, beats=sheet, src=None, snap=None,
+             changed=[], back_to=None, data=None, brief=brief)
     d.pop("stopped", None)
     log_round(d)
     (folder / "review").mkdir(parents=True, exist_ok=True)
@@ -3601,11 +3614,14 @@ def demo():
          "still": "stills/beat-01.png"},
         {"id": 2, "t": 2.4, "dur": 3.0, "on_screen": "Logo wipe", "moves": "Wipe left", "heard": "Whoosh", "refs": [], "still": "stills/beat-01.png"}],
         "refs": [{"id": "ref1", "source": "ref.mp4", "take": "the whole look", "still": "stills/ref1.png"}]})
+    (bf / "BRIEF.md").write_text("# Beat film\n- Idea: a counter.\n", encoding="utf-8")
     sys.argv = ["review.py", "beats", str(bf)]
     with contextlib.redirect_stdout(io.StringIO()):
         main()
     sys.argv = ["review.py"]
     assert load(bf / "review.json")["stills"] and load(bf / "review.json")["beats"]["beats"][1]["id"] == 2
+    assert load(bf / "review.json")["brief"].startswith("# Beat film"), "the brief rides with the stills"
+    assert load(bf / "review.json")["label"] == "beatfilm", "no project links it: the folder's name"
     srv4, url4 = serve(bf, 0, open_browser=False)
     threading.Thread(target=srv4.serve_forever, daemon=True).start()
     base4, tok4 = url4.split("/?t=")

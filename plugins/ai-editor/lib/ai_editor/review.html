@@ -22,31 +22,45 @@ button,select,textarea{font:inherit;color:inherit}
 button{background:none;border:0;padding:0;cursor:pointer}
 button:disabled{cursor:default}
 body.beatmode header,body.beatmode #how,body.beatmode main{display:none}
-#beatsview{flex:1;min-height:0;overflow:auto;padding:24px 32px 64px}
-#beatsview .bw{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-#beatsview h1{margin:0;font-size:22px;line-height:28px;color:var(--strong)}
-#beatsview h2{margin:0;font-size:12px;line-height:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-#beatsview .bhead{display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
-#beatsview .bbtns{display:flex;gap:8px}
-#beatsview .bbtns button,#beatsview .bn button{display:inline-flex;align-items:center;gap:6px;height:36px;border-radius:10px;padding:0 14px;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--strong)}
-#beatsview .bbtns button.primary{background:var(--ink);border-color:var(--ink);color:var(--onink)}
-#beatsview button:disabled{opacity:.5}
+#beatsview{flex:1;min-height:0;overflow:auto;padding:28px 32px 72px;background:var(--page)}
+/* the frames to approve (review.py beats): a Motion Studio film, so the page wears the motion colour (ui.css k-motion) */
+#beatsview .bw{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+#beatsview .bhead{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;flex-wrap:wrap}
+#beatsview .bt{display:flex;flex-direction:column;gap:8px;min-width:0}
+#beatsview .btags{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#beatsview h1{margin:0;font-size:30px;line-height:36px;font-weight:700;letter-spacing:-.02em;color:var(--strong)}
+#beatsview .lede{margin:0;font-size:15px;line-height:22px;color:var(--body);max-width:62ch}
+#beatsview h2{margin:0;font-size:17px;line-height:22px;font-weight:700;color:var(--strong)}
+#beatsview .bbtns{display:flex;gap:8px;flex-wrap:wrap}
+#beatsview .bbtns button,#beatsview .bn button{display:inline-flex;align-items:center;gap:6px;height:40px;border-radius:12px;padding:0 16px;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--strong);cursor:pointer}
+#beatsview .bn button{height:34px;border-radius:10px;padding:0 12px;font-size:13px}
+#beatsview .bbtns button.primary{background:var(--kf);border-color:var(--kf);color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--k) 30%,transparent)}
+#beatsview button:disabled{opacity:.5;cursor:default;box-shadow:none}
+#beatsview .frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;align-items:start}
+#beatsview .frame{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:20px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+#beatsview .frame .pic{position:relative;border-radius:12px;overflow:hidden;background:var(--tile)}
+#beatsview .frame .pic img{display:block;width:100%;height:auto}
+#beatsview .frame .num{position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--kf);color:#fff;font-size:12px;font-weight:700}
+#beatsview .frame .when{font-size:13px;line-height:18px;color:var(--muted)}
+#beatsview .frame .say{margin:0;font-size:14px;line-height:20px;color:var(--strong)}
+#beatsview .frame .mv{margin:0;font-size:13px;line-height:19px;color:var(--body)}
+#beatsview .frame .mv b,#beatsview .frame .say b{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--kt);margin-bottom:2px}
+#beatsview .chip{display:inline-block;background:var(--chip);border-radius:6px;padding:2px 7px;margin:0 6px 0 0;font-size:12px;color:var(--ink2)}
+#beatsview .brief{border-radius:20px;background:var(--kb);padding:18px 22px}
+#beatsview .brief summary{cursor:pointer;font-size:15px;font-weight:700;color:var(--kt)}
+#beatsview .brief .bd{margin-top:10px;font-size:14px;line-height:21px;color:var(--strong)}
+#beatsview .brief .bd p{margin:0 0 6px}#beatsview .brief .bd ul{margin:0 0 6px;padding-left:20px}
 #beatsview .refs{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
-#beatsview .ref{flex:0 0 220px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
-#beatsview .ref img,#beatsview .bstill img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--tile)}
-#beatsview .ref div{padding:10px 12px;color:var(--body)}
+#beatsview .ref{flex:0 0 180px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+#beatsview .ref img{display:block;width:100%;height:120px;object-fit:contain;background:var(--tile)}
+#beatsview .ref div{padding:8px 10px;font-size:12px;line-height:16px;color:var(--body)}
 #beatsview .ref b{color:var(--strong)}
-#beatsview .brow{display:grid;grid-template-columns:240px 1fr;gap:16px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel)}
-#beatsview .bcols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-#beatsview .bcols h2{margin-bottom:4px}
-#beatsview .bcols p,#beatsview .bn p{margin:0;color:var(--body);line-height:18px}
-#beatsview .btime{color:var(--muted);margin:0 0 8px}
-#beatsview .chip{display:inline-block;background:var(--chip);border-radius:6px;padding:2px 6px;margin:6px 6px 0 0;color:var(--ink2)}
-#beatsview .bn{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
-#beatsview textarea{width:100%;min-height:64px;border:1px solid var(--line2);border-radius:10px;background:var(--panel);padding:8px 10px;resize:vertical}
-#beatsview .note{background:var(--chip);border-radius:8px;padding:8px 10px}
+#beatsview .bn{display:flex;flex-direction:column;gap:8px}
+#beatsview textarea{width:100%;min-height:64px;border:1px solid var(--line2);border-radius:10px;background:var(--panel);padding:8px 10px;resize:vertical;font:inherit;box-sizing:border-box}
+#beatsview textarea:focus{outline:none;border-color:var(--k);box-shadow:0 0 0 3px color-mix(in srgb,var(--k) 15%,transparent)}
+#beatsview .note{background:var(--chip);border-radius:10px;padding:8px 10px;font-size:13px;line-height:18px}
 #beatsview .note i{color:var(--muted);font-style:normal}
-@media (max-width:760px){#beatsview{padding:16px}#beatsview .brow,#beatsview .bcols{grid-template-columns:1fr}}
+@media (max-width:760px){#beatsview{padding:16px}#beatsview h1{font-size:24px;line-height:30px}#beatsview .frames{grid-template-columns:1fr 1fr;gap:12px}}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:8px}
 .num{font-variant-numeric:tabular-nums}
@@ -1183,6 +1197,7 @@ $('list').addEventListener('click',e=>{
 document.addEventListener('pointerdown',e=>{if(trMenu!=null&&!e.target.closest('.trmenu,.trsel')){trMenu=null;renderList()}});
 async function post(u,b){const r=await fetch(u,{method:'POST',body:JSON.stringify(b)});return r.ok?r.json():{}}
 // the beat sheet: the references first, then a row per beat. A note carries its beat id; "beat":null is a general note
+const MOTIONIC='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 13.5h6l-1 7.5 8-10.5h-6z"/></svg>';
 let beatOpen;
 function renderBeats(){
   document.body.classList.add('beatmode');const el=$('beatsview');el.hidden=false;
@@ -1193,16 +1208,22 @@ function renderBeats(){
   const noteHtml=c=>`<div class="note"><i>${c.status==='fixed'?'Done':c.status==='wontfix'?'Left as is':'Your note'}</i> ${esc(c.text)}${c.reply?`<br><i>Claude: ${esc(c.reply)}</i>`:''}</div>`;
   const box=id=>beatOpen===id?`<textarea id="bta" placeholder="${id===null?'A note on the whole sheet...':'A note on this beat...'}"></textarea><div class="bbtns"><button data-save="${id}">Save note</button><button data-cancel>Cancel</button></div>`
     :(okd||sent)?'':`<div class="bbtns"><button data-add="${id}">${id===null?'Add a general note':'Add a note'}</button></div>`;
-  el.innerHTML=`<div class="bw"><div class="bhead"><h1>${esc(S.label||S.name||'Beat sheet')}</h1><div class="bbtns">
-    <button id="bsend" ${mine.length&&!S.sent?'':'disabled'}><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12V2M3 6l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Send notes to Claude</button><button id="bok" class="primary" ${S.sent?'disabled':''}>${okd?TICK+'Sheet approved':TICK+'Approve the sheet'}</button></div></div>
-    <p class="btime">${okd?'The sheet is approved. Claude is building the film.':sent?'Notes sent. Claude is changing the sheet.':'Check the references and each beat. Approve it, or leave a note on any beat.'}</p>
-    ${(B.refs||[]).length?`<h2>References</h2><div class="refs">${B.refs.map(r=>`<div class="ref">${img(r.still)}<div><b>${esc(r.id)}</b><br>${esc(r.take||'')}${r.source?`<br><i style="color:var(--muted);font-style:normal">${esc(r.source)}</i>`:''}</div></div>`).join('')}</div>`:''}
-    <h2>Beats</h2>${(B.beats||[]).map(b=>`<div class="brow" data-beat="${b.id}"><div class="bstill">${img(b.still)}</div><div>
-      <p class="btime"><b>Beat ${b.id}</b> at ${mmss(b.t||0)} for ${(b.dur||0).toFixed(1)} s</p>
-      <div class="bcols"><div><h2>On screen</h2><p>${esc(b.on_screen||'')}</p></div><div><h2>Moves</h2><p>${esc(b.moves||'')}</p></div><div><h2>Heard</h2><p>${esc(b.heard||'')}</p></div></div>
-      ${(b.refs||[]).map(r=>`<span class="chip">${esc(r)}</span>`).join('')}</div>
-      <div class="bn">${mine.filter(c=>c.beat===b.id).map(noteHtml).join('')}${box(b.id)}</div></div>`).join('')}
-    <h2>General</h2><div class="bn">${mine.filter(c=>c.beat==null).map(noteHtml).join('')}${box(null)}</div></div>`;
+  // the frames first, whole and big (9:16 as drawn), plain words under each; the brief beside them; the references last
+  const st=okd?['st-done','Approved']:sent?['st-work','Notes sent']:['st-you','Your turn'];
+  const md=t=>esc(t).replace(/\n[ \t]{2,}/g,' ').split('\n').map(l=>/^#\s/.test(l)?`<p><b>${l.slice(2)}</b></p>`:/^\s*-\s/.test(l)?`<ul><li>${l.replace(/^\s*-\s/,'')}</li></ul>`:l.trim()?`<p>${l}</p>`:'').join('').replace(/<\/ul><ul>/g,'');
+  document.body.classList.add('k-motion');
+  el.innerHTML=`<div class="bw"><div class="bhead"><div class="bt"><div class="btags"><span class="ktag">${MOTIONIC}Motion Studio</span><span class="spill ${st[0]}">${st[1]}</span></div>
+    <h1>${esc(S.label||S.name||'Your film')}</h1>
+    <p class="lede">${okd?'You approved these frames. Claude is building the film from them.':sent?'Your notes are with Claude. The frames will update here.':`Here is one frame for each moment of the film. Check the look, then approve, or add a note to any frame. Nothing is rendered until you approve.`}</p></div>
+    <div class="bbtns"><button id="bsend" ${mine.length&&!S.sent?'':'disabled'}><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12V2M3 6l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Send notes to Claude</button><button id="bok" class="primary" ${S.sent?'disabled':''}>${okd?TICK+'Frames approved':TICK+'Approve the frames'}</button></div></div>
+    <div class="frames">${(B.beats||[]).map(b=>`<div class="frame" data-beat="${b.id}"><div class="pic">${img(b.still)}<span class="num">Frame ${b.id}</span></div>
+      <div class="when">${mmss(b.t||0)} to ${mmss((b.t||0)+(b.dur||0))}, ${(b.dur||0).toFixed(1)} s</div>
+      <p class="say"><b>What you see</b>${esc(b.on_screen||'')}</p><p class="mv"><b>How it moves</b>${esc(b.moves||'')}</p>
+      ${b.heard?`<p class="mv"><b>What you hear</b>${esc(b.heard)}</p>`:''}${(b.refs||[]).length?`<div>${b.refs.map(r=>`<span class="chip">${esc(r)}</span>`).join('')}</div>`:''}
+      <div class="bn">${mine.filter(c=>c.beat===b.id).map(noteHtml).join('')}${box(b.id)}</div></div>`).join('')}</div>
+    ${S.brief?`<details class="brief" open><summary>The brief</summary><div class="bd">${md(S.brief)}</div></details>`:''}
+    <div class="bn"><h2>A note on the whole film</h2>${mine.filter(c=>c.beat==null).map(noteHtml).join('')}${box(null)}</div>
+    ${(B.refs||[]).length?`<h2>Your references</h2><div class="refs">${B.refs.map(r=>`<div class="ref">${img(r.still)}<div><b>${esc(r.id)}</b> ${esc(r.take||'')}${r.source?`<br><span style="color:var(--muted)">${esc(r.source)}</span>`:''}</div></div>`).join('')}</div>`:''}</div>`;
   const ta2=$('bta');if(ta2){dict(ta2);ta2.focus()}
   el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{beatOpen=b.dataset.add==='null'?null:+b.dataset.add;lastRaw='';renderBeats()});
   el.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>{beatOpen=undefined;renderBeats()});
