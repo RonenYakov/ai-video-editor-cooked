@@ -24,7 +24,18 @@ const css=`.cc,.cc-x{--c-panel:var(--panel,#fff);--c-ink:var(--ink,#0C0A09);--c-
 .cc-a pre{margin:0 0 10px;padding:12px 14px;border:1px solid var(--c-line);border-radius:12px;background:var(--c-soft);overflow-x:auto}
 .cc-a pre code{padding:0;background:none;font-size:12.5px;line-height:19px}
 .cc-a a{color:inherit;text-decoration:underline 1px;text-underline-offset:3px}
-.cc-tool{align-self:flex-start;max-width:100%;padding:3px 10px;border:1px solid var(--c-line);border-radius:999px;color:var(--c-mute);font-size:12.5px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-work{align-self:flex-start;max-width:100%;min-width:0}
+.cc-work summary{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:4px 12px 4px 10px;border-radius:999px;background:var(--c-soft);color:var(--c-body);font-size:13px;line-height:18px;cursor:pointer;list-style:none;user-select:none}
+.cc-work summary::-webkit-details-marker{display:none}
+.cc-work summary:hover{color:var(--c-ink)}
+.cc-work summary:focus-visible{outline:2px solid var(--c-ink);outline-offset:2px}
+.cc-work [data-l]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cc-work [data-n]{color:var(--c-mute);white-space:nowrap;flex-shrink:0}
+.cc-wi{width:8px;height:8px;border-radius:50%;background:var(--s-work,#F59E0B);flex-shrink:0;animation:ccp 1.2s ease-in-out infinite}
+.cc-work.done .cc-wi{background:var(--s-done,#16A34A);animation:none}
+.cc-work .cc-ch{color:var(--c-mute);transition:transform .15s;flex-shrink:0}.cc-work details[open] .cc-ch{transform:rotate(90deg)}
+.cc-work ol{margin:8px 0 0 10px;padding:0 0 0 14px;border-left:2px solid var(--c-line);display:flex;flex-direction:column;gap:4px;list-style:none}
+.cc-work li{font:12px/17px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--c-mute);overflow-wrap:anywhere}
 .cc-dots{align-self:flex-start;display:flex;gap:5px;padding:8px 2px}
 .cc-dots i{width:6px;height:6px;border-radius:50%;background:var(--c-faint);animation:ccd 1.1s ease-in-out infinite}
 .cc-dots i:nth-child(2){animation-delay:.15s}.cc-dots i:nth-child(3){animation-delay:.3s}
@@ -148,6 +159,11 @@ function dictateButton(ta){
   return btn;
 }
 
+// a tool call in plain words: "Bash cd /tmp/..." reads as "Running a command"
+const TOOLW=[[/^bash\b/i,'Running a command'],[/^(read|view)\b/i,'Reading a file'],[/^(write|edit|multiedit|notebookedit)\b/i,'Writing a file'],
+  [/^(glob|grep|ls)\b/i,'Looking through your files'],[/^(webfetch|websearch)\b/i,'Looking online'],[/higgs/i,'Using Higgsfield'],[/eleven/i,'Using ElevenLabs'],
+  [/^skill\b/i,'Using a skill'],[/^(todowrite|task)/i,'Planning the steps'],[/^agent\b/i,'Asking a helper']];
+const plainTool=s=>(TOOLW.find(([re])=>re.test(s))||[0,'Working'])[1];
 // ---- the panel ----
 function mount(el,opts){
   opts=opts||{};const slug=opts.slug||'',ctxInfo=opts.context;
@@ -167,8 +183,16 @@ function mount(el,opts){
   const clearEmpty=()=>{const e=msgs.querySelector('.cc-empty');if(e)e.remove()};
   const empty=()=>{if(!msgs.children.length)add('cc-empty','Ask Claude to cut, restyle or explain anything in this project.')};
   const user=t=>{clearEmpty();add('cc-u').textContent=t};
-  const asst=t=>{clearEmpty();const d=add('cc-a',md(t));return d};
-  const tool=s=>{clearEmpty();const d=add('cc-tool');d.textContent=s;cur=null;curText=''};
+  const asst=t=>{clearEmpty();grp=null;const d=add('cc-a',md(t));return d};
+  // Claude's tool calls fold into one quiet line per run ("Running a command · 3 steps"); open it to see each one as it ran
+  let grp=null;
+  const tool=s=>{clearEmpty();s=String(s||'Working');
+    if(!grp){grp=add('cc-work',`<details><summary><i class="cc-wi"></i><span data-l></span><span data-n></span><svg class="cc-ch" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><ol></ol></details>`);grp.n=0}
+    const li=document.createElement('li');li.textContent=s;grp.querySelector('ol').appendChild(li);grp.n++;
+    grp.querySelector('[data-l]').textContent=plainTool(s)+'…';grp.querySelector('[data-n]').textContent=grp.n>1?`· ${grp.n} steps`:'';
+    cur=null;curText='';down()};
+  const settle=()=>{msgs.querySelectorAll('.cc-work:not(.done)').forEach(g=>{g.classList.add('done');g.querySelector('[data-l]').textContent=g.n>1?'Worked through':'Did one step';
+    g.querySelector('[data-n]').textContent=g.n>1?`${g.n} steps`:''});grp=null};
   const err=t=>{add('cc-err').textContent=t};
   function showTyping(on){if(on&&!typing){typing=add('cc-dots','<i></i><i></i><i></i>')}else if(!on&&typing){typing.remove();typing=null}}
   function running(on){
@@ -177,14 +201,14 @@ function mount(el,opts){
   function paint(){raf=0;if(cur){cur.innerHTML=md(curText);down()}}
   function ev(e){
     if(!e||typeof e!=='object')return;
-    if(e.type==='text'&&e.text){showTyping(false);if(!cur){clearEmpty();cur=add('cc-a');curText=''}curText+=e.text;if(!raf)raf=requestAnimationFrame(paint)}
+    if(e.type==='text'&&e.text){showTyping(false);if(!cur){clearEmpty();grp=null;cur=add('cc-a');curText=''}curText+=e.text;if(!raf)raf=requestAnimationFrame(paint)}
     else if(e.type==='tool'){showTyping(false);if(raf){cancelAnimationFrame(raf);paint()}tool(e.summary||e.name||'Working');showTyping(true)}
     else if(e.type==='error'){finish();err(e.text||'Something went wrong. Try again.')}
     else if(e.type==='done')finish();
   }
   function finish(){
     if(raf){cancelAnimationFrame(raf);paint()}
-    if(es){es.close();es=null}clearInterval(poll);poll=null;showTyping(false);cur=null;curText='';turn=null;running(false);
+    if(es){es.close();es=null}clearInterval(poll);poll=null;showTyping(false);cur=null;curText='';turn=null;running(false);settle();
   }
   function pollEvents(t){
     clearInterval(poll);
@@ -215,7 +239,7 @@ function mount(el,opts){
   newB.addEventListener('click',async()=>{if(turn){await stop();finish()}await post('/chat/new',{slug});msgs.innerHTML='';first=true;note('');empty();ta.focus()});
   (async()=>{
     try{const r=await fetch('/chat/history?slug='+encodeURIComponent(slug));if(r.ok){const j=await r.json();
-      for(const m of j.messages||[]){if(m.role==='user')user(m.text||'');else{(m.tools||[]).forEach(s=>tool(s));if(m.text)asst(m.text)}}
+      for(const m of j.messages||[]){if(m.role==='user')user(m.text||'');else{(m.tools||[]).forEach(s=>tool(s));settle();if(m.text)asst(m.text)}}
       first=!(j.messages||[]).length;
       if(j.running&&!turn&&!gone){turn=j.running;showTyping(true);running(true);listen(turn)}}}catch(e){}   // reloaded mid-reply: follow it again from its first event
     empty();stick=true;msgs.scrollTop=msgs.scrollHeight;

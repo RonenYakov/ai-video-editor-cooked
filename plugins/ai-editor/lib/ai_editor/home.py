@@ -1984,7 +1984,25 @@ def project_status(p, d):
         return "Waiting for your review"
     if any(x in CLAUDE_TURN for x in phases):
         return "Cutting" if "cutting" in phases else "Working"
-    return "Done" if phases else "New"
+    return "Done" if phases else "Video ready" if p.get("slug") and project_videos(p["slug"]) else "New"
+
+
+STATE_OF = {"Waiting for your review": "you", "Done": "done", "Video ready": "done", "New": "new"}
+
+
+def project_state(p, d, status):
+    """The colour key for a project row: work (Claude is on it), you (your turn), done, fail (the last job stopped), new."""
+    if p.get("slug") in CHAT_LIVE:
+        return "work"
+    js = [j for j in d["jobs"] if j.get("project") == p["slug"]]
+    if js and js[-1]["state"] == "failed":
+        return "fail"
+    return STATE_OF.get(status, "work")
+
+
+def project_row(p, d):
+    st = project_status(p, d)
+    return {**p, "status": st, "state": project_state(p, d, st)}
 
 
 def project_or_none(slug):
@@ -2104,6 +2122,11 @@ def project_videos(slug):
             for f in sorted(vs, key=lambda f: f.stat().st_mtime, reverse=True)[:20]]
 
 
+PLAIN = ("The user is not a professional editor. Reply in short, plain words: what you made or changed and what they can "
+         "do next. No file paths, commands or code unless they ask for them; say \"your finished folder\" or \"the project\" "
+         "instead. Technical words are fine when they asked for a breakdown (cuts, zooms, colours, fonts, timings).")
+
+
 def chat_send(slug, text, context=None):
     """-> turn id. KeyError for an unknown project."""
     p = projects.show(slug) if slug else None
@@ -2119,7 +2142,9 @@ def chat_send(slug, text, context=None):
         if p["kind"] != "talking-head":   # the free room: no review page, so the chat itself hands the video over
             head.append(f"Save every video you make for this project in {project_dir(slug)} (it exists). When one is finished, run "
                         f"`python3 {Path(library.__file__).resolve()} finish <video> --project {slug}`: it copies the video "
-                        f"to the user's finished folder ({library.finished_path(False)}). Tell the user that folder.")
+                        f"to the user's finished folder ({library.finished_path(False)}). Tell the user it is in their finished "
+                        f"folder: the page has a button that opens it.")
+        head.append(PLAIN)
     if context:
         head.append(str(context).strip())
     tid = chat.start(text, sid or None, context="\n".join(head) or None)
@@ -2802,7 +2827,7 @@ def make_handler(token):
             """False when path is not one of these."""
             if path == "/projects":
                 d = read()
-                return self.send(200, {"projects": [{**p, "status": project_status(p, d)} for p in projects.list_all()]})
+                return self.send(200, {"projects": [project_row(p, d) for p in projects.list_all()]})
             if path == "/project":
                 p = project_or_none(q.get("slug"))
                 if not p:
@@ -2816,7 +2841,7 @@ def make_handler(token):
                     except (OSError, ValueError):
                         pass
                 d = read()
-                return self.send(200, {"project": {**p, "status": project_status(p, d)}, "edits": edits, "videos": project_videos(p["slug"]),
+                return self.send(200, {"project": project_row(p, d), "edits": edits, "videos": project_videos(p["slug"]),
                                        "jobs": [j for j in d["jobs"] if j.get("project") == p["slug"]]})
             if path == "/chat/events":
                 evs, nxt, fin = chat.events(q.get("turn", ""), int(q.get("since") or 0))
@@ -3390,6 +3415,7 @@ def demo():
     # Projects, the project chat's history, dictation and references
     pj = post("/projects", {"name": "My Reel", "kind": "talking-head"})
     assert pj["slug"] == "my-reel" and any(x["slug"] == "my-reel" and x["status"] for x in get("/projects")["projects"])
+    assert next(x for x in get("/projects")["projects"] if x["slug"] == "my-reel")["state"] == "new"   # the row's colour key
     assert post("/project/link", {"slug": "my-reel", "field": "refs", "value": "someone"})["refs"] == ["someone"]
     assert get("/project?slug=my-reel")["project"]["name"] == "My Reel" and get("/chat/history?slug=my-reel") == {"messages": [], "running": None}
     assert get("/chat/events?turn=none") == {"events": [], "next": 0, "finished": True}
@@ -3694,10 +3720,12 @@ def demo():
     finally:
         chat.start = _start
     assert f"finish <video> --project {ep}" in seen[0] and str(project_dir(ep)) in seen[0], seen
+    assert PLAIN in seen[0], "the chat is told to answer in plain words, without paths"
     made = project_dir(ep) / "final.mp4"
     shutil.copyfile(vid, made)
     pv = get(f"/project?slug={ep}")["videos"]
     assert [v["name"] for v in pv] == ["final.mp4"], pv
+    assert get(f"/project?slug={ep}")["project"]["state"] == "done"   # a video the chat made counts as done ("Video ready")
     assert urllib.request.urlopen(base + pv[0]["media"] + "&t=" + tok).read() == vid.read_bytes()
     fin_before = library.finished_count()
     got = post("/project/finish", {"slug": ep, "path": str(made)})

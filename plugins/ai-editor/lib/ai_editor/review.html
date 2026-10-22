@@ -3,18 +3,13 @@
 
 <link rel="stylesheet" href="/ui.css">
 <style>
-/* stone, monochrome: black marks the current thing and the one button to press; green only what is done */
-:root{--page:#FFFFFF;--panel:#FFFFFF;--raise:#FFFFFF;--rail:#F7F7F6;--railon:#E2E1DE;--tile:#F6F5F3;--tileink:#0C0A09;--line:#E7E5E4;--line2:#D6D3D1;--chip:#F2F1EF;--track:#E9E8E6;--hover:#EAE9E6;
-  --ink:#0C0A09;--ink-hover:#000000;--onink:#FFFFFF;--strong:#0C0A09;--ink2:#44403C;--body:#57534E;--muted:#78716C;--quiet:#A8A29E;
+/* warm light, as on Home (ui.css): ink marks the current thing and the one button to press; green only what is done */
+:root{--page:#FFFDFA;--panel:#FFFFFF;--raise:#FFFFFF;--rail:#F6F1EA;--railon:#E6DDD0;--tile:#F7F2EB;--tileink:#1F1A16;--line:#ECE5DC;--line2:#DCD2C5;--chip:#F3EDE5;--track:#ECE5DC;--hover:#EEE6DB;
+  --ink:#1F1A16;--ink-hover:#000000;--onink:#FFFFFF;--strong:#1F1A16;--ink2:#463E37;--body:#5B524A;--muted:#7E746A;--quiet:#ADA398;
   --film:#0C0A09;--range:#0C0A0924;--shade:#0C0A098C;--zone:#FAFAF9E6;--dim:rgba(12,10,9,.34);
   --sh:0 1px 2px #0C0A0914;--pop:0 8px 30px #0C0A0914;--chg:#FDE68A;--flag:#B91C1C;--flagbg:#FEF2F2;--flagline:#FECACA;--ok:#16A34A;--ok-text:#15803D;--onok:#FFFFFF;--okbg:#F0FAF3;--pill:#1C1917;--pilltx:#FAFAF9;--pillline:#1C1917;
   --tickimg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 6 9 17l-5-5' fill='none' stroke='%23FFFFFF' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");color-scheme:light}
-/* dark: the OS setting until the user picks with the rail's switch (html[data-theme]) */
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--page:#100E0E;--panel:#100E0E;--raise:#2A2725;--rail:#161413;--railon:rgba(255,255,255,.12);--tile:#000000;--tileink:#FFFFFF;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.18);--chip:rgba(255,255,255,.06);--track:rgba(255,255,255,.12);--hover:rgba(255,255,255,.09);
-  --ink:#F2F0EB;--ink-hover:#FFFFFF;--onink:#100E0E;--strong:#F2F0EB;--ink2:rgba(242,240,235,.82);--body:rgba(242,240,235,.72);--muted:rgba(242,240,235,.58);--quiet:rgba(242,240,235,.42);
-  --film:#000000;--range:rgba(242,240,235,.22);--dim:rgba(0,0,0,.45);
-  --sh:0 1px 2px rgba(0,0,0,.6);--pop:0 8px 30px rgba(0,0,0,.6);--chg:rgba(253,230,138,.28);--flag:#FCA5A5;--flagbg:rgba(248,113,113,.10);--flagline:rgba(248,113,113,.22);--ok:#4ADE80;--ok-text:#4ADE80;--onok:#052E16;--okbg:rgba(74,222,128,.09);--pill:#2A2725;--pilltx:#F2F0EB;--pillline:rgba(255,255,255,.14);
-  --tickimg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 6 9 17l-5-5' fill='none' stroke='%23100E0E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");color-scheme:dark}}
+/* dark: only when picked with the rail's switch (html[data-theme=dark]); light is the default whatever the OS says */
 :root[data-theme=dark]{--page:#100E0E;--panel:#100E0E;--raise:#2A2725;--rail:#161413;--railon:rgba(255,255,255,.12);--tile:#000000;--tileink:#FFFFFF;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.18);--chip:rgba(255,255,255,.06);--track:rgba(255,255,255,.12);--hover:rgba(255,255,255,.09);
   --ink:#F2F0EB;--ink-hover:#FFFFFF;--onink:#100E0E;--strong:#F2F0EB;--ink2:rgba(242,240,235,.82);--body:rgba(242,240,235,.72);--muted:rgba(242,240,235,.58);--quiet:rgba(242,240,235,.42);
   --film:#000000;--range:rgba(242,240,235,.22);--dim:rgba(0,0,0,.45);
@@ -1647,11 +1642,11 @@ document.addEventListener('click',e=>{if(!e.target.closest('#how'))$('how').clas
 // light or dark: the OS setting until the user picks; the pick is remembered in this browser
 const MOON='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z"/></svg>';
 const SUN='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9L13 13M3 13l1.1-1.1M11.9 4.1L13 3"/></svg>';
-const OS=matchMedia('(prefers-color-scheme: dark)'),isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':OS.matches};
+const isDark=()=>document.documentElement.dataset.theme==='dark';   // light unless the switch says dark
 function themeIcon(){const d=isDark();document.querySelectorAll('.themebtn').forEach(b=>{b.innerHTML=d?SUN:MOON;b.title=d?'Light mode':'Dark mode';b.setAttribute('aria-label',b.title)})}
 document.querySelectorAll('.themebtn').forEach(b=>b.onclick=e=>{e.stopPropagation();const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;themeAt=Date.now();
   fetch('/theme',{method:'POST',body:JSON.stringify({theme:t})});themeIcon()});
-OS.addEventListener('change',themeIcon);themeIcon();
+themeIcon();
 load();setInterval(load,3000);
 
 // drag handles (.rsz): sizes as CSS variables on <html>, kept in this browser; double-click puts one back

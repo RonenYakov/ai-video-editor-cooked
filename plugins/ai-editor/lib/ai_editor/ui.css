@@ -1,15 +1,48 @@
-/* cooked. shared styles: tokens (warm stone, light and dark), the button system and the project screens.
-   Linked by home.html. Colours come only from these tokens. */
-:root{--bg:#FAFAF9;--panel:#FFFFFF;--ink:#0C0A09;--t2:#57534E;--t3:#78716C;--t4:#A8A29E;--line:#E7E5E4;--soft:#F5F5F4;--ring:#D6D3D1;
-  --onink:#FFFFFF;--ok:#16A34A;--page:#FFFFFF;--side:#F7F7F6;--card:#F2F1EF;--menu:#FFFFFF;--track:#E7E5E4;--act:#E9E8E6;--ract:#E2E1DE;--tile:#F6F5F3;--onok:#FFFFFF;--oktext:#15803D;--dotbg:#FFFFFFF0;--dotfg:#0C0A09;--skbg:#FFFFFF;--segon:#FFFFFF;--inbg:#FFFFFF;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
-/* dark: the OS setting until the user picks with the header switch (html[data-theme]), as on the review page */
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#100E0E;--panel:#161413;--ink:#F2F0EB;--t2:rgba(242,240,235,.80);--t3:rgba(242,240,235,.58);--t4:rgba(242,240,235,.42);
-  --line:rgba(255,255,255,.10);--soft:rgba(255,255,255,.06);--ring:rgba(255,255,255,.22);--onink:#100E0E;--ok:#4ADE80;--page:#100E0E;--side:#161413;--card:#1E1C1C;--menu:#221F1E;--track:rgba(255,255,255,.12);--act:rgba(255,255,255,.08);--ract:rgba(255,255,255,.10);--tile:#0C0A09;--onok:#052E16;--oktext:#4ADE80;--dotbg:#100E0EB8;--dotfg:#F2F0EB;--skbg:#2A2726;--segon:#3A3634;--inbg:transparent;color-scheme:dark}}
-:root[data-theme=dark]{--bg:#100E0E;--panel:#161413;--ink:#F2F0EB;--t2:rgba(242,240,235,.80);--t3:rgba(242,240,235,.58);--t4:rgba(242,240,235,.42);
-  --line:rgba(255,255,255,.10);--soft:rgba(255,255,255,.06);--ring:rgba(255,255,255,.22);--onink:#100E0E;--ok:#4ADE80;--page:#100E0E;--side:#161413;--card:#1E1C1C;--menu:#221F1E;--track:rgba(255,255,255,.12);--act:rgba(255,255,255,.08);--ract:rgba(255,255,255,.10);--tile:#0C0A09;--onok:#052E16;--oktext:#4ADE80;--dotbg:#100E0EB8;--dotfg:#F2F0EB;--skbg:#2A2726;--segon:#3A3634;--inbg:transparent;color-scheme:dark}
+/* cooked. shared styles: tokens (warm light by default, dark from the switch), the button system and the project screens.
+   Linked by home.html. Colours come only from these tokens.
+   Colour has two jobs and nothing else: what KIND of project this is (--k-*) and what STATE it is in (--s-*).
+   Every kind/state colour comes as a fill (base), a tint (-bg) and a readable text tone (-tx). Words always ride with the colour. */
+:root{--bg:#FBF8F4;--panel:#FFFFFF;--ink:#1F1A16;--t2:#5B524A;--t3:#7E746A;--t4:#ADA398;--line:#ECE5DC;--soft:#F5EFE7;--ring:#DCD2C5;
+  --onink:#FFFFFF;--ok:#16A34A;--page:#FFFDFA;--side:#F6F1EA;--card:#F3EDE5;--menu:#FFFFFF;--track:#ECE5DC;--act:#EEE6DB;--ract:#E6DDD0;--tile:#F7F2EB;--onok:#FFFFFF;--oktext:#15803D;--dotbg:#FFFFFFF0;--dotfg:#1F1A16;--skbg:#FFFFFF;--segon:#FFFFFF;--inbg:#FFFFFF;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light;
+  --k-edit:#2F6BFF;--k-edit-bg:#EAF0FF;--k-edit-tx:#1D4ED8;--k-edit-fill:#2563EB;
+  --k-talk:#FF6A3D;--k-talk-bg:#FFEEE7;--k-talk-tx:#C2410C;--k-talk-fill:#CF4A12;
+  --k-motion:#8B5CF6;--k-motion-bg:#F2ECFF;--k-motion-tx:#6D28D9;--k-motion-fill:#7C3AED;
+  --s-work:#F59E0B;--s-work-bg:#FEF3C7;--s-work-tx:#92400E;
+  --s-you:#DB2777;--s-you-bg:#FCE7F3;--s-you-tx:#9D174D;
+  --s-done:#16A34A;--s-done-bg:#DCFCE7;--s-done-tx:#166534;
+  --s-fail:#DC2626;--s-fail-bg:#FEE2E2;--s-fail-tx:#991B1B;
+  --s-new:#ADA398;--s-new-bg:#F3EDE5;--s-new-tx:#5B524A;
+  --shadow:0 1px 2px #1F1A160F,0 4px 14px #1F1A160D;--shadow-hi:0 2px 4px #1F1A1612,0 12px 28px #1F1A161A}
+/* dark: only when picked with the switch (html[data-theme=dark]); light is the default whatever the OS says */
+:root[data-theme=dark]{--bg:#141110;--panel:#1A1715;--ink:#F3EFEA;--t2:rgba(243,239,234,.80);--t3:rgba(243,239,234,.58);--t4:rgba(243,239,234,.42);
+  --line:rgba(255,255,255,.10);--soft:rgba(255,255,255,.06);--ring:rgba(255,255,255,.22);--onink:#141110;--ok:#4ADE80;--page:#141110;--side:#1A1715;--card:#221E1B;--menu:#26221F;--track:rgba(255,255,255,.12);--act:rgba(255,255,255,.08);--ract:rgba(255,255,255,.10);--tile:#100D0C;--onok:#052E16;--oktext:#4ADE80;--dotbg:#141110B8;--dotfg:#F3EFEA;--skbg:#2C2724;--segon:#3C3633;--inbg:transparent;color-scheme:dark;
+  --k-edit:#5B8BFF;--k-edit-bg:rgba(91,139,255,.16);--k-edit-tx:#A9C1FF;
+  --k-talk:#FF7F57;--k-talk-bg:rgba(255,127,87,.16);--k-talk-tx:#FFB59C;
+  --k-motion:#A385FF;--k-motion-bg:rgba(163,133,255,.18);--k-motion-tx:#CDBDFF;
+  --s-work:#FBBF24;--s-work-bg:rgba(251,191,36,.14);--s-work-tx:#FCD34D;
+  --s-you:#F472B6;--s-you-bg:rgba(244,114,182,.16);--s-you-tx:#F9A8D4;
+  --s-done:#4ADE80;--s-done-bg:rgba(74,222,128,.14);--s-done-tx:#86EFAC;
+  --s-fail:#F87171;--s-fail-bg:rgba(248,113,113,.16);--s-fail-tx:#FCA5A5;
+  --s-new:rgba(243,239,234,.42);--s-new-bg:rgba(255,255,255,.06);--s-new-tx:rgba(243,239,234,.80);
+  --shadow:0 1px 2px #0000004d;--shadow-hi:0 12px 32px #00000066}
 :root{--danger:#B91C1C}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--danger:#F87171}}
 :root[data-theme=dark]{--danger:#F87171}
+/* one kind per element: .k-edit / .k-talking-head / .k-motion set --k, --kb, --kt for everything inside */
+.k-edit{--k:var(--k-edit);--kb:var(--k-edit-bg);--kt:var(--k-edit-tx);--kf:var(--k-edit-fill)}
+.k-talking-head{--k:var(--k-talk);--kb:var(--k-talk-bg);--kt:var(--k-talk-tx);--kf:var(--k-talk-fill)}
+.k-motion{--k:var(--k-motion);--kb:var(--k-motion-bg);--kt:var(--k-motion-tx);--kf:var(--k-motion-fill)}
+/* a state pill: a dot and a word, tinted (st-work, st-you, st-done, st-fail, st-new) */
+.spill{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:2px 9px 2px 8px;border-radius:999px;font-size:12px;line-height:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--sb);color:var(--st)}
+.spill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sc);flex-shrink:0}
+.spill.st-work::before{animation:pulse 1.4s ease-in-out infinite}
+.st-work{--sc:var(--s-work);--sb:var(--s-work-bg);--st:var(--s-work-tx)}
+.st-you{--sc:var(--s-you);--sb:var(--s-you-bg);--st:var(--s-you-tx)}
+.st-done{--sc:var(--s-done);--sb:var(--s-done-bg);--st:var(--s-done-tx)}
+.st-fail{--sc:var(--s-fail);--sb:var(--s-fail-bg);--st:var(--s-fail-tx)}
+.st-new{--sc:var(--s-new);--sb:var(--s-new-bg);--st:var(--s-new-tx)}
+.sdotk{width:8px;height:8px;border-radius:50%;background:var(--sc);flex-shrink:0}
+@media (prefers-reduced-motion:reduce){.spill.st-work::before{animation:none}}
+::selection{background:var(--k-edit-bg);color:var(--ink)}
 
 /* ---- buttons: one primary per screen (verb + object), secondary outlined, danger in red text and always confirmed.
    Every button has an icon and a text label; a disabled one stays visible and carries a title that says why.
@@ -32,45 +65,68 @@
 .b1.s,.b2.s{height:32px;padding:0 12px;border-radius:8px;font-size:13px;line-height:16px}
 .b1:disabled,.b2:disabled{opacity:.45;cursor:default}
 
-/* ---- Home: three ways to start, then recent projects */
-.kinds{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:16px}
-.kcard{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--panel);min-width:0}
-.kcard h2{margin:6px 0 0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.01em}
-.kcard p{margin:0 0 14px;font-size:14px;line-height:21px;color:var(--t2);flex:1;max-width:34ch}
-.kic{width:44px;height:44px;border-radius:12px;background:var(--soft);color:var(--ink);display:grid;place-items:center;flex-shrink:0}
-.kic.s{width:34px;height:34px;border-radius:9px}
-.pjlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
-.pjr{display:flex;align-items:center;gap:14px;width:100%;padding:12px 16px;border:0;background:none;text-align:left}
+/* ---- Home: three doors (one per kind, each in its colour), then recent projects with their state */
+.hm2{display:flex;flex-direction:column;gap:36px;min-width:0;max-width:1180px}
+.hm2-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hm2-top h1{font-size:34px;line-height:40px;font-weight:700;letter-spacing:-.025em;margin:0}
+.hm2-top p{margin:8px 0 0;font-size:16px;line-height:24px;color:var(--t2)}
+.kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.kcard{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px 24px 22px;border:0;border-radius:24px;background:var(--kb);color:var(--ink);text-align:left;min-width:0;cursor:pointer;transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s}
+.kcard:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
+.kcard:active{transform:translateY(0) scale(.99)}
+.kcard:focus-visible{outline:3px solid var(--k);outline-offset:3px}
+.kcard:disabled{cursor:not-allowed;opacity:.55;transform:none;box-shadow:none}
+.kcard h2{margin:8px 0 0;font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.015em}
+.kcard p{margin:0;font-size:15px;line-height:22px;color:var(--t2);flex:1;max-width:32ch}
+.kcard .kgo{display:inline-flex;align-items:center;gap:8px;margin-top:10px;height:40px;padding:0 16px;border-radius:12px;background:var(--kf);color:#fff;font-size:14px;font-weight:600}
+.kcard .kn{position:absolute;top:22px;right:22px;font-size:13px;line-height:18px;color:var(--kt);font-weight:600}
+.kic{width:44px;height:44px;border-radius:12px;background:var(--kb,var(--soft));color:var(--kt,var(--ink));display:grid;place-items:center;flex-shrink:0}
+.kic.s{width:34px;height:34px;border-radius:10px}
+.kic.xl{width:56px;height:56px;border-radius:16px;background:var(--k);color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--k) 35%,transparent)}
+.pjlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden;box-shadow:var(--shadow)}
+.pjr{display:flex;align-items:center;gap:14px;width:100%;padding:12px 16px;border:0;background:none;text-align:left;cursor:pointer}
 .pjr+.pjr{border-top:1px solid var(--line)}
-.pjr:hover{background:var(--soft)}
-.pjn{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pjr:hover{background:var(--tile)}
+.pjn{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .pjn b{font-size:15px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pjn small{font-size:13px;line-height:16px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pjn small{font-size:13px;line-height:16px;color:var(--kt);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pjr .spill{max-width:240px}
 .hlinks{display:flex;gap:20px;flex-wrap:wrap}
+.hm2-drop{display:flex;align-items:center;gap:14px;padding:16px 20px;border:1.5px dashed var(--ring);border-radius:16px;color:var(--t2);font-size:14px;line-height:20px}
+.hm2-drop b{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--t3);align-items:center}
 
-/* ---- sidebar projects */
+/* ---- sidebar projects: the kind's colour on the icon, the state as a dot and a word */
 .sb-ph{display:flex;align-items:center;justify-content:space-between;height:28px;padding:0 6px 0 12px;margin-top:14px;flex-shrink:0;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.02em;color:var(--t3)}
 .sb-plist{display:flex;flex-direction:column;gap:2px;overflow-y:auto;min-height:0;flex:0 1 auto;scrollbar-width:none}
 .sb-plist::-webkit-scrollbar{display:none}
-.sb-row.sb-proj{height:46px}
-.sb-proj .pn{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sb-row.sb-proj{height:50px;padding:0 10px!important}
+.sb-proj .kic.s{width:30px;height:30px;border-radius:9px}
+.sb-proj .pn{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .sb-proj .pn b{font-size:14px;line-height:18px;font-weight:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-proj .pn small{font-size:12px;line-height:15px;color:var(--t3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-proj .pn small{display:flex;align-items:center;gap:6px;font-size:12px;line-height:15px;color:var(--st,var(--t3));font-weight:500;min-width:0}
+.sb-proj .pn small span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sb-proj .pn small .sdotk{width:7px;height:7px}
+.sb-proj.st-work .sdotk{animation:pulse 1.4s ease-in-out infinite}
 .sb-none{padding:6px 12px;font-size:13px;line-height:18px;color:var(--t3)}
 .sb-newp{height:40px;border-radius:10px!important;background:var(--ink)!important;color:var(--onink);display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;line-height:18px;font-weight:600;flex-shrink:0;padding:0 16px!important;width:100%}
 .sb-newp:disabled{opacity:.35;cursor:not-allowed}
 
-/* ---- New project modal */
+/* ---- New project modal: the three kinds, each in its colour */
 .kpicks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.kpick{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-align:left;min-width:0;color:var(--ink)}
+.kpick{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border:1.5px solid var(--line);border-radius:16px;background:var(--panel);text-align:left;min-width:0;color:var(--ink);transition:border-color .15s,background .15s}
+.kpick:hover{border-color:var(--k)}
 .kpick b{font-size:14px;line-height:18px;font-weight:600}
 .kpick .t2{font-size:12px;line-height:17px;white-space:normal}
-.kpick.on{border:1.5px solid var(--ink);padding:13.5px}
+.kpick.on{border-color:var(--k);background:var(--kb);box-shadow:0 0 0 3px color-mix(in srgb,var(--k) 18%,transparent)}
+.kpick.on .kic{background:var(--k);color:#fff}
 .npdrop{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px dashed var(--ring);border-radius:14px;color:var(--t2);cursor:pointer}
-.npdrop.over{border-color:var(--ink);background:var(--soft)}
+.npdrop.over{border-color:var(--k,var(--ink));background:var(--kb,var(--soft))}
 .npdrop b{color:var(--ink);font-size:14px}
 .npmf{display:flex;flex-direction:column;gap:6px}
-@media (max-width:760px){.kinds{grid-template-columns:1fr}.kpicks{grid-template-columns:1fr}}
+.nsm .btn-primary.kbtn{background:var(--kf);border-color:var(--kf);color:#fff}
+@media (max-width:1000px){.kinds{grid-template-columns:1fr}.kcard{flex-direction:row;flex-wrap:wrap;align-items:center}.kcard h2{margin:0}.kcard p{flex:1 1 100%}}
+@media (max-width:760px){.kpicks{grid-template-columns:1fr}.hm2-top h1{font-size:28px;line-height:34px}}
 
 /* ---- Project page: the stepped work on the left, Claude docked on the right */
 .pj{display:flex;flex-direction:column;gap:28px;min-width:0;max-width:860px}
@@ -79,7 +135,7 @@
 .pj-title h1{font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.02em;margin:0}
 .pj-title input{font:inherit;font-size:22px;font-weight:600;border:1px solid var(--ring);border-radius:10px;padding:4px 10px;background:var(--panel);color:var(--ink);min-width:0;width:min(360px,100%)}
 .pj-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-.ktag{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--soft);padding:3px 10px;font-size:12px;line-height:16px;color:var(--t2)}
+.ktag{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--kb,var(--soft));padding:3px 10px;font-size:12px;line-height:18px;font-weight:600;color:var(--kt,var(--t2))}
 .stp{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .stp>li{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:0 14px;padding-bottom:22px}
 .stp>li:not(:last-child)::before{content:"";position:absolute;left:15px;top:32px;bottom:2px;width:2px;background:var(--line)}
@@ -151,14 +207,24 @@ body.slideopen #slide{transform:none;visibility:visible;transition:transform .22
 /* ---- the room (Edit and Motion): chat is the main column, one Materials panel beside it; stacked on a phone */
 body.room .app{height:100vh;height:100dvh}
 body.room .wrap{order:2;flex:0 0 440px;width:440px;min-height:0}
-body.room #chatdock{order:1;flex:1 1 0;width:auto;min-width:0;border-left:0;border-right:1px solid var(--line)}
+body.room #chatdock{order:1;flex:1 1 0;width:auto;min-width:0;border-left:0;border-right:1px solid var(--line);background:var(--page)}
+/* the chat in a project wears the project's colour: its send button, the user's bubbles, the focus ring */
+body.inproj #chatdock{--k-ink:var(--kf,var(--ink))}
+body.inproj #chatdock .cc-send,body.inproj #chatdock .cc-send:hover,body.inproj #chatdock .cc-send:disabled{background:var(--kf,var(--ink));color:#fff}
+body.inproj #chatdock .cc-u{background:var(--kb,var(--soft))}
+body.inproj #chatdock .cc-box:focus-within{border-color:var(--k,var(--ink));box-shadow:0 0 0 3px color-mix(in srgb,var(--k,var(--ink)) 15%,transparent)}
+body.inproj #chatdock .cc-box{background:var(--panel);box-shadow:var(--shadow)}
 body.room #chatfab,body.room #chatdock .cd-head{display:none!important}
 body.room main.pg{padding:24px 24px 0!important}
 .room .pj{gap:20px;max-width:100%}
 .mats{display:flex;flex-direction:column;gap:14px;min-width:0}
-.mats .mt{font-size:13px;line-height:18px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:0}
-.mat{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
-.mat.first{border-color:var(--ink)}
+.mats .mt{font-size:15px;line-height:20px;font-weight:700;color:var(--ink);margin:0}
+.mat{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}
+.mat.first{border-color:var(--k,var(--ink));box-shadow:0 0 0 3px color-mix(in srgb,var(--k,var(--ink)) 14%,transparent)}
+.mat .mic{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;background:var(--kb,var(--soft));color:var(--kt,var(--ink));flex-shrink:0;align-self:center}
+.mat .mh .fold{display:inline-flex;align-items:center;gap:10px}
+.mat .fr.rv .nm{display:flex;align-items:center;gap:8px}.mat .fr.rv .nm small{flex-shrink:0}
+.mat .rvp{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--s-done-bg);color:var(--s-done-tx);flex-shrink:0}
 .mat .mh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .mat .mh b{font-size:15px;line-height:20px;font-weight:600}
 .mat .mopt{font-size:12px;color:var(--t3)}

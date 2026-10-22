@@ -4,6 +4,10 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- A warmer, friendlier look, light by default (dark stays on the switch). Colour now means two things only. Each kind of project has its colour: blue for Edit a video, coral for Talking head, violet for Motion Studio. Each project's state has its colour and a word: amber Working, pink Your turn, green Done, red Stopped.
+- Home is "What are we making today?": three big doors, then the projects waiting for you, then your recent projects. Analysing a format no longer takes over Home. It opens from Getting started or from Styles.
+- The project chat folds Claude's tool calls into one line in plain words ("Running a command · 3 steps"). Click it to see each call. Claude answers in plain words, without file paths unless you ask.
+- Analysing a format lists the full breakdown it measures: cuts and pace, zooms, captions, colours and fonts, graphics and animation, sound, and the hook.
 - Refreshing the page while Claude is replying keeps the reply: the chat picks the running turn back up and shows it finishing.
 - Motion Studio films render nothing, draft or final, until you approve the frames: one still per beat, with the brief, on the review page. A changed beat sheet needs approving again.
 - Spending limits: at most 2 paid generations (Higgsfield or ElevenLabs) per message you send, then Claude asks. Job windows and the project chat see only the Higgsfield tools a video uses, which keeps the rest of its ~150 tools out of the context. Voiceovers only when asked.
