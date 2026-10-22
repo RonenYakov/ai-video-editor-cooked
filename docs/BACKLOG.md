@@ -67,3 +67,7 @@ Carried over (still untested live):
 - Cutout model licence: RVM is GPL-3.0 (downloaded at first use, never shipped). intake.md lists
   **Yes** first for "Let graphics sit behind you?", so a user who accepts every recommended answer
   downloads it (16.5 s, third pass).
+
+- tests/test_motion_film.py is in no CI job (it needs the installed engine and a headless Chrome), so the motion-film
+  SKILL.md 200-line rule and the render gate went unchecked until a manual run. Done when check.yml installs the engine
+  (`setup.py motion-engine`, `setup.py remotion`) and runs it, or its pure-text checks move into tests/check_plugins.py.

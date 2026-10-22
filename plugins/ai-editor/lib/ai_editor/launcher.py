@@ -139,6 +139,29 @@ LANG_SKILLS = {"he": ("hebrew-content-writer", "israeli-social-content")}   # th
 MCP_KEEP = ("higgsfiled", "higgsfield")
 
 
+# Of a kept server's tools, only the ones a video uses reach Claude: a denied tool leaves the tool list, so it costs no
+# context. Prefix rules (checked: "mcp__x__ads_*" hides every ads_ tool). Left: generate_image/video/audio, upscale,
+# reframe, outpaint, remove_background, motion_control, presets, media upload/import, models_explore, balance, jobs_wait,
+# show_*. Batch generation is off: one at a time, under toolhook's per-message spending limit.
+MCP_DENY = ("ads_studio_*", "ai_influencer_*", "build_ai_influencer", "scene_builder_3d_*", "generate_3d", "*_batch",
+            "website_*", "create_website", "deploy_website", "publish_website", "rename_website", "list_website*",
+            "tiktok_*", "shorts_studio_*", "show_marketing_studio_*", "virality_predictor", "video_analysis_*",
+            "archive_project", "unarchive_project", "create_project", "delete_project", "get_project*", "list_project*",
+            "publish_project", "unpublish_project", "update_project*", "attach_project_asset", "copy_project_asset",
+            "move_project_asset", "remove_project_asset", "resolve_project_assets", "cancel_project_publication_review",
+            "confirm_project_publication_review", "save_project_publication_preview", "create_folder", "delete_folder",
+            "get_folder", "list_folders", "move_folder", "rename_folder", "search_folders", "list_workspaces",
+            "select_workspace", "get_katana_config", "register_katana_result", "show_katana_result", "participate_in_contest",
+            "cancel_trial_auto_renewal", "transactions", "show_plans_and_credits", "show_credit_reset", "get_preferences",
+            "update_preferences", "show_characters", "manage_reference_elements", "show_reference_elements", "apps_*",
+            "animation_actions", "get_explainer_presets", "resolve_explainer_preset", "get_workflow_bundle_file",
+            "sandbox_exec", "create_voice*", "list_voices", "dubbing", "voice_change")
+
+
+def mcp_deny(keep=MCP_KEEP):
+    return [f"mcp__{k}__{t}" for k in keep for t in MCP_DENY]
+
+
 def user_mcp_servers():
     """{name: definition} from the user's own Claude Code config. A claude.ai connector the CLI does not list
     here cannot be passed through: that one needs AI_EDITOR_FULL_CLAUDE=1."""
@@ -215,7 +238,7 @@ def plan(os_name=None, plugin=PLUGIN, claude=None, prompt=PROMPT, plugins=None, 
     else:
         for d in not_everywhere(installed() if plugins is None else plugins, every=scoped()):
             cmd += ["--plugin-dir", d]
-    return cmd + ["--settings", json.dumps({"permissions": {"allow": allow_rules(plugin)}}), prompt]
+    return cmd + ["--settings", json.dumps({"permissions": {"allow": allow_rules(plugin), "deny": mcp_deny()}}), prompt]
 
 
 def show(cmd, os_name):
@@ -351,7 +374,12 @@ def demo():
         rules = json.loads(cmd[cmd.index("--settings") + 1])["permissions"]["allow"]
         assert "Bash(python3 /repo/plugins/ai-editor/*)" in rules and "Bash(ffmpeg *)" in rules, rules
         assert all(r.startswith("Bash(") and r != "Bash(*)" and len(r) > 12 for r in rules), "never broad Bash"
-        assert set(json.loads(cmd[cmd.index("--settings") + 1])) == {"permissions"}, "only Allow rules"
+        perms = json.loads(cmd[cmd.index("--settings") + 1])["permissions"]
+        assert set(json.loads(cmd[cmd.index("--settings") + 1])) == {"permissions"} and set(perms) == {"allow", "deny"}, perms
+        deny = perms["deny"]   # Higgsfield: what a video does not use is off the tool list; batch generation too
+        assert all(r.startswith(("mcp__higgsfiled__", "mcp__higgsfield__")) for r in deny), deny
+        assert "mcp__higgsfiled__*_batch" in deny and "mcp__higgsfiled__ads_studio_*" in deny, deny
+        assert not any(r.endswith(("__generate_video", "__generate_image", "__balance", "__jobs_wait", "__media_upload")) for r in deny), deny
         c = Path.home() / ".claude/plugins/cache/nextwork"
         rows = lambda scope: {"ai-editor@nextwork": [{"scope": scope, "installPath": str(c / "ai-editor/2.3.0")}],
                               "creator-teardown@nextwork": [{"scope": scope, "installPath": str(c / "creator-teardown/2.3.0")}]}

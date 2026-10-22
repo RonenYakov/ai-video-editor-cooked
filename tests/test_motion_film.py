@@ -104,6 +104,21 @@ def run_checks(tmp):
         render(film(tmp, "renders"))
     check("a film renders a draft", renders)
 
+    def gate():   # a cooked. film (.gate) renders nothing until review.py recorded Approve on this exact beat sheet
+        d = film(tmp, "gated")
+        (d / ".gate").write_text("beats\n", encoding="utf-8")
+        r = node(ENGINE / "render.mjs", d, "--draft", ok=False)
+        assert r.returncode == 3 and "not approved" in r.stderr, r.stderr[-400:]
+        (d / "beats.sheet.json").write_text('{"beats": [{"id": 1, "t": 0, "dur": 1}]}', encoding="utf-8")
+        sys.path.insert(0, str(ROOT / "plugins/ai-editor/lib/ai_editor"))
+        import review
+        review.approve_beats(d)
+        render(d)
+        (d / "beats.sheet.json").write_text('{"beats": [{"id": 1, "t": 0, "dur": 2}]}', encoding="utf-8")
+        r = node(ENGINE / "render.mjs", d, "--draft", ok=False)
+        assert r.returncode == 3, "a changed sheet rendered without a new Approve"
+    check("gate: no render before the beat sheet is approved, none after it changes", gate)
+
     def probe():
         smooth = film(tmp, "smooth")
         r = node(ENGINE / "probe.mjs", smooth, ok=False)

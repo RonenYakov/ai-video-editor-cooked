@@ -3,7 +3,8 @@
 // Walks time, screenshots each subframe, pipes to ffmpeg. Nothing depends on a
 // live clock, so the same film renders identically every time.
 import { spawn } from 'node:child_process';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
 import { serve } from './serve.mjs';
@@ -18,6 +19,21 @@ if (!film) {
 }
 const dir = resolve(film);
 const draft = process.argv.includes('--draft');
+
+// A cooked. film (home.py writes .gate) renders nothing, draft or final, until the user approved the beat sheet's
+// stills on the review page: review.py writes beats.approved.json with the sheet's hash. A changed sheet needs a new Approve.
+if (existsSync(join(dir, '.gate'))) {
+  let ok = false;
+  try {
+    const want = JSON.parse(readFileSync(join(dir, 'beats.approved.json'), 'utf8')).sheet_sha256;
+    ok = want === createHash('sha256').update(readFileSync(join(dir, 'beats.sheet.json'))).digest('hex');
+  } catch {}
+  if (!ok) {
+    console.error('The beat sheet is not approved. Draw one still per beat (tools/still.mjs), show them with ' +
+      '`review.py beats <film>` and wait for the user to Approve before any render. A changed sheet needs approving again.');
+    process.exit(3);
+  }
+}
 const cfg = JSON.parse(readFileSync(join(dir, 'film.config.json'), 'utf8'));
 
 const fi = process.argv.indexOf('--format');

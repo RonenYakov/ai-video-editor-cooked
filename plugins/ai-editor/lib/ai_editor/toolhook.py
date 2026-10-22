@@ -20,6 +20,8 @@ user typing in it (UserPromptSubmit) clears it.
     python3 toolhook.py stop     the Stop hook: a turn that ends on a question typed in the Terminal shows on the pages
     python3 toolhook.py demo     self-check
 """
+import contextlib
+import io
 import json
 import os
 import sys
@@ -50,6 +52,43 @@ def stopped(sid, now=None):
     except OSError:
         pass
     return False
+
+
+# Paid generations (Higgsfield credits, ElevenLabs): at most PAID_PER_MESSAGE per message the user sends. The count
+# starts again when the user types (UserPromptSubmit, `clear`); past it every paid call is denied until they answer.
+PAID_PER_MESSAGE = int(os.environ.get("AI_EDITOR_PAID_PER_MESSAGE") or 2)
+PAID = (("mcp__higgsfiled__", "mcp__higgsfield__"),
+        ("generate_", "upscale_", "execute_preset", "motion_control", "reframe", "outpaint_", "remove_background",
+         "dubbing", "voice_change", "create_voice", "ai_influencer_generate", "shorts_studio_create", "build_ai_influencer"))
+PAID_ELEVEN = ("mcp__ElevenLabs__creative_generate_", "mcp__ElevenLabs__creative_edit_", "mcp__ElevenLabs__creative_design_",
+               "mcp__ElevenLabs__creative_run_flow")
+
+
+def paid(tool):
+    t = str(tool or "")
+    return t.startswith(PAID_ELEVEN) or any(t.startswith(p + k) for p in PAID[0] for k in PAID[1])
+
+
+def spend_file(sid):
+    return askhook.pages().parent / "spend" / sid
+
+
+def spend(sid, tool):
+    """A deny reason when this paid call is over the limit for the user's last message, else None (and counted)."""
+    if not sid or not paid(tool):
+        return None
+    f = spend_file(sid)
+    try:
+        n = int(f.read_text(encoding="utf-8") or 0)
+    except (OSError, ValueError):
+        n = 0
+    if n >= PAID_PER_MESSAGE:
+        return (f"Spending limit: {PAID_PER_MESSAGE} paid generations (Higgsfield or ElevenLabs credits) per message from the "
+                f"user, and this message has used them. Do not try again or another way. Show what you made, say what the "
+                f"next one would make and roughly what it costs, and ask the user before spending more.")
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(str(n + 1), encoding="utf-8")
+    return None
 
 
 def terminal_file():
@@ -157,11 +196,17 @@ def main(mode=None):
         if mode == "stop":
             return ended_on_question(payload) and 0
         clear(payload.get("session_id") or "")
-        if mode == "clear":
+        if mode == "clear":   # the user typed: their paid generations count from zero again
+            spend_file(payload.get("session_id") or "x").unlink(missing_ok=True)
             return 0
         if stopped(payload.get("session_id") or ""):
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
                                                      "permissionDecisionReason": REASON}}))
+            return 0
+        why = spend(payload.get("session_id") or "", payload.get("tool_name"))
+        if why:
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                     "permissionDecisionReason": why}}))
             return 0
         if payload.get("tool_name") == "Skill":
             record(payload)
@@ -179,6 +224,21 @@ def demo():
     stop_file("s1").write_text("x", encoding="utf-8")
     assert stopped("s1") and not stopped("s2"), "only that session stops"
     assert not stopped("s1", now=time.time() + STOP_S + 1) and not stop_file("s1").exists(), "Stop lifts after STOP_S"
+    # paid generations: PAID_PER_MESSAGE per user message, free tools never counted, a typed message starts again
+    assert paid("mcp__higgsfiled__generate_video") and paid("mcp__ElevenLabs__creative_generate_speech")
+    assert not paid("mcp__higgsfiled__balance") and not paid("mcp__higgsfiled__jobs_wait") and not paid("Bash")
+    assert spend("p1", "mcp__higgsfiled__balance") is None and not spend_file("p1").exists()
+    assert [spend("p1", "mcp__higgsfiled__generate_image") is None for _ in range(PAID_PER_MESSAGE)] == [True] * PAID_PER_MESSAGE
+    assert "Spending limit" in spend("p1", "mcp__higgsfiled__generate_video") and spend("p2", "mcp__higgsfiled__generate_video") is None
+    deny = io.StringIO()
+    with contextlib.redirect_stdout(deny):
+        sys.stdin = io.StringIO(json.dumps({"session_id": "p1", "tool_name": "mcp__higgsfiled__upscale_video"}))
+        main()
+    assert json.loads(deny.getvalue())["hookSpecificOutput"]["permissionDecision"] == "deny", deny.getvalue()
+    sys.stdin = io.StringIO(json.dumps({"session_id": "p1"}))
+    main("clear")
+    assert spend("p1", "mcp__higgsfiled__generate_video") is None, "the user typed: allowed again"
+    sys.stdin = sys.__stdin__
     edit = tmp / "edits" / "take"
     (tmp / "home").mkdir()
     (tmp / "home" / "state.json").write_text(json.dumps({"jobs": [{"type": "video", "state": "taken", "owner": "s3",

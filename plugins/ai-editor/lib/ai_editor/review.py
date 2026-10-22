@@ -1434,6 +1434,8 @@ def make_handler(folder, token):
                     return self.send(409, {"error": "Claude is applying your transcript changes."})
                 if body["type"] == "send" and load(rj).get("stills"):   # notes on the stills: that render is not the one
                     drop_spec(folder)
+                if body["type"] == "approve" and load(rj).get("beats"):   # the beat sheet's stills: render.mjs may now render
+                    approve_beats(folder)
                 if body["type"] == "approve":   # the finished video (a no-op until the edit is done): copy it to the Finished folder
                     deliver(folder)
                 return self.send(200, {})
@@ -2169,6 +2171,16 @@ def making_style(folder):
             n = "@" + re.sub(r"-mine$", "", src[0].parent.name)
         return f"{n}'s style" if n.startswith("@") else "your style" if n == "My style" else f"the {n} style"
     return "your blended style" if src else None   # not known yet (no style.json in the edit): the page names none
+
+
+def beats_sha(folder):
+    return hashlib.sha256((Path(folder) / "beats.sheet.json").read_bytes()).hexdigest()
+
+
+def approve_beats(folder):
+    """The user approved the beat sheet's stills: beats.approved.json holds the sheet's hash, so render.mjs renders this
+    sheet and no other (a changed sheet goes back to the user)."""
+    save(Path(folder) / "beats.approved.json", {"sheet_sha256": beats_sha(folder), "at": now()})
 
 
 def deliver(folder):

@@ -30,16 +30,18 @@ _turns = {}
 _lock = threading.Lock()
 
 
-# A -p run cannot ask: anything outside the allow rules is refused, and the project chat is a free room. It may also
-# write files in its working folder (the library, acceptEdits) and make folders there.
-CHAT_PERMS = ["--permission-mode", "acceptEdits", "--allowedTools", "Bash(mkdir *)"]
+# A -p run cannot ask, and the project chat is a free room: auto mode, where Claude Code's own classifier lets routine
+# work through and still blocks what is risky (the user chose this, 2026-10-22). An account without auto mode gets the
+# narrower fallback: write files in the library (acceptEdits) and make folders.
+CHAT_PERMS = ["--permission-mode", "auto"]
+CHAT_PERMS_FALLBACK = ["--permission-mode", "acceptEdits", "--allowedTools", "Bash(mkdir *)"]
 
 
-def argv(session_id=None):
+def argv(session_id=None, perms=None):
     """claude -p (prompt on stdin) with launcher.plan()'s plugin dirs and permission settings."""
     import launcher   # late: launcher imports home, which imports this module
     base = launcher.plan(claude=shutil.which("claude"), prompt="")[:-1]   # drop the (empty) positional prompt
-    cmd = base[:1] + ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"] + CHAT_PERMS + base[1:]
+    cmd = base[:1] + ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"] + (perms or CHAT_PERMS) + base[1:]
     return cmd + (["--resume", session_id] if session_id else [])
 
 
@@ -96,7 +98,7 @@ def _attempt(turn, text):
     """One `claude -p` run, its events added to turn. -> (exit code, stderr), code None when it never started."""
     err = []
     try:
-        p = subprocess.Popen(argv(turn["resume"]), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        p = subprocess.Popen(argv(turn["resume"], turn.get("perms")), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=str(library.path()), text=True, encoding="utf-8", errors="replace",
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         turn["proc"] = p
@@ -131,9 +133,18 @@ def _session_gone(err):
     return any(m in e for m in GONE)
 
 
+def _auto_refused(err):
+    """True when stderr says this account or Claude Code cannot run auto mode."""
+    e = (err or "").lower()
+    return "auto" in e and "mode" in e   # its wording is not pinned: a wrong guess only costs one narrower retry
+
+
 def _run(turn, text):
     try:
         code, err = _attempt(turn, text)
+        if code not in (0, None) and not turn["stopped"] and _nothing_yet(turn) and _auto_refused(err):
+            turn["perms"] = CHAT_PERMS_FALLBACK   # no auto mode here: the narrower rules, same message
+            code, err = _attempt(turn, text)
         # A stale --resume id (the session was pruned, or came from another config dir) fails before any event
         # arrives. Drop it and run once more fresh: otherwise every later message in the project fails the same
         # way and its chat is lost for good. turn["reset"] tells the caller to forget the id it passed in.
@@ -238,6 +249,16 @@ print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", 
 print(json.dumps({"type": "result", "subtype": "success", "session_id": "fresh-sid", "total_cost_usd": 0}), flush=True)
 """
 
+FAKE_NOAUTO = """import json, sys
+if sys.argv[sys.argv.index("--permission-mode") + 1] == "auto":
+    sys.stderr.write("Error: permission mode 'auto' is not available for this account\\n")
+    sys.exit(1)
+prompt = sys.stdin.read()
+print(json.dumps({"type": "system", "subtype": "init", "session_id": "s-fallback"}), flush=True)
+print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "mode " + sys.argv[sys.argv.index("--permission-mode") + 1]}]}}), flush=True)
+print(json.dumps({"type": "result", "subtype": "success", "session_id": "s-fallback", "total_cost_usd": 0}), flush=True)
+"""
+
 FAKE_DEAD = """import sys
 sys.stdin.read()
 sys.stderr.write("Invalid API key - please run /login\\n")
@@ -258,7 +279,7 @@ def run_fake(script, sid=None, context=None):
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "fake_claude.py"
         f.write_text(script, encoding="utf-8")
-        argv = lambda s=None: [sys.executable, "-I", str(f)] + (["--resume", s] if s else [])   # noqa: E731
+        argv = lambda s=None, perms=None: [sys.executable, "-I", str(f)] + (perms or CHAT_PERMS) + (["--resume", s] if s else [])   # noqa: E731
         try:
             tid = start("hello", sid, context=context)
             for _ in range(300):
@@ -275,7 +296,7 @@ def run_fake(script, sid=None, context=None):
 
 def demo():
     """Self-check: a --resume id Claude Code no longer has recovers instead of bricking the project's chat,
-    a = argv("sid-1")   # the chat may write files and make folders: a -p run cannot ask for either
+    a = argv("sid-1", CHAT_PERMS_FALLBACK)   # the fallback may write files and make folders: a -p run cannot ask
     assert a[a.index("--permission-mode") + 1] == "acceptEdits" and "Bash(mkdir *)" in a and a[-2:] == ["--resume", "sid-1"], a
     and no other failure costs a session. No claude, no network: fakes stand in for it."""
     evs = run_fake(FAKE, "gone")
@@ -298,6 +319,12 @@ def demo():
     out = run_fake(FAKE_DEAD, "still-good")
     assert [e["type"] for e in out] == ["error"], out
     assert session_reset(out.tid) is False, "an unrelated failure must not cost a valid session"
+
+    # auto mode, and the narrower rules on an account that has no auto mode (same message, no error shown)
+    assert argv()[argv().index("--permission-mode") + 1] == "auto"
+    fb = run_fake(FAKE_NOAUTO)
+    assert [e["type"] for e in fb if e["type"] != "session"][:1] == ["text"] and "mode acceptEdits" in fb[1]["text"], fb
+    assert not any(e["type"] == "error" for e in fb) and not _auto_refused("Invalid API key"), fb
     print("chat ok")
     return 0
 

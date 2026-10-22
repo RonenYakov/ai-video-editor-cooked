@@ -18,21 +18,26 @@ An idea, a brand and some references in. A finished MP4 out, built from `film.ht
 Films live in the library, never in the plugin folder (an update overwrites it). No `&` in any path.
 
 ```
-idea + refs + brand -> refs.py measure -> BRIEF.md [GATE brief] -> assets, grids
-  -> beats.sheet.json + stills [GATE beat sheet, review page] -> motion-builder (opus, xhigh) -> probe
+idea + refs + brand -> refs.py measure -> BRIEF.md -> assets, grids
+  -> beats.sheet.json + one still per beat [GATE: frames, review page] -> motion-builder (opus, xhigh) -> probe
   -> draft -> notes [review page] -> motion-reviser (opus, medium) -> final render -> mux
 ```
 
-Main-session gates (brief, beat sheet, draft notes) stay here: a subagent cannot ask the user anything.
-Nothing skips ahead. Never claim a render worked without checking the file exists and is non-empty.
+Main-session gates (the frames, draft notes) stay here: a subagent cannot ask the user anything. Nothing skips
+ahead: `render.mjs` refuses any render of a home-page film (`.gate`) until the user approved this beat sheet's stills
+(`beats.approved.json`, written by the review page; never write it yourself). Never claim a render worked without
+checking the file exists and is non-empty.
+
+Spend: Higgsfield and ElevenLabs cost the user credits. Use them only when the user asked for what they make (a
+generated shot, a voiceover), quote the cost first (Higgsfield `*_quote`/`balance`), one generation at a time, and
+never retry a generation that failed: say so and ask.
 
 ## 0. Start
 
 From the home page the job line is
 `JOB motion <name> format=<9:16|1:1|16:9> film=<FILM> refs=<FILM>/refs.json [note=<file>] root=<library> idea=<one line>`.
-The idea may be empty or one short line: the user starts from references plus a chat message, never a brief. Take the
-intent from the refs and their `take` notes (and `note=`, the project's optional brief, when set); what the message says wins. Never ask for a
-brief or a script. Ask at most one question, and only if two refs pull different ways (two looks, two brands).
+The idea may be empty or one line: take the intent from the refs, their `take` notes and `note=` (the optional brief);
+the message wins. Never ask for a brief or a script; one question at most, only if two refs pull different ways.
 The page opens this skill straight on `take job <id>`: read `${CLAUDE_PLUGIN_ROOT}/skills/start/references/home.md` and
 `home-other.md` there (waiting, status, questions, the motion job) and nothing else from start. Run `home.py wait --job <id>`
 and report with `home.py status motion --step "..."`. From chat ("new motion film", "make a motion video"): ask the idea, format and length in one
@@ -86,16 +91,16 @@ two compete). `render.mjs` applies it; `--nograde` skips it.
 ## 2. Brief gate
 
 Fill `FILM/BRIEF.md`: idea, script, brand (named from the profile), format, length, audio source, and for each
-reference its `take` word for word, what to avoid, and for a brand site what the business does (`site_ref`). Show it back. **Gate: the user approves the brief before any code.**
-Write every field you can from the refs, the idea line and the profile; do not ask for the rest and do not invent a
-script or a claim: leave it out or mark it as your choice for the user to change at the gate.
+reference its `take` word for word, what to avoid, and for a brand site what the business does (`site_ref`). No gate
+here: write every field you can from the refs, the idea and the profile, invent no script or claim, and mark your own
+choices. The user sees the brief with the stills at step 4 and approves both there.
 
 ## 3. Assets and grids
 
 Put real screenshots, the logo, the brand fonts and the user's photos in `FILM/assets/` (captures: style-edit's
 `capture.mjs`, or the user's files). List what you found. Never invent a screen.
 
-- Voiceover: ElevenLabs, key `ELEVENLABS_API_KEY` in `.env`, never echoed. Transcribe it back to `audio/vo.json`.
+- Voiceover, only if asked: ElevenLabs, key `ELEVENLABS_API_KEY` in `.env`, never echoed. Transcribe to `audio/vo.json`.
 - Music: `python3 "$ENGINE/tools/beats.py" "$FILM/audio/track.wav" > "$FILM/audio/beats.json"`.
 - `film.config.json` `"grid": "beats" | "vo"`. Every cut lands on a grid timestamp, text on its spoken word.
 - You cannot hear audio. Say you read the grids, never that you listened.
@@ -113,25 +118,19 @@ One beat per 2 to 4 s (every beat on a music-led film). Write `FILM/beats.sheet.
 "Product appears with energy" is not a beat: name what is on screen, what moves (with the ease or spring) and what
 is heard. Cite a ref only for a beat that copies its motion, timing or layout.
 
-Stills: write a first-pass `film.html` with every beat's layout at rest (final text, assets, brand; the motion can
-be a stub), then draw one frame per beat, no render needed, at a time when the beat is at rest, not mid-move:
+Stills, the frames the user approves the style and design on: a first-pass `film.html` with every beat's layout at
+rest (final text, assets, brand; motion a stub), then one frame per beat at rest, no render (`sheets.mjs --at` is not
+for this). One `<t>=<path>` pair per beat, relative to `FILM`, `--format 9:16` to pick one. Then the page, in the background:
 
 ```bash
 node "$ENGINE/tools/still.mjs" "$FILM" 0.8=stills/beat-01.png 3.2=stills/beat-02.png
-```
-
-One `<t>=<path>` pair per beat, paths relative to `FILM` (add `--format 9:16` to pick a format); one browser for all. (`sheets.mjs --at` is
-not for this: it cuts a strip from an existing render.) Then open the page and wait in the background:
-
-```bash
 python3 "$R" beats "$FILM"
 python3 "$R" "$FILM" serve
 python3 "$R" "$FILM" wait
 ```
 
-`wait` prints notes tagged `[beat N]` or `[whole sheet]`. Change `beats.sheet.json` (and the stills if the layout
-changed), run `round`-style: rerun `beats`, wait again. **Loop until the user approves.** `film.html` is rewritten
-by the builder, so the first pass is only for the stills.
+`wait` prints notes tagged `[beat N]` or `[whole sheet]`: change the sheet (and stills), rerun `beats`, wait again.
+**Loop until the user approves.** The builder rewrites `film.html`; the first pass is only for the stills.
 
 ## 5. First build: the motion-builder agent
 
@@ -147,10 +146,6 @@ probe until it passes, renders a draft, reads the contact sheets (3 fix rounds a
 `probe` must be `pass`. Check the draft file exists and is non-empty yourself, then run probe once more:
 `node "$ENGINE/probe.mjs" "$FILM"`. If it fails, send the builder's JSON back in a second launch with the probe
 output; do not loosen probe. Tell the user any `open_issues`.
-
-**Phase 4 check, after the first real run:** the builder's transcript
-(`~/.claude/projects/<project>/<session>/subagents/agent-*.jsonl`) must say `claude-opus-5-5` and show xhigh. Grep
-the file for `"model"`, say which model it names, and say if it is not that one.
 
 ## 6. Draft review
 

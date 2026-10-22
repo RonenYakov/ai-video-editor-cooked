@@ -1561,6 +1561,7 @@ def motion_args(d, b):
         shutil.rmtree(film)
         return None, (400, "Add a reference or say the idea in one line.")
     (film / "refs.json").write_text(json.dumps(refs, indent=1), encoding="utf-8")
+    (film / ".gate").write_text("beats\n", encoding="utf-8")   # render.mjs renders nothing until the beat sheet's stills are approved
     args = {"name": name, "idea": idea, "format": b.get("format") if b.get("format") in ("9:16", "1:1", "16:9") else "9:16",
             "film": str(film), "refs": str(film / "refs.json")}
     if str(b.get("lang") or "").lower() in ("he", "en"):
