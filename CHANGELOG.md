@@ -4,6 +4,7 @@ What changed for every user, newest first.
 
 ## Unreleased
 
+- The video review page matches Home: beside the project's name, its kind (Edit a video, Talking head or Motion Studio) in its colour, a pill saying whose turn it is (Your turn, Claude is on it, Done), and the Approve and Submit buttons in the kind's colour. A vertical video's player is vertical from the start, not wide until the video loads.
 - A Motion Studio film's video review starts clean after you approve its frames: it shows the video (not the frames again), under the project's name, waiting for your approval. Before, the frames' approval counted as the video's, so the page offered Undo approve and the project stayed Working.
 - The Motion Studio frames page is redesigned. Each frame shows whole at 9:16, big, with "What you see" and "How it moves" under it. The project's name, the Motion Studio colour and a Your turn pill sit at the top, and the brief shows beside the frames, so you approve both at once.
 - Each paid transcription (ElevenLabs, talking head) says what it cost: the minutes of audio and about how much, on the job while it runs and in Settings beside the key, with the total so far. Worked out at the list price, so it is an upper estimate.

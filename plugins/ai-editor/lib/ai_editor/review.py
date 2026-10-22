@@ -1203,6 +1203,7 @@ def make_handler(folder, token):
                 d["update"] = _HOME.get("update") if d["home"] else None   # the rail's Update
                 d["jobs"] = home_jobs() if d["home"] else 0   # the rail's Making ring
                 d["intro"] = intro(folder, d)
+                d["kind"] = project_kind(folder)
                 d["style_name"] = style_label(folder)   # "Keep as a rule for <style>" and the receipts
                 try:   # a sample style (the plugin's own): taught like any style, its rules in its style.overrides.json
                     sp = edit_style(folder)
@@ -1731,13 +1732,29 @@ def cmd_start(a, folder):
     print(f"{rj}: {stage_name(d['stage'], d.get('stills'))}, round {d['round']}")
 
 
-def film_title(folder):
-    """The name of the project this film belongs to (projects.json links it as an edit), else the folder's name."""
+def project_of(folder):
+    """The project this folder belongs to (projects.json links it as an edit), or None."""
     try:
         import projects
-        return next((p["name"] for p in projects.list_all() if str(Path(folder)) in map(str, p.get("edits", []))), folder.name)
-    except Exception:   # no library, no projects: the folder's name will do
-        return folder.name
+        return next((p for p in projects.list_all() if str(Path(folder)) in map(str, p.get("edits", []))), None)
+    except Exception:   # no library, no projects
+        return None
+
+
+def film_title(folder):
+    """The name of the project this film belongs to, else the folder's name."""
+    return (project_of(folder) or {}).get("name") or folder.name
+
+
+_KIND = {}
+
+
+def project_kind(folder):
+    """"edit", "talking-head" or "motion": the header's kind tag and colour. None when no project links the folder."""
+    k = str(folder)
+    if k not in _KIND or _KIND[k] is None:   # asked again until a project links it, then kept: a kind never changes
+        _KIND[k] = (project_of(folder) or {}).get("kind")
+    return _KIND[k]
 
 
 def cmd_beats(folder):
@@ -3633,8 +3650,18 @@ def demo():
     p4 = lambda p, b: json.loads(urllib.request.urlopen(urllib.request.Request(base4 + p + "?t=" + tok4, json.dumps(b).encode(), method="POST")).read())
     st4 = json.loads(g4("/state").read())
     assert [b["on_screen"] for b in st4["beats"]["beats"]] == ["Big counter", "Logo wipe"] and st4["beats"]["refs"][0]["take"] == "the whole look"
+    assert st4["kind"] is None, "no project links it: no kind tag"
+    real = globals()["project_of"]
+    globals()["project_of"] = lambda f: {"kind": "motion", "name": "Beat film"}   # a project links it now
+    try:
+        assert json.loads(g4("/state").read())["kind"] == "motion", "a kind not known yet is asked again"
+        globals()["project_of"] = lambda f: None
+        assert project_kind(bf) == "motion", "once known it is kept"
+    finally:
+        globals()["project_of"] = real
     page = g4("/").read().decode()
     assert 'id="beatsview"' in page and "function renderBeats" in page
+    assert 'id="kindtag"' in page and 'id="stpill"' in page and "function heads" in page, "the header's kind and turn"
     assert g4("/beatfile?p=stills/beat-01.png").read()[:4] == b"\x89PNG" and g4("/beatfile?p=stills/ref1.png").read()[:4] == b"\x89PNG"
     try:
         g4("/beatfile?p=../../review_demo_escape")

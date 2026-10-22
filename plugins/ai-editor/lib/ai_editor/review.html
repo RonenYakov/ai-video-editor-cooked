@@ -109,6 +109,8 @@ header{position:relative;height:56px;flex-shrink:0;display:flex;align-items:cent
 .homebtn:hover{color:var(--ink)}
 .brand .sl{color:var(--line2)}
 .homemsg{position:absolute;top:52px;left:24px;z-index:30;max-width:340px;white-space:normal!important;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px!important;line-height:18px!important;color:var(--ink2)!important;box-shadow:var(--pop)}
+.brand .ktag{flex-shrink:0}
+.status .spill{flex-shrink:0}
 .brand #name{font-weight:600;color:var(--strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #stages{gap:4px;padding:4px}
 #stages .chev{color:var(--quiet);flex-shrink:0}
@@ -180,6 +182,7 @@ body.rszing{user-select:none}body.rszing video{pointer-events:none}
 #p1 figcaption{color:var(--muted)}#p1 figcaption b{color:var(--strong)}
 body.compare .pl figcaption{display:flex}
 #p2{display:none}body.compare #p2{display:flex}
+body.vertical .pl{--arw:9;--arh:16}   /* a vertical video is drawn vertical before its first frame loads */
 .player{position:relative;width:100%;aspect-ratio:var(--arw)/var(--arh);border-radius:12px;overflow:hidden;background:var(--film)}
 body.compare #p1 .player{outline:2px solid var(--ink);outline-offset:3px}
 video{width:100%;height:100%;display:block;object-fit:contain;background:var(--film);cursor:pointer}
@@ -419,6 +422,9 @@ aside{width:var(--sidew,320px);flex-shrink:0;background:var(--panel);border-left
 .actions{display:flex;flex-direction:column;gap:8px}
 .actions button,.learn .erow button{height:40px;border-radius:10px;font-size:14px;line-height:18px;font-weight:600;padding:0 16px;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line2);background:var(--panel);color:var(--strong)}
 .actions button.primary,.learn .erow button.go{background:var(--ink);border-color:var(--ink);color:var(--onink)}
+/* in a project, the one button to press wears its kind (ui.css k-*), as on Home and in the room */
+body.kinded .actions button.primary,body.kinded #mapprove.primary{background:var(--kf);border-color:var(--kf);color:#fff}
+body.kinded .actions button.primary:hover:not(:disabled),body.kinded #mapprove.primary:hover:not(:disabled){background:var(--kf);filter:brightness(.92)}
 .actions button.primary:hover:not(:disabled),.learn .erow button.go:hover:not(:disabled){background:var(--ink-hover)}
 .actions button:not(.primary):hover:not(:disabled){border-color:var(--ink)}
 .actions button:disabled:not(.primary):not(.approved){color:var(--quiet);border-color:var(--line)}
@@ -584,9 +590,9 @@ body.making #making{display:flex}
 </nav>
 <div class="app">
 <header>
- <div class="brand"><button id="homebtn" class="homebtn" title="Back to your videos"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Your videos</button><span class="sl">/</span><span id="name"></span><span id="homemsg" class="homemsg" hidden></span></div>
+ <div class="brand"><button id="homebtn" class="homebtn" title="Back to your videos"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Your videos</button><span class="sl">/</span><span id="name"></span><span id="kindtag" class="ktag" hidden></span><span id="homemsg" class="homemsg" hidden></span></div>
  <div class="seg" id="stages"><button id="st1" data-go="cut"></button><svg class="chev" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><button id="st2" data-go="edit"></button></div>
- <div class="status" id="statusbox"><i></i><span id="listen"></span><button id="howbtn" aria-label="how this works and shortcuts" title="how this works (?)"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="8.3"/><path d="M7.7 7.6a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.4"/><circle cx="10" cy="14.4" r=".4" fill="currentColor"/></svg></button></div>
+ <div class="status" id="statusbox"><span id="stpill" class="spill" hidden></span><i></i><span id="listen"></span><button id="howbtn" aria-label="how this works and shortcuts" title="how this works (?)"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="8.3"/><path d="M7.7 7.6a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.4"/><circle cx="10" cy="14.4" r=".4" fill="currentColor"/></svg></button></div>
  <div class="mhead"><b id="mstage"></b><span id="msub"></span></div><button class="themebtn mtheme"></button><button id="mapprove"></button>
 </header>
 <section id="how" aria-label="how this works"><ol>
@@ -841,6 +847,19 @@ function listenText(S){
   if(S.busy)return 'Claude is working. Notes you send now are next.';
   return 'Claude is not listening. Notes still save.';
 }
+// the header says what sort of project this is (its kind and colour) and whose turn it is, as Home does
+const KINDTAG={edit:['Edit a video','<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9.2v5.6l4.6-2.8z"/>'],
+  'talking-head':['Talking head','<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'],
+  motion:['Motion Studio','<path d="M13 3 5 13.5h6l-1 7.5 8-10.5h-6z"/>']};
+function heads(fin,working,live){
+  const kt=KINDTAG[S.kind],tag=$('kindtag');
+  ['edit','talking-head','motion'].forEach(k=>document.body.classList.toggle('k-'+k,S.kind===k));
+  document.body.classList.toggle('kinded',!!kt);
+  tag.hidden=!kt;
+  if(kt)tag.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kt[1]}</svg>${kt[0]}`;
+  const st=fin?['st-done','Done']:working?['st-work','Claude is on it']:live?['st-you','Your turn']:null,pl=$('stpill');
+  pl.hidden=!st;if(st){pl.className='spill '+st[0];pl.textContent=st[1]}
+}
 function render(){
   if(!S)return;
   document.body.classList.toggle('vertical',!!S.vertical);renderRail();
@@ -871,6 +890,7 @@ function render(){
   sb.style.display=fin&&!undoAp?'none':'';
   if(matchMedia('(max-width:760px)').matches)$('mapprove').textContent=mk?(S.stills?'Preview approved':'Cut approved'):fin?'Approved':'Approve';else $('mapprove').innerHTML=ap.innerHTML;
   $('mapprove').className=ap.className;$('mapprove').disabled=ap.disabled;$('mapprove').title=ap.title;
+  heads(fin,busyNow&&!asking,live);
   const sbar=isCur()&&S.round>0&&(S.rounds||[]).some(r=>r.stage==='cut');
   document.body.classList.toggle('staged',sbar);
   $('stagetext').innerHTML=mk?(S.stills?'<b>The preview is approved.</b> Claude is making the video.':'<b>The cut is approved.</b> Claude is adding captions, zooms and sound.')

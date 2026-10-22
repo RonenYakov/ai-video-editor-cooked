@@ -32,6 +32,13 @@ Sources:
 
 ## Next
 
+- Motion Studio render speed at the template's default. `template/film.config.json` sets `"subframes": 4`
+  (motion blur), so `render.mjs` draws and reads back every output frame four times. On the 2026-10-22 test
+  film (9 s, 30 fps, 1080x1920, a photo background with a canvas card) the render at 4 was stopped as far
+  too slow; at 1 it took about 3 min for 270 frames. A first-time user waits on this with nothing on screen
+  but a progress line. Options: default to 1 and turn blur on only for fast moves, sample blur only where
+  something moves faster than a set px per frame, or render subframes in parallel pages. Done: the template's
+  default renders the test film in under 3 min, and a fast move still shows blur in a still at that time.
 - Laptop render estimate on a fresh home's first benchmark. The benchmark now times Chrome's start-up
   apart; 3 of 4 back-to-back estimate/render pairs on the 44.9 s sample cut were within 25%, the fourth 57%
   under (load average 20-37 from other work on the test machine). The cold first benchmark the item was
