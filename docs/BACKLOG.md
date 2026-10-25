@@ -32,6 +32,7 @@ Sources:
 
 ## Next
 
+- Get to know the program: a short tour for a first-time user (what Home, Styles and the editor are, the two free keys, a sample video), to replace the Getting started block that is hidden in the sidebar (`gsBlock()` in home.html returns ''). Not setup steps: setup runs by itself.
 - Motion Studio render speed at the template's default. `template/film.config.json` sets `"subframes": 4`
   (motion blur), so `render.mjs` draws and reads back every output frame four times. On the 2026-10-22 test
   film (9 s, 30 fps, 1080x1920, a photo background with a canvas card) the render at 4 was stopped as far

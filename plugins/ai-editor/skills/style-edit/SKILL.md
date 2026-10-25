@@ -15,7 +15,7 @@ Every question goes in the question box: the AskUserQuestion tool (2-4 options, 
 
 An approved cut and a creator's style in (a `skill=` job runs that skill: start step 3).
 The finished video out: captions, zooms, real captures and motion scenes timed to the words, in the
-creator's look and the user's brand. The user approves the stills on the review page (step 5) and picks the render (step 6).
+creator's look and the user's brand. The user approves the stills on the review page (step 5); the render is Modal (step 6).
 
 Paths are relative to the library (PRINCIPLES.md). Run the scripts with `python3` on Mac
 and Linux, `py` on Windows. `S="${CLAUDE_SKILL_DIR}/scripts"`,
@@ -128,45 +128,42 @@ python3 "$S/check.py" plan edits/<name> [--plan plan.json] [--style edits/<name>
 
 Fix every FAIL and plan again. What it FAILs: `references/plan.md`.
 
-## 5. Stills, checked by you, then straight to the render
+## 5. Stills: the user sees them before anything renders
 
-The user approved the cut: that approve means make the edit. Never put the stills on the review page and never wait
-for a second approve (Max, 2026-10-15: users did not like the frames step).
+The user approved the cut. Now they see the frames, then the render starts.
 
 ```bash
 python3 "$S/edit.py" stills edits/<name>
 ```
 
 The first run installs the renderer (a few minutes, once; say so first). Writes one still per beat,
-`stills/sheet.png` (labelled with beat, time and card kind). Review the sheet yourself; open a single still only to
-zoom in. Fix before rendering: a box on the face, a zoom cutting the head, the wrong part of a capture, text too small
-for a phone, a default AI look. `stills-critic` can check it. Then go on to step 6 and render; the user's notes come on
-the rendered edit. Moving cards by hand only when the user asks: `references/render.md` "The live preview".
+`stills/sheet.png` (labelled with beat, time and card kind). Review the sheet yourself first and fix what a user
+should never see: a box on the face, a zoom cutting the head, the wrong part of a capture, text too small for a
+phone, a default AI look (`stills-critic` can check it). Then open the stills round on the review page:
 
-## 6. Where to render
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/lib/ai_editor/review.py" edits/<name> round --stage edit --stills --video edits/<name>/stills.mp4 --plan edits/<name>/plan.json
+```
+
+(`references/review.md`; `serve` and `wait` in the background.) Notes on a frame: fix, plan, stills, a new round.
+**Approve means render it.** Nothing renders before that approve, and the render waits on it however long it takes.
+Moving cards by hand only when the user asks: `references/render.md` "The live preview".
+
+## 6. Render on Modal
+
+The render runs on Modal, after the stills are approved. Say what it costs first.
 
 ```bash
 python3 "$S/edit.py" estimate edits/<name>
 ```
 
-Prints `Laptop:`, `Modal:` and two `Other:` lines (GitHub Actions, Lambda) with this video's time and
-cost, then `Recommended:`: Modal once it is connected, the video is over a minute and Modal is quicker; the
-laptop otherwise. `render` in the profile, or `Recommended: Laptop`: render there with no question, one line
-with the time ("Rendering on your laptop, about 14 s. Say 'render on Modal' to change"). Not set and
-`Recommended: Modal`: ask once, three options in this order with the printed numbers, Modal marked
-(Recommended), then `profile.py set render='"laptop|modal|github|lambda"'`.
-
-1. **Laptop**: its time, free.
-2. **Modal**: its time and cost ($30 free credit a month). Not connected: label it **Connect Modal**; on that
-   pick run `setup.py modal-connect` in the background (the setup skill's Modal step), then render on Modal.
-3. **Other: GitHub Actions or AWS Lambda**: both `Other:` lines in the description. On this pick, ask
-   a second question with the two. GitHub Actions: free, needs `gh` logged in, the footage goes into
-   a **private** repo in their account; ask before creating the repo. Lambda: their own AWS account.
-   No `cloud_cleanup` in the profile: ask once "Delete the uploaded footage from <GitHub|AWS> after
-   rendering?" (Yes (Recommended) / No, keep it there), then `profile.py set cloud_cleanup=true|false`.
-
-Modal picked but not connected: `setup.py modal-connect` first (above). Lambda picked and
-`aws sts get-caller-identity` fails: the setup skill's Lambda section first.
+Say the `Modal:` line in one sentence before starting ("Rendering on Modal, about 2 min, about $0.20"). No
+question while the profile says `render` "modal" (`profile.py set render='"modal"'`, the default for now). Modal not
+connected: `setup.py modal-connect` first (the setup skill's Modal step, $30 free credit a month). Laptop, GitHub
+Actions or AWS Lambda only when the user asks for one by name (the other `estimate` lines have their time and cost;
+GitHub needs `gh` and a **private** repo, ask before creating it; Lambda needs their AWS account; ask once whether
+to delete the uploaded footage after, `profile.py set cloud_cleanup=true|false`). Moving to GitHub or AWS as the
+default is a later change.
 
 ## 7. Render and check
 

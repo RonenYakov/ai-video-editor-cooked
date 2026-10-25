@@ -3100,14 +3100,14 @@ def make_handler(token):
             return self.send(200, {"ok": True, "text": text})
 
         def upload(self):
-            """A dropped video: streamed to <root>/videos/<name>, never held in memory. ?ref=1: a file for Analyse a
+            """A dropped video: streamed to <root>/raw/<name>, never held in memory. ?ref=1: a file for Analyse a
             format (a video, picture, PDF or text) to <root>/references/<name>, handed to the teardown as files=."""
             q = parse_qs(urlsplit(self.path).query)
             name, ref = Path(unquote(q.get("name", [""])[0])).name, q.get("ref") == ["1"]
             n = body_len(self.headers)
             if not name.lower().endswith(REF_EXT if ref else links.VIDEO_EXT) or n <= 0:
                 return self.send(400, {"ok": False, "msg": "Add a video, picture, PDF or text file." if ref else "Drop a .mov, .mp4 or .mkv video."})
-            out = Path(read()["root"]) / ("references" if ref else "videos") / name
+            out = Path(read()["root"]) / ("references" if ref else library.RAW) / name
             out.parent.mkdir(parents=True, exist_ok=True)
             k = 1
             while out.exists() and out.stat().st_size != n:   # another file with this name: never overwrite it
@@ -3637,7 +3637,7 @@ def demo():
     assert p["ok"] and p["vertical"] and p["label"].startswith("0:02 · vertical"), p
     assert not post("/probe", {"path": str(tmp / "nope.mp4")})["ok"]
     r = urllib.request.urlopen(urllib.request.Request(base + "/upload?name=drop.mp4&t=" + tok, vid.read_bytes(), method="POST"))
-    assert json.loads(r.read())["ok"] and (root / "videos" / "drop.mp4").stat().st_size == vid.stat().st_size
+    assert json.loads(r.read())["ok"] and (root / "raw" / "drop.mp4").stat().st_size == vid.stat().st_size
     post("/job", {"type": "video", "path": str(vid), "aspect": "9:16"})
     ed = root.resolve() / "edits" / "take"
     assert out(cmd_wait, 0.01) == f"JOB video {vid.resolve()} as=@sample.creator aspect=9:16 edit={ed} root={root.resolve()}"
@@ -4485,7 +4485,7 @@ def demo():
     assert out(cmd_wait, 0.01) == "JOB cancel style-change", "a listening Claude hears it too"
     # previews prefer raw takes: a finished render (its own captions) is never used behind a sample caption
     assert is_output(root / "edits" / "x" / "render.mp4") and is_output(tmp / "v-edit2.mp4") and is_output(root / "edits" / "x" / "review" / "a.mp4")
-    assert is_output(ed / "anything.mp4", [ed]) and not is_output(root / "videos" / "drop.mp4", [ed])
+    assert is_output(ed / "anything.mp4", [ed]) and not is_output(root / "raw" / "drop.mp4", [ed])
     assert all("raw" in v for v in get("/recent")["videos"])
     assert get("/state")["page"] == f'{live.page_version(HTML, HTML.with_name("ask.js"))}-{my_version()}', "the tab's reload key"
     # hide or trash a listed clip, remove an edit: only what the page listed, to the Trash (faked here), never a folder
@@ -4508,7 +4508,7 @@ def demo():
                 raise AssertionError(bad)
             except urllib.error.HTTPError as e:
                 assert e.code == 400, bad
-        yv = root / "videos" / "yours.mp4"   # a clip in the library's videos/ ("Your videos"): hidden, never moved
+        yv = root / "raw" / "yours.mp4"   # a clip in the library's raw/ ("Your videos"): hidden, never moved
         yv.parent.mkdir(exist_ok=True)
         shutil.copyfile(vid, yv)
         assert next(v for v in get("/recent")["videos"] if v["name"] == "yours.mp4")["where"] == "Your videos"

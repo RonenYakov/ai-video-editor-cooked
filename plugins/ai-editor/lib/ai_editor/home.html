@@ -1910,6 +1910,7 @@ const SETUP_PLAN=['Installing the Python packages','Downloading the transcriptio
 const OKDOT=`<b class="okd">${'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'}</b>`;
 // the sidebar's Getting started block: gone once all three are done
 function gsBlock(){
+  return '';   // off for now: a get-to-know-the-program tour comes later (docs/BACKLOG.md)
   if(gsDone())return '';
   const g=GS(),rows=[['setup','Set up'],['style','Analyse a format (optional)'],['video','Make your first video']],cur=Math.max(0,rows.findIndex(([k])=>!g[k]&&k!=='style'));   // the optional step is never the one you are on
   const sj=latest('setup'),pct=sj&&sj.state==='taken'?readyPct():null,frac=(rows.filter(([k])=>g[k]).length+(cur===0&&pct!=null?pct/100:0))/3;
@@ -2437,7 +2438,7 @@ function jobFrac0(j){
 const JOBNAME={motion:'Making a motion video',video:'Making',teardown:'Analysing',skill:'Building a skill',setup:'Setting up',modal:'Connecting Modal','modal-test':'Testing Modal','style-change':'Changing a style'};
 // the sidebar's live card: the job being worked on, from the real job state
 function jobInfo(){
-  const act=S.jobs.filter(j=>j.state==='queued'||j.state==='taken'),j=busyJob(),mk=(L?L.videos:[]).filter(v=>v.status==='making'||v.status==='cutting');
+  const act=S.jobs.filter(j=>j.state==='queued'||j.state==='taken'),j=busyJob(),mk=(L?L.videos:[]).filter(v=>(v.status==='making'||v.status==='cutting')&&!v.stale);
   const nv2=Math.max(mk.length,act.filter(x=>x.type==='video').length);
   if(!j){if(!mk.length)return null;return {label:`Making ${mk.length}`,short:'Making',n:mk.length,text:`${{notes:'Claude is fixing your notes in',stills:'Claude is making the preview for',rendering:'Claude is finishing'}[vPh(mk[0])]||'Claude is making'} ${mk[0].name}`,frac:null,since:null,go:"ui.fold.videos=null;rgo('videos')"}}
   const n=j.type==='video'?nv2:act.filter(x=>x.type===j.type).length,s=farStep(j);

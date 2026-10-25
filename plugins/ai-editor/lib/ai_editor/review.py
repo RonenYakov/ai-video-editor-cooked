@@ -795,7 +795,7 @@ def home_jobs():
     try:   # the edit, the preview and the render run after the job: the library's videos being made count too
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import library
-        edits |= {str(Path(e["dir"]).resolve()) for e in library.entries() if e["status"] in ("making", "cutting")}
+        edits |= {str(Path(e["dir"]).resolve()) for e in library.entries() if e["status"] in ("making", "cutting") and not e["stale"]}
     except (OSError, ValueError, ImportError):
         pass
     return len(edits) + sum(1 for j in act if not (j.get("args") or {}).get("edit"))

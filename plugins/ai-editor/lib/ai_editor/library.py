@@ -9,7 +9,10 @@
     python3 library.py clean [--yes]        the working files that can go and their size; --yes deletes them
     python3 library.py demo                 self-check
 
-Every finished video is also copied (deliver) to ~/Videos/cooked Finished: AI_EDITOR_FINISHED, then "finished" in library.json.
+Every finished video is also copied (deliver) to <library>/finished: AI_EDITOR_FINISHED, then "finished" in library.json.
+The library root has three shelves you open yourself: raw/ (the clips you drop), references/ (what you drop to copy a
+format) and finished/ (one copy of every approved video). The work stays in a folder per project (edits/, films/,
+projects/), so the shelves are for finding files and the project folders are for the work.
 The folder: ~/Videos/AI Editor. AI_EDITOR_LIBRARY
 overrides it, then `set` (saved in $AI_EDITOR_HOME/library.json with every recorded edit folder).
 Inside: videos/ (dropped files), edits/<name>/, clips/<name>/, product/<name>/, creator-teardowns/<handle>/.
@@ -33,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from links import VIDEO_EXT  # noqa: E402
 
 KINDS = ("edits", "clips", "product")
+RAW = "raw"   # the clips you drop (older libraries called it videos/, still read)
 PROTECT = {"review.json", "cut.mp4", "render.mp4", "joined.mp4", "words.json", "takes.txt"}
 RECENT_N = 24
 
@@ -64,6 +68,8 @@ def path(make=True):
     p = Path(os.path.expanduser(os.environ.get("AI_EDITOR_LIBRARY", "").strip() or _index().get("path") or default_path()))
     if make:
         p.mkdir(parents=True, exist_ok=True)
+        for shelf in (RAW, "references"):
+            (p / shelf).mkdir(exist_ok=True)
     return p.resolve() if p.exists() else p
 
 
@@ -75,9 +81,9 @@ def set_path(p):
 
 
 def finished_path(make=True):
-    """Where every finished video is copied: AI_EDITOR_FINISHED, then `set_finished`, then ~/Videos/cooked Finished."""
+    """Where every finished video is copied: AI_EDITOR_FINISHED, then `set_finished`, then <library>/finished."""
     p = Path(os.path.expanduser(os.environ.get("AI_EDITOR_FINISHED", "").strip() or _index().get("finished")
-                                or Path.home() / "Videos" / "cooked Finished"))
+                                or path(make) / "finished"))
     if make:
         p.mkdir(parents=True, exist_ok=True)
     return p.resolve() if p.exists() else p
@@ -261,7 +267,11 @@ def entry(d):
     return {"name": (r or {}).get("label") or (r or {}).get("name") or d.name, "dir": str(d), "kind": d.parent.name,
             "status": status(r), "stage": (r or {}).get("stage"), "round": (r or {}).get("round"),
             "draft": draft_name(r, (r or {}).get("rounds") or []) if r else None, "sample": is_sample(d, r),
-            "video": video if video and Path(video).is_file() else None, "review": bool(r), "updated": t}
+            "video": video if video and Path(video).is_file() else None, "review": bool(r), "updated": t,
+            "stale": time.time() - t > STALE}   # "making" for hours with nothing touching it: nobody is working on it
+
+
+STALE = 3 * 3600
 
 
 def entries():
@@ -332,9 +342,10 @@ def recent(picked=(), scan_home=False, n=RECENT_N):
                 out.append((p.stat().st_mtime, p, where))
         except OSError:
             pass
-    for base in [path() / "videos"] + (home_dirs() if scan_home else []):
+    yours = [path() / RAW, path() / "videos"]
+    for base in yours + (home_dirs() if scan_home else []):
         for p in list(base.glob("*")) + list(base.glob("*/*")):
-            add(p, "Your videos" if base == path() / "videos" else base.name)
+            add(p, "Your videos" if base in yours else base.name)
     for x in picked:
         add(Path(x), Path(x).parent.name)
     out.sort(key=lambda x: x[0], reverse=True)
@@ -521,10 +532,10 @@ def demo():
     assert vid.exists() and not working_files([mine])
     # recent videos: newest first; the usual folders only once turned on; files picked before always
     os.environ["AI_EDITOR_SCAN_DIRS"] = str(tmp / "Desktop")
-    (lib / "videos").mkdir()
+    (lib / "raw").mkdir(exist_ok=True)
     (tmp / "Desktop" / "sub").mkdir(parents=True)
-    shutil.copyfile(vid, lib / "videos" / "old.mp4")
-    os.utime(lib / "videos" / "old.mp4", (1, 1))
+    shutil.copyfile(vid, lib / "raw" / "old.mp4")
+    os.utime(lib / "raw" / "old.mp4", (1, 1))
     shutil.copyfile(vid, tmp / "Desktop" / "sub" / "new.MOV")
     (tmp / "Desktop" / "notes.txt").write_text("x", encoding="utf-8")
     assert [r["name"] for r in recent()] == ["old.mp4"]
@@ -537,6 +548,9 @@ def demo():
     assert t and t.stat().st_size > 500 and thumb(rs[0]["path"]) == t
     assert reveal_cmd(mine, "Linux") == ["xdg-open", str(mine)] and reveal_cmd(vid, "Windows")[0] == "explorer"
     assert disk()["library"] > 0
+    assert not entry(mine)["stale"], "a folder touched now is not stale"
+    os.utime(mine / "review.json", (1, 1)); os.utime(mine, (1, 1))
+    assert entry(mine)["stale"], "a folder untouched for hours is stale: the Making card skips it"
     # one draft name everywhere: draft 1, the preview, then the edit's first video is draft 1 again
     rr = [{"stage": "cut", "round": 0}, {"stage": "cut", "round": 1}, {"stage": "edit", "round": 1, "stills": True},
           {"stage": "edit", "round": 2, "stills": True}, {"stage": "edit", "round": 3}]
@@ -544,7 +558,7 @@ def demo():
     assert draft_name(rr[2], rr[:3]) == "the preview"
     # the finished folder: env, then library.json, then the default; one copy per finished video
     os.environ.pop("AI_EDITOR_FINISHED", None)
-    assert finished_path(False) == Path.home() / "Videos" / "cooked Finished"
+    assert finished_path(False) == lib / "finished"
     fin = set_finished(tmp / "fin")
     assert finished_path() == fin == (tmp / "fin").resolve() and _index()["path"] == str(lib)
     os.environ["AI_EDITOR_FINISHED"] = str(tmp / "envfin")

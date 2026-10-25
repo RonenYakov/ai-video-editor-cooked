@@ -2,6 +2,15 @@
 
 What changed for every user, newest first.
 
+## Unreleased
+
+- The stills come back before the render: after you approve the cut, the edit's frames go on the review page, and nothing renders until you approve them.
+- Renders go to Modal, and Claude says the time and cost first. Laptop, GitHub Actions and AWS Lambda are still there when you ask for one.
+- Higgsfield is never used on Claude's own call: it loads the Higgsfield skills and asks you first with the quote. Gemini comes first for generated images.
+- The sidebar's Making card and ring ignore a video that says "making" but nothing has touched for 3 hours (a film whose notes were sent and never answered showed "Claude is fixing your notes" for days).
+- The Getting started block is off in the sidebar. A get-to-know-the-program tour is in the backlog.
+- The library has three shelves in its root: raw/ (the clips you drop; older libraries' videos/ is still read), references/ and finished/ (one copy of every approved video, was ~/Videos/cooked Finished; a folder you set still wins). The work stays in a folder per project.
+
 ## ai-editor 2.7.21, creator-teardown 2.7.21 (2026-10-25)
 
 - Motion Studio re-renders only what changed. A film renders in 1-second pieces; after a note, a quick low-size pass finds the seconds whose frames changed and only those render again, then the pieces are joined without re-encoding. On the 9 s test film, a change in the last 3 seconds rendered in 1.5 min instead of 3.8, and the untouched 6 seconds stayed bit for bit the same. Claude says which seconds it rendered again.

@@ -75,6 +75,8 @@ The rules every skill follows. Each names where it is enforced; tests: `docs/fee
   transcripts or frames when a script can summarise them. (cut `retakes.py`,
   creator-teardown `look.py`, `sheet.py`)
 - Joins land on quiet audio. (`build_timeline.py`)
+- Generated images only where no real one exists: Gemini first (the user's key, free). Higgsfield never on
+  Claude's call: load its skills, ask in the question box with the quote, before the render only.
 
 ## Speed
 
