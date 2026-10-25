@@ -2,7 +2,7 @@
 
 What changed for every user, newest first.
 
-## Unreleased
+## ai-editor 2.7.21, creator-teardown 2.7.21 (2026-10-25)
 
 - Motion Studio re-renders only what changed. A film renders in 1-second pieces; after a note, a quick low-size pass finds the seconds whose frames changed and only those render again, then the pieces are joined without re-encoding. On the 9 s test film, a change in the last 3 seconds rendered in 1.5 min instead of 3.8, and the untouched 6 seconds stayed bit for bit the same. Claude says which seconds it rendered again.
 - Motion Studio films always use the Motion Studio engine: the skill, both film agents, the motion job and the project chat now say so, never Remotion, HyperFrames or a generated video in its place.
@@ -25,6 +25,7 @@ What changed for every user, newest first.
 - Motion Studio starts from references: add them, send one line in the chat, and the film starts. No brief needed.
 - A video's versions are one Version dropdown beside Watch and Compare, so long names no longer squeeze the player bar.
 - A finished reel gets a Trial reels tab: Claude's spare hooks and versions, a type menu per version (pick several, or let Claude decide), Add a version, Ask Claude, and Make. Trial reels list under their own heading in the Version dropdown.
+- Chat, projects, references and dictation on the home page; a stale chat session recovers, and the launcher always runs the newest version.
 
 ## ai-editor 2.7.20, creator-teardown 2.7.20 (2026-10-20)
 - New motion video on the home page: a film built from scratch on the Motion Studio engine, with references per film, a beat sheet with a still per beat to approve, and an Opus first build.
